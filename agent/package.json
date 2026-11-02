@@ -1,0 +1,10 @@
+{
+  "name": "notre-epicerie-agent",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node circulaires.mjs" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}

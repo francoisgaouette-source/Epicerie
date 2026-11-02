@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Notre épicerie</title>
+<meta name="description" content="Notre liste d'épicerie partagée, avec les spéciaux de la semaine.">
+<meta name="theme-color" content="#2f6f4a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Épicerie">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- CONNEXION -->
+<section class="login" id="login" hidden>
+  <img src="icons/icon.svg" alt="" class="tag-logo">
+  <h1>Notre épicerie</h1>
+  <form id="f-email">
+    <label for="in-email" class="hint">Entrez votre courriel. Vous recevrez un code à 6 chiffres.</label>
+    <input id="in-email" type="email" autocomplete="email" required placeholder="vous@exemple.com">
+    <button class="btn" type="submit">Recevoir le code</button>
+  </form>
+  <form id="f-code" hidden>
+    <label for="in-code" class="hint" id="code-hint">Entrez le code reçu par courriel.</label>
+    <input id="in-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required placeholder="000000">
+    <button class="btn" type="submit">Se connecter</button>
+    <button class="link" type="button" id="back-email">Utiliser une autre adresse</button>
+  </form>
+  <p class="status" id="login-status" role="status"></p>
+</section>
+
+<!-- APP -->
+<div class="wrap" id="app" hidden>
+  <header>
+    <h1>Notre épicerie</h1>
+    <span class="who"><span id="who"></span> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-view="liste">Liste <span class="count" id="c-liste">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="surveiller">À surveiller <span class="count" id="c-surveiller">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="speciaux">Spéciaux <span class="count" id="c-speciaux">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="produits">Produits <span class="count" id="c-produits">0</span></button>
+  </div>
+
+  <p class="status" id="status" role="status"></p>
+  <datalist id="dl-produits"></datalist>
+
+  <section id="v-liste" class="view">
+    <div class="stack">
+      <form class="add" id="f-liste">
+        <input id="in-liste" list="dl-produits" placeholder="Ajouter un article (ex. lait 2 %)" autocomplete="off" aria-label="Article">
+        <input id="in-qte" class="small" placeholder="Qté" autocomplete="off" aria-label="Quantité" inputmode="decimal">
+        <button class="btn" type="submit">Ajouter</button>
+      </form>
+      <div id="list-liste"></div>
+      <div class="row-actions" id="liste-actions" hidden>
+        <span class="hint" id="liste-hint"></span>
+        <button class="link" id="clear-done" type="button">Retirer les articles cochés</button>
+      </div>
+      <div id="compare"></div>
+    </div>
+  </section>
+
+  <section id="v-surveiller" class="view" hidden>
+    <div class="stack">
+      <p class="hint">Les articles qu'on achète seulement quand ils sont en spécial. Chaque jeudi, l'agent parcourt les circulaires et affiche ce qu'il trouve dans l'onglet Spéciaux.</p>
+      <form class="add" id="f-surv">
+        <input id="in-surv" list="dl-produits" placeholder="Article (ex. café Kicking Horse)" autocomplete="off" aria-label="Article à surveiller">
+        <input id="in-cible" class="small" placeholder="Prix cible" autocomplete="off" aria-label="Prix cible" inputmode="decimal">
+        <button class="btn" type="submit">Surveiller</button>
+      </form>
+      <div id="list-surv"></div>
+      <details>
+        <summary>Épiceries à vérifier</summary>
+        <div class="inner">
+          <div class="stores" id="stores"></div>
+          <form class="add" id="f-store">
+            <input id="in-store" placeholder="Ajouter une épicerie" autocomplete="off" aria-label="Épicerie">
+            <button class="btn" type="submit">Ajouter</button>
+          </form>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section id="v-speciaux" class="view" hidden>
+    <div class="stack">
+      <div class="agent" id="agent-info"></div>
+      <div id="list-spec"></div>
+    </div>
+  </section>
+
+  <section id="v-produits" class="view" hidden>
+    <div class="stack">
+      <p class="hint">Le catalogue de vos produits, avec leur prix dans chaque épicerie. Il se remplit tout seul quand vous ajoutez un article à la liste, et l'agent du jeudi met les prix à jour. Touchez un produit pour corriger un prix à la main.</p>
+      <form class="add" id="f-prod">
+        <input id="in-pnom" placeholder="Produit (ex. beurre Lactantia)" autocomplete="off" aria-label="Nom du produit">
+        <input id="in-pformat" class="small" placeholder="Format" autocomplete="off" aria-label="Format">
+        <select id="in-pcat" class="small" aria-label="Catégorie"></select>
+        <button class="btn" type="submit">Ajouter</button>
+      </form>
+      <input id="in-search" class="field" type="search" placeholder="Chercher un produit" aria-label="Chercher un produit" style="flex:none">
+      <div id="list-prod"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

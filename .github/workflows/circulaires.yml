@@ -1,0 +1,28 @@
+name: Circulaires de la semaine
+
+on:
+  schedule:
+    # Chaque jeudi à 12 h 39 UTC (7 h 39 à Montréal l'hiver, 8 h 39 l'été)
+    - cron: "39 12 * * 4"
+  workflow_dispatch: {} # bouton « Run workflow » pour lancer à la main
+
+jobs:
+  circulaires:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: node circulaires.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MODEL: ${{ vars.MODEL || 'claude-sonnet-5-5' }}
+          MAX_PRODUITS: ${{ vars.MAX_PRODUITS || '30' }}
