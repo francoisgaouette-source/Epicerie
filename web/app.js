@@ -247,6 +247,7 @@
       <button class="sbtn" type="button" data-stock="1" data-id="${p.id}" aria-label="Ajouter un ${esc(p.nom)}">+</button>
     </div>`;
   }
+  let moveOpen = null;
   function renderMaison() {
     const act = document.activeElement;
     if (act && act.closest && act.closest("#v-maison [data-keep]")) return;
@@ -273,8 +274,11 @@
           ${items.length ? `<ul class="list">${items.map((p) => `<li>
             ${thumb(p.photo, p.nom)}
             <div class="main"><div class="name">${esc(p.nom)}${estBas(p) ? '<span class="sale low-tag">à racheter</span>' : ""}</div>
-              <div class="meta">${esc([p.format, p.minimum != null ? "minimum " + fmtQ(p.minimum) : ""].filter(Boolean).join(" · ")) || "&nbsp;"}</div></div>
-            ${stockCtl(p)}</li>`).join("")}</ul>`
+              <div class="meta">${esc([p.format, p.minimum != null ? "minimum " + fmtQ(p.minimum) : ""].filter(Boolean).join(" · "))}${p.format || p.minimum != null ? " · " : ""}<button class="link move-link" type="button" data-move="${p.id}">${moveOpen === p.id ? "Annuler" : "Déplacer"}</button></div></div>
+            ${stockCtl(p)}
+            ${moveOpen === p.id ? `<div class="move-row" data-keep><span class="hint">Déplacer vers :</span>
+              <div class="move-choices">${espacesTries().filter((x) => x.id !== p.espace_id).map((x) => `<button class="chip-btn" type="button" data-moveto="${x.id}" data-id="${p.id}">${esc(x.nom)}</button>`).join("")}
+              <button class="chip-btn muted" type="button" data-moveto="" data-id="${p.id}">Sans espace</button></div></div>` : ""}</li>`).join("")}</ul>`
           : `<p class="hint espace-vide">Vide. Assignez des produits à cet espace dans l'onglet Produits ou dans « Produits sans espace » ci-dessous.</p>`}
         </div>`;
       }).join("") || emptyBox("Aucun produit trouvé", `Rien ne correspond à « ${esc($("#in-msearch").value)} ».`);
@@ -623,6 +627,17 @@
     if (!e.target.closest("#app")) return;
     const z = e.target.closest("[data-zoom]");
     if (z) { e.preventDefault(); zoom(z.dataset.zoom); return; }
+    const mo = e.target.closest("[data-move]");
+    if (mo) { moveOpen = moveOpen === mo.dataset.move ? null : mo.dataset.move; renderMaison(); return; }
+    const mt = e.target.closest("[data-moveto]");
+    if (mt) {
+      const p = state.prod.find((x) => x.id === mt.dataset.id); if (!p) return;
+      const dest = mt.dataset.moveto || null;
+      const nomDest = dest ? (state.espaces.find((x) => x.id === dest) || {}).nom : "Sans espace";
+      p.espace_id = dest; moveOpen = null; render();
+      if (await run(sb.from("produits").update({ espace_id: dest }).eq("id", p.id), `« ${p.nom} » déplacé vers ${nomDest}.`)) scheduleReload("produits");
+      return;
+    }
     const sbt = e.target.closest("[data-stock]");
     if (sbt) { await ajusterStock(sbt.dataset.id, Number(sbt.dataset.stock)); return; }
     const mv = e.target.closest("[data-espmove]");
