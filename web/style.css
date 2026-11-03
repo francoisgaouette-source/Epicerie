@@ -180,3 +180,6 @@ html,body{min-height:100%}
 .chip-btn{appearance:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:500 .9rem var(--f-body);padding:8px 12px;border-radius:999px;cursor:pointer}
 .chip-btn:hover{border-color:var(--accent)}
 .chip-btn.muted{color:var(--muted)}
+.del-link{color:var(--danger)}
+.chip-btn.danger{border-color:var(--danger);color:var(--danger)}
+.chip-btn.danger:hover{background:var(--danger);color:var(--surface)}

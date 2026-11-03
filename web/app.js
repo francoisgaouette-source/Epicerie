@@ -247,7 +247,7 @@
       <button class="sbtn" type="button" data-stock="1" data-id="${p.id}" aria-label="Ajouter un ${esc(p.nom)}">+</button>
     </div>`;
   }
-  let moveOpen = null;
+  let moveOpen = null, delOpen = null;
   function renderMaison() {
     const act = document.activeElement;
     if (act && act.closest && act.closest("#v-maison [data-keep]")) return;
@@ -274,11 +274,18 @@
           ${items.length ? `<ul class="list">${items.map((p) => `<li>
             ${thumb(p.photo, p.nom)}
             <div class="main"><div class="name">${esc(p.nom)}${estBas(p) ? '<span class="sale low-tag">à racheter</span>' : ""}</div>
-              <div class="meta">${esc([p.format, p.minimum != null ? "minimum " + fmtQ(p.minimum) : ""].filter(Boolean).join(" · "))}${p.format || p.minimum != null ? " · " : ""}<button class="link move-link" type="button" data-move="${p.id}">${moveOpen === p.id ? "Annuler" : "Déplacer"}</button></div></div>
+              <div class="meta">${esc([p.format, p.minimum != null ? "minimum " + fmtQ(p.minimum) : ""].filter(Boolean).join(" · "))}${p.format || p.minimum != null ? " · " : ""}<button class="link move-link" type="button" data-move="${p.id}">${moveOpen === p.id ? "Annuler" : "Déplacer"}</button> · <button class="link move-link del-link" type="button" data-effacer="${p.id}">Effacer</button></div></div>
             ${stockCtl(p)}
             ${moveOpen === p.id ? `<div class="move-row" data-keep><span class="hint">Déplacer vers :</span>
               <div class="move-choices">${espacesTries().filter((x) => x.id !== p.espace_id).map((x) => `<button class="chip-btn" type="button" data-moveto="${x.id}" data-id="${p.id}">${esc(x.nom)}</button>`).join("")}
-              <button class="chip-btn muted" type="button" data-moveto="" data-id="${p.id}">Sans espace</button></div></div>` : ""}</li>`).join("")}</ul>`
+              <button class="chip-btn muted" type="button" data-moveto="" data-id="${p.id}">Sans espace</button></div></div>` : ""}
+            ${delOpen === p.id ? `<div class="move-row del-row" data-keep><span class="hint">Effacer « ${esc(p.nom)} » ?</span>
+              <div class="move-choices">
+                <button class="chip-btn" type="button" data-retirer-maison="${p.id}">Retirer de la maison seulement</button>
+                <button class="chip-btn danger" type="button" data-effacer-ok="${p.id}">Supprimer complètement</button>
+                <button class="chip-btn muted" type="button" data-effacer-annuler>Annuler</button>
+              </div>
+              <span class="hint">« Retirer de la maison » garde le produit dans le catalogue (prix, photo) mais le sort de l'inventaire. « Supprimer complètement » l'efface partout, sauf de la liste en cours.</span></div>` : ""}</li>`).join("")}</ul>`
           : `<p class="hint espace-vide">Vide. Assignez des produits à cet espace dans l'onglet Produits ou dans « Produits sans espace » ci-dessous.</p>`}
         </div>`;
       }).join("") || emptyBox("Aucun produit trouvé", `Rien ne correspond à « ${esc($("#in-msearch").value)} ».`);
@@ -628,7 +635,27 @@
     const z = e.target.closest("[data-zoom]");
     if (z) { e.preventDefault(); zoom(z.dataset.zoom); return; }
     const mo = e.target.closest("[data-move]");
-    if (mo) { moveOpen = moveOpen === mo.dataset.move ? null : mo.dataset.move; renderMaison(); return; }
+    if (mo) { moveOpen = moveOpen === mo.dataset.move ? null : mo.dataset.move; delOpen = null; renderMaison(); return; }
+    const ef = e.target.closest("[data-effacer]");
+    if (ef) { delOpen = delOpen === ef.dataset.effacer ? null : ef.dataset.effacer; moveOpen = null; renderMaison(); return; }
+    if (e.target.closest("[data-effacer-annuler]")) { delOpen = null; renderMaison(); return; }
+    const rm = e.target.closest("[data-retirer-maison]");
+    if (rm) {
+      const p = state.prod.find((x) => x.id === rm.dataset.retirerMaison); delOpen = null; if (!p) return;
+      p.espace_id = null; p.stock = 0; p.minimum = null; render();
+      if (await run(sb.from("produits").update({ espace_id: null, stock: 0, minimum: null }).eq("id", p.id), `« ${p.nom} » retiré de la maison.`)) scheduleReload("produits");
+      return;
+    }
+    const eo = e.target.closest("[data-effacer-ok]");
+    if (eo) {
+      const p = state.prod.find((x) => x.id === eo.dataset.effacerOk); delOpen = null; if (!p) return;
+      state.prod = state.prod.filter((x) => x.id !== p.id); render();
+      if (await run(sb.from("produits").delete().eq("id", p.id), `« ${p.nom} » supprimé.`)) {
+        await sb.from("surveiller").delete().ilike("nom", p.nom);
+        scheduleReload("produits"); scheduleReload("surveiller");
+      }
+      return;
+    }
     const mt = e.target.closest("[data-moveto]");
     if (mt) {
       const p = state.prod.find((x) => x.id === mt.dataset.id); if (!p) return;
