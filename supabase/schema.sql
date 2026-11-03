@@ -238,3 +238,37 @@ create policy membres_modif on public.membres for update to authenticated using 
 do $$ begin
   alter publication supabase_realtime add table public.membres;
 exception when duplicate_object then null; end $$;
+
+-- ---------------------------------------------------------------
+-- Factures : panier à approuver et date de péremption
+-- ---------------------------------------------------------------
+alter table public.produits add column if not exists peremption date;
+
+create table if not exists public.panier (
+  id            uuid primary key default gen_random_uuid(),
+  lot           uuid not null,
+  magasin       text not null default '',
+  date_achat    date,
+  texte         text not null default '',
+  produit_id    uuid references public.produits(id) on delete set null,
+  nom           text not null,
+  marque        text not null default '',
+  format        text not null default '',
+  categorie     text not null default 'Autre',
+  quantite      numeric not null default 1,
+  prix_unitaire numeric,
+  prix_total    numeric,
+  espace_id     uuid references public.espaces(id) on delete set null,
+  peremption    date,
+  confiance     text not null default 'moyenne',
+  photo         text,
+  par           text default (auth.jwt() ->> 'email'),
+  cree          timestamptz not null default now()
+);
+alter table public.panier enable row level security;
+drop policy if exists membres_tout on public.panier;
+create policy membres_tout on public.panier for all to authenticated
+  using (private.est_membre()) with check (private.est_membre());
+do $$ begin
+  alter publication supabase_realtime add table public.panier;
+exception when duplicate_object then null; end $$;

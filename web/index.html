@@ -89,6 +89,8 @@
       <ul>
         <li><b>Où est… ?</b> : cherchez un produit pour savoir dans quel espace il est rangé.</li>
         <li><b>Déplacer</b> : touchez « Déplacer » sous un produit, puis choisissez son nouvel espace.</li>
+        <li><b>Lire une facture</b> : touchez « Lire une facture » et photographiez le reçu (plusieurs photos pour un long reçu). Chaque article apparaît dans un panier : vérifiez le nom, la quantité, l'espace et la date de péremption, puis touchez « Approuver ». L'article est rangé dans son espace, son prix est noté et il est coché dans la liste.</li>
+        <li><b>Péremption</b> : la date s'affiche sous chaque produit. Touchez « Péremption » pour la changer. Les produits qui expirent dans les 3 jours apparaissent en haut.</li>
         <li><b>Effacer</b> : touchez « Effacer » sous un produit. Choisissez de le retirer seulement de la maison, ou de le supprimer complètement.</li>
         <li><b>Réserve</b> : touchez + quand vous rangez un produit et − quand vous en utilisez un.</li>
         <li><b>Minimum</b> : dans l'onglet Produits, indiquez combien en garder. Sous ce minimum, le produit s'ajoute tout seul à la liste.</li>
@@ -197,6 +199,12 @@
   <section id="v-maison" class="view" hidden>
     <div class="stack">
       <p class="hint">Ce qu'on a en réserve à la maison, rangé par espace. Touchez + ou − quand vous rangez ou utilisez un produit. Quand un produit descend sous son minimum, il s'ajoute tout seul à la liste.</p>
+      <label class="btn facture-btn" id="lbl-facture" for="in-facture">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Zm2 5v2h8V7H8Zm0 4v2h8v-2H8Zm0 4v2h5v-2H8Z"/></svg>
+        Lire une facture
+      </label>
+      <input id="in-facture" type="file" accept="image/*" capture="environment" multiple hidden>
+      <div id="panier"></div>
       <div id="maison-alerte"></div>
       <input id="in-msearch" class="field" type="search" placeholder="Où est… ? (chercher un produit)" aria-label="Chercher un produit à la maison" style="flex:none">
       <div id="list-maison" class="stack"></div>

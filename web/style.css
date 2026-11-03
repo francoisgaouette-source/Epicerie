@@ -189,3 +189,19 @@ html,body{min-height:100%}
 .invite-share{background:var(--best);color:var(--best-ink);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
 .invite-share p{white-space:pre-line;margin:0;font-size:.92rem;overflow-wrap:anywhere;user-select:text}
 #f-membre[hidden]{display:none!important}
+
+/* Facture, panier, péremption */
+.facture-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;align-self:flex-start}
+.facture-btn.busy{opacity:.6;pointer-events:none}
+.facture-btn.busy::after{content:"…"}
+.panier{background:var(--surface);border:2px solid var(--accent);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.panier .list > li.panier-item{flex-direction:column;align-items:stretch;gap:8px}
+.pi-head{display:flex;align-items:center;gap:10px}
+.pi-nom{flex:1;min-width:0;font:600 1rem var(--f-body);padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.pi-head .price{font-size:1rem}
+.pi-fields{display:flex;gap:8px;flex-wrap:wrap}
+.pi-fields input,.pi-fields select,.maison-fields input[type="date"],.move-row input[type="date"]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
+.exp{font-family:var(--f-mono);font-size:.76rem}
+.exp.soon{color:var(--danger);font-weight:600}
+.exp.gone{color:var(--surface);background:var(--danger);border-radius:5px;padding:1px 6px}
+.exp-box{background:var(--soft);color:var(--ink)}

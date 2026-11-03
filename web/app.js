@@ -9,7 +9,7 @@
   const DEFAULT_STORES = ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const CATS = ["Fruits et légumes", "Viandes et poissons", "Produits laitiers et œufs", "Boulangerie", "Épicerie sèche",
     "Surgelés", "Boissons", "Collations", "Hygiène et beauté", "Entretien ménager", "Autre"];
-  const state = { liste: [], surv: [], spec: [], prod: [], espaces: [], config: null, membres: [], email: null };
+  const state = { liste: [], surv: [], spec: [], prod: [], espaces: [], panier: [], config: null, membres: [], email: null };
   let openProd = null, search = "", channel = null;
 
   // ---------- utils
@@ -54,21 +54,21 @@
     : "";
 
   // Réduit la photo (max 1280 px, JPEG) avant l'envoi
-  async function shrink(file) {
+  async function shrink(file, maxPx) {
     let src;
     try { src = await createImageBitmap(file, { imageOrientation: "from-image" }); }
     catch (e) {
       src = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = URL.createObjectURL(file); });
     }
-    const w = src.width, h = src.height, k = Math.min(1, 1280 / Math.max(w, h));
+    const w = src.width, h = src.height, k = Math.min(1, (maxPx || 1280) / Math.max(w, h));
     const c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
     c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
     const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.82));
     const b64 = c.toDataURL("image/jpeg", 0.82).split(",")[1];
     return { blob, b64 };
   }
-  async function uploadPhoto(blob) {
-    const path = `${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.jpg`;
+  async function uploadPhoto(blob, dossier) {
+    const path = `${dossier ? dossier + "/" : ""}${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.jpg`;
     const { error } = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
     if (error) throw error;
     return path;
@@ -247,20 +247,129 @@
       <button class="sbtn" type="button" data-stock="1" data-id="${p.id}" aria-label="Ajouter un ${esc(p.nom)}">+</button>
     </div>`;
   }
-  let moveOpen = null, delOpen = null;
+  let moveOpen = null, delOpen = null, dateOpen = null;
+  const joursAvant = (d) => d ? Math.round((new Date(d + "T12:00:00") - new Date(today() + "T12:00:00")) / 864e5) : null;
+  function expTag(p) {
+    if (!p.peremption || !(Number(p.stock || 0) > 0)) return "";
+    const j = joursAvant(p.peremption);
+    const cls = j < 0 ? "exp gone" : j <= 3 ? "exp soon" : "exp";
+    const txt = j < 0 ? `périmé depuis le ${fmtDate(p.peremption)}` : j === 0 ? "expire aujourd'hui" : j === 1 ? "expire demain" : `exp. ${fmtDate(p.peremption)}`;
+    return `<span class="${cls}">${txt}</span>`;
+  }
+  const bientot = () => state.prod.filter((p) => p.peremption && Number(p.stock || 0) > 0 && joursAvant(p.peremption) <= 3)
+    .sort((a, b) => a.peremption.localeCompare(b.peremption));
+
+  // ---------- panier (facture à approuver)
+  function renderPanier() {
+    const box = $("#panier");
+    const rows = [...state.panier].sort((a, b) => (a.cree < b.cree ? -1 : 1));
+    if (!rows.length) { box.innerHTML = ""; return; }
+    const act = document.activeElement;
+    if (act && act.closest && act.closest("#panier [data-panier-id]")) return;
+    const lots = [...new Set(rows.map((r) => `${r.magasin || "Épicerie"} · ${fmtDate(r.date_achat)}`))];
+    const esp = espacesTries();
+    box.innerHTML = `<div class="panier">
+      <div class="compare-head"><h2>Panier à approuver <span class="count hot">${rows.length}</span></h2><span class="hint">${esc(lots.join(" ; "))}</span></div>
+      <p class="hint">Vérifiez chaque article, corrigez au besoin, puis approuvez-le : il sera rangé dans son espace et coché dans la liste.</p>
+      <ul class="list">${rows.map((r) => {
+        const connu = r.produit_id && state.prod.find((p) => p.id === r.produit_id);
+        return `<li class="panier-item" data-panier-id="${r.id}">
+          <div class="pi-head"><input class="pi-nom" value="${esc(r.nom)}" aria-label="Nom" data-pan="nom" data-id="${r.id}">
+            <span class="price">${r.prix_total != null ? money(Number(r.prix_total)) : ""}</span></div>
+          <div class="meta">Facture : « ${esc(r.texte || "")} »${connu ? " · produit connu" : " · nouveau produit"}${r.confiance === "basse" ? ' · <b class="exp soon">à vérifier</b>' : ""}</div>
+          <div class="pi-fields">
+            <label class="mf">Quantité <input inputmode="decimal" value="${esc(fmtQ(r.quantite || 1))}" data-pan="quantite" data-id="${r.id}"></label>
+            <label class="mf">Espace <select data-pan="espace_id" data-id="${r.id}"><option value="">Sans espace</option>${esp.map((e) => `<option value="${e.id}" ${e.id === r.espace_id ? "selected" : ""}>${esc(e.nom)}</option>`).join("")}</select></label>
+            <label class="mf">Péremption <input type="date" value="${esc(r.peremption || "")}" data-pan="peremption" data-id="${r.id}"></label>
+          </div>
+          <div class="row-actions"><button class="btn" type="button" data-approuver="${r.id}">Approuver</button>
+            <button class="link muted" type="button" data-ignorer="${r.id}">Ignorer</button></div>
+        </li>`;
+      }).join("")}</ul>
+      <div class="row-actions"><button class="link" type="button" id="panier-tout">Tout approuver (${rows.length})</button>
+        <button class="link muted" type="button" id="panier-vider">Tout ignorer</button></div>
+    </div>`;
+  }
+  async function approuver(r) {
+    const nom = (r.nom || "").trim(); if (!nom) { status("Donnez un nom à l'article avant de l'approuver."); return false; }
+    const qte = Number(r.quantite) > 0 ? Number(r.quantite) : 1;
+    let p = (r.produit_id && state.prod.find((x) => x.id === r.produit_id)) || state.prod.find((x) => norm(x.nom) === norm(nom));
+    if (!p) {
+      const row = { nom, marque: r.marque || "", format: r.format || "", categorie: r.categorie || "Autre", espace_id: r.espace_id || null, stock: 0 };
+      const { data, error } = await sb.from("produits").insert(row).select("*").single();
+      if (error) { status("L'article n'a pas pu être ajouté. Réessayez."); console.error(error); return false; }
+      p = data; state.prod.push(p);
+    }
+    const avant = Number(p.stock || 0);
+    const per = r.peremption || null;
+    const peremption = per && avant > 0 && p.peremption && p.peremption < per ? p.peremption : (per || (avant > 0 ? p.peremption : null));
+    const maj = { stock: avant + qte, peremption };
+    if (r.espace_id) maj.espace_id = r.espace_id;
+    const { error } = await sb.from("produits").update(maj).eq("id", p.id);
+    if (error) { status("L'article n'a pas pu être rangé. Réessayez."); console.error(error); return false; }
+    Object.assign(p, maj);
+    const pu = Number(r.prix_unitaire) > 0 ? Number(r.prix_unitaire) : (Number(r.prix_total) > 0 ? Number(r.prix_total) / qte : null);
+    if (pu && r.magasin && stores().includes(r.magasin)) {
+      await sb.rpc("maj_prix", { p_id: p.id, p_magasin: r.magasin, p_entree: { reg: Math.round(pu * 100) / 100, maj: r.date_achat || today(), par: "facture" } });
+    }
+    const it = state.liste.find((i) => !i.fait && norm(i.nom) === norm(p.nom));
+    if (it) { it.fait = true; await sb.from("epicerie").update({ fait: true }).eq("id", it.id); }
+    await sb.from("panier").delete().eq("id", r.id);
+    state.panier = state.panier.filter((x) => x.id !== r.id);
+    return true;
+  }
+  const lirePanierRow = (id) => {
+    const r = { ...(state.panier.find((x) => x.id === id) || {}) };
+    document.querySelectorAll(`#panier [data-id="${id}"][data-pan]`).forEach((el) => {
+      const f = el.dataset.pan, v = el.value.trim();
+      r[f] = f === "quantite" ? (num(v) || 1) : (v || null);
+    });
+    return r;
+  };
+
+  // Lecture d'une facture
+  $("#in-facture").addEventListener("change", async (e) => {
+    const files = [...(e.target.files || [])].slice(0, 4); e.target.value = "";
+    if (!files.length) return;
+    status(`Lecture de la facture… (${files.length} photo${files.length > 1 ? "s" : ""}, environ 30 secondes)`);
+    $("#lbl-facture").classList.add("busy");
+    try {
+      const imgs = await Promise.all(files.map((f) => shrink(f, 1800)));
+      const paths = await Promise.all(imgs.map((i) => uploadPhoto(i.blob, "factures")));
+      const { data, error } = await sb.functions.invoke("lire-facture", { body: { images: imgs.map((i) => i.b64) } });
+      if (error || !data || data.erreur) throw new Error((data && data.erreur) || "lecture");
+      const arts = data.articles || [];
+      if (!arts.length) { status("Aucun article n'a pu être lu sur cette photo. Reprenez-la bien à plat, avec un bon éclairage."); return; }
+      const lot = crypto.randomUUID();
+      const rows = arts.map((a) => ({ lot, magasin: data.magasin || "", date_achat: data.date || today(), texte: a.texte, produit_id: a.produit_id, nom: a.nom,
+        marque: a.marque, format: a.format, categorie: a.categorie, quantite: a.quantite, prix_unitaire: a.prix_unitaire, prix_total: a.prix_total,
+        espace_id: a.espace_id, peremption: a.peremption, confiance: a.confiance, photo: paths[0] }));
+      if (await run(sb.from("panier").insert(rows), `${rows.length} article${rows.length > 1 ? "s" : ""} lu${rows.length > 1 ? "s" : ""} sur la facture${data.magasin ? " de " + data.magasin : ""}. Approuvez-les ci-dessous.`)) {
+        await load("panier"); showView("maison"); render();
+        $("#panier").scrollIntoView({ block: "start", behavior: "smooth" });
+      }
+    } catch (err) {
+      console.error(err);
+      status("La facture n'a pas pu être lue. Vérifiez votre connexion et réessayez, ou prenez une photo plus nette.");
+    } finally { $("#lbl-facture").classList.remove("busy"); }
+  });
   function renderMaison() {
+    renderPanier();
     const act = document.activeElement;
     if (act && act.closest && act.closest("#v-maison [data-keep]")) return;
     const esp = espacesTries();
     const bas = state.prod.filter(estBas);
-    $("#c-maison").textContent = bas.length;
-    $("#c-maison").classList.toggle("hot", bas.length > 0);
+    const exp = bientot();
+    const alertes = bas.length + exp.length + state.panier.length;
+    $("#c-maison").textContent = alertes;
+    $("#c-maison").classList.toggle("hot", alertes > 0);
     const enListe = new Set(state.liste.filter((i) => !i.fait).map((i) => norm(i.nom)));
     const aAjouter = bas.filter((p) => !enListe.has(norm(p.nom)));
     $("#maison-alerte").innerHTML = bas.length
       ? `<div class="mix"><b>${bas.length} produit${bas.length > 1 ? "s" : ""} sous le minimum</b> : ${bas.map((p) => esc(p.nom)).join(", ")}.
           ${aAjouter.length ? `<br><button class="link" type="button" id="add-bas">Ajouter ${aAjouter.length > 1 ? "les " + aAjouter.length + " manquants" : "le manquant"} à la liste</button>` : " Déjà dans la liste."}</div>`
       : "";
+    if (exp.length) $("#maison-alerte").innerHTML += `<div class="mix exp-box"><b>À consommer bientôt</b> : ${exp.map((p) => `${esc(p.nom)} (${expTag(p).replace(/<[^>]+>/g, "")})`).join(", ")}.</div>`;
     const q = norm($("#in-msearch").value);
     const match = (p) => !q || norm([p.nom, p.marque, p.format].join(" ")).includes(q);
     if (!esp.length) {
@@ -274,11 +383,14 @@
           ${items.length ? `<ul class="list">${items.map((p) => `<li>
             ${thumb(p.photo, p.nom)}
             <div class="main"><div class="name">${esc(p.nom)}${estBas(p) ? '<span class="sale low-tag">à racheter</span>' : ""}</div>
-              <div class="meta">${esc([p.format, p.minimum != null ? "minimum " + fmtQ(p.minimum) : ""].filter(Boolean).join(" · "))}${p.format || p.minimum != null ? " · " : ""}<button class="link move-link" type="button" data-move="${p.id}">${moveOpen === p.id ? "Annuler" : "Déplacer"}</button> · <button class="link move-link del-link" type="button" data-effacer="${p.id}">Effacer</button></div></div>
+              <div class="meta">${expTag(p)}${expTag(p) ? " · " : ""}${esc([p.format, p.minimum != null ? "minimum " + fmtQ(p.minimum) : ""].filter(Boolean).join(" · "))}${p.format || p.minimum != null ? " · " : ""}<button class="link move-link" type="button" data-move="${p.id}">${moveOpen === p.id ? "Annuler" : "Déplacer"}</button> · <button class="link move-link" type="button" data-dateopen="${p.id}">Péremption</button> · <button class="link move-link del-link" type="button" data-effacer="${p.id}">Effacer</button></div></div>
             ${stockCtl(p)}
             ${moveOpen === p.id ? `<div class="move-row" data-keep><span class="hint">Déplacer vers :</span>
               <div class="move-choices">${espacesTries().filter((x) => x.id !== p.espace_id).map((x) => `<button class="chip-btn" type="button" data-moveto="${x.id}" data-id="${p.id}">${esc(x.nom)}</button>`).join("")}
               <button class="chip-btn muted" type="button" data-moveto="" data-id="${p.id}">Sans espace</button></div></div>` : ""}
+            ${dateOpen === p.id ? `<div class="move-row" data-keep><label class="mf">Date de péremption
+                <input type="date" id="pd-${p.id}" value="${esc(p.peremption || "")}" data-dfield="peremption" data-id="${p.id}"></label>
+              <div class="move-choices"><button class="chip-btn muted" type="button" data-dateclear="${p.id}">Aucune date</button><button class="chip-btn muted" type="button" data-dateopen="${p.id}">Fermer</button></div></div>` : ""}
             ${delOpen === p.id ? `<div class="move-row del-row" data-keep><span class="hint">Effacer « ${esc(p.nom)} » ?</span>
               <div class="move-choices">
                 <button class="chip-btn" type="button" data-retirer-maison="${p.id}">Retirer de la maison seulement</button>
@@ -305,8 +417,8 @@
     const p = state.prod.find((x) => x.id === id); if (!p) return;
     const avant = Number(p.stock || 0), apres = Math.max(0, avant + delta);
     if (apres === avant) return;
-    p.stock = apres; render();
-    await run(sb.from("produits").update({ stock: apres }).eq("id", id));
+    p.stock = apres; if (apres === 0) p.peremption = null; render();
+    await run(sb.from("produits").update(apres === 0 ? { stock: 0, peremption: null } : { stock: apres }).eq("id", id));
     if (delta < 0 && estBas(p) && !(avant <= Number(p.minimum))) {
       if (!state.liste.some((i) => !i.fait && norm(i.nom) === norm(p.nom))) {
         if (await run(sb.from("epicerie").insert({ nom: p.nom, ...(p.photo ? { photo: p.photo } : {}) }), `« ${p.nom} » est sous le minimum : ajouté à la liste.`)) scheduleReload("epicerie");
@@ -330,6 +442,7 @@
       <div class="edit-fields maison-fields">
         <label class="mf">Espace ${espaceSelect(p, "e-esp-" + pid)}</label>
         <label class="mf">En réserve ${stockCtl(p)}</label>
+        <label class="mf">Péremption <input type="date" id="e-per-${pid}" value="${esc(p.peremption || "")}" data-dfield="peremption" data-id="${pid}"></label>
         <label class="mf">Minimum à garder <input id="e-min-${pid}" inputmode="decimal" placeholder="Aucun" value="${p.minimum != null ? esc(fmtQ(p.minimum)) : ""}" data-nfield="minimum" data-id="${pid}"></label>
       </div>
       <div class="price-grid">${stores().map((s, ix) => {
@@ -349,7 +462,7 @@
   }
 
   // ---------- data
-  const TABLES = { epicerie: "liste", surveiller: "surv", speciaux: "spec", produits: "prod", espaces: "espaces" };
+  const TABLES = { epicerie: "liste", surveiller: "surv", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier" };
   async function load(table) {
     if (table === "membres") {
       const { data } = await sb.from("membres").select("email, nom, invite_par");
@@ -365,7 +478,7 @@
     if (!error) state[TABLES[table]] = data || [];
   }
   async function loadAll() {
-    await Promise.all(["epicerie", "surveiller", "produits", "espaces", "config"].map(load).concat(
+    await Promise.all(["epicerie", "surveiller", "produits", "espaces", "panier", "config"].map(load).concat(
       sb.from("speciaux").select("*").limit(2000).then(({ data }) => { state.spec = data || []; })));
     render();
   }
@@ -381,7 +494,7 @@
   function subscribe() {
     if (channel) sb.removeChannel(channel);
     channel = sb.channel("epicerie-live");
-    ["epicerie", "surveiller", "speciaux", "produits", "espaces", "config", "membres"].forEach((t) =>
+    ["epicerie", "surveiller", "speciaux", "produits", "espaces", "panier", "config", "membres"].forEach((t) =>
       channel.on("postgres_changes", { event: "*", schema: "public", table: t }, () => scheduleReload(t)));
     channel.subscribe();
   }
@@ -680,6 +793,21 @@
       if (p && p.espace_id) { const q = num(it.qte); await ajusterStock(p.id, (c.checked ? 1 : -1) * (q && q > 0 ? q : 1)); }
       return;
     }
+    const df = e.target.closest("[data-dfield]");
+    if (df) {
+      const v = df.value || null; const p = state.prod.find((x) => x.id === df.dataset.id); if (p) p.peremption = v;
+      await run(sb.from("produits").update({ peremption: v }).eq("id", df.dataset.id), v ? "Date de péremption enregistrée." : "");
+      scheduleReload("produits"); return;
+    }
+    const pn = e.target.closest("[data-pan]");
+    if (pn) {
+      const f = pn.dataset.pan, raw = pn.value.trim();
+      const v = f === "quantite" ? (num(raw) || 1) : (raw || null);
+      if (f === "nom" && !v) return;
+      const r = state.panier.find((x) => x.id === pn.dataset.id); if (r) r[f] = v;
+      await run(sb.from("panier").update({ [f]: v }).eq("id", pn.dataset.id));
+      return;
+    }
     const nf = e.target.closest("[data-nfield]");
     if (nf) {
       const raw = nf.value.trim(), v = num(raw);
@@ -713,6 +841,28 @@
     if (!e.target.closest("#app")) return;
     const z = e.target.closest("[data-zoom]");
     if (z) { e.preventDefault(); zoom(z.dataset.zoom); return; }
+    const dop = e.target.closest("[data-dateopen]");
+    if (dop) { dateOpen = dateOpen === dop.dataset.dateopen ? null : dop.dataset.dateopen; moveOpen = null; delOpen = null; renderMaison(); return; }
+    const dcl = e.target.closest("[data-dateclear]");
+    if (dcl) { const p = state.prod.find((x) => x.id === dcl.dataset.dateclear); if (p) p.peremption = null; dateOpen = null; render();
+      await run(sb.from("produits").update({ peremption: null }).eq("id", dcl.dataset.dateclear)); return; }
+    const ap = e.target.closest("[data-approuver]");
+    if (ap) { ap.disabled = true; const r = lirePanierRow(ap.dataset.approuver);
+      if (await approuver(r)) { status(`« ${r.nom} » rangé${r.espace_id ? " dans " + ((state.espaces.find((x) => x.id === r.espace_id) || {}).nom || "son espace") : ""}.`); render(); scheduleReload("produits"); scheduleReload("epicerie"); }
+      else ap.disabled = false;
+      return; }
+    const ign = e.target.closest("[data-ignorer]");
+    if (ign) { const id = ign.dataset.ignorer; state.panier = state.panier.filter((x) => x.id !== id); render(); await run(sb.from("panier").delete().eq("id", id)); return; }
+    if (e.target.closest("#panier-tout")) {
+      const ids = state.panier.map((r) => r.id); let n = 0;
+      status("Rangement en cours…");
+      for (const id of ids) { if (await approuver(lirePanierRow(id))) n++; }
+      status(`${n} article${n > 1 ? "s" : ""} rangé${n > 1 ? "s" : ""}.`); render(); scheduleReload("produits"); scheduleReload("epicerie"); return;
+    }
+    if (e.target.closest("#panier-vider")) {
+      const ids = state.panier.map((r) => r.id); state.panier = []; render();
+      if (ids.length) await run(sb.from("panier").delete().in("id", ids)); return;
+    }
     const mo = e.target.closest("[data-move]");
     if (mo) { moveOpen = moveOpen === mo.dataset.move ? null : mo.dataset.move; delOpen = null; renderMaison(); return; }
     const ef = e.target.closest("[data-effacer]");
