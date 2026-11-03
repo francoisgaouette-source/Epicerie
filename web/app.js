@@ -549,11 +549,12 @@
     await loadAll();
     subscribe();
   }
-  let current = null;
+  let current, started = false;
   sb.auth.onAuthStateChange((evt, session) => {
-    const email = session && session.user && session.user.email;
-    if (email === current && evt !== "SIGNED_OUT") return;
-    current = email || null;
+    const email = (session && session.user && session.user.email) || null;
+    if (started && email === current && evt !== "SIGNED_OUT") return;
+    started = true;
+    current = email;
     setTimeout(() => onSession(session), 0);
   });
 
