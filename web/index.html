@@ -66,9 +66,12 @@
         <button class="btn" type="submit">Ajouter</button>
       </form>
       <div class="pending" id="pending" hidden>
-        <img id="pending-img" alt="Photo de l'article">
-        <div class="main"><div class="name" id="pending-title">Identification du produit…</div><div class="meta" id="pending-meta"></div></div>
-        <button class="icon" type="button" id="pending-cancel" aria-label="Retirer la photo">✕</button>
+        <div class="pending-top">
+          <img id="pending-img" alt="Photo de l'article">
+          <div class="main"><div class="name" id="pending-title">Identification du produit…</div><div class="meta" id="pending-meta"></div></div>
+          <button class="icon" type="button" id="pending-cancel" aria-label="Retirer la photo">✕</button>
+        </div>
+        <button class="btn pending-add" type="button" id="pending-add" disabled>Identification…</button>
       </div>
       <div id="list-liste"></div>
       <div class="row-actions" id="liste-actions" hidden>

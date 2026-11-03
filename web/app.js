@@ -339,7 +339,17 @@
       : p.erreur ? p.erreur
       : (id && id.nom) ? [id.marque, id.format, id.categorie].filter(Boolean).join(" · ") + (id.confiance === "basse" ? " · à vérifier" : "")
       : "Écrivez le nom de l'article; la photo y sera jointe.";
+    updatePendingAdd();
   }
+  function updatePendingAdd() {
+    const btn = $("#pending-add");
+    if (!photoPending) return;
+    const nom = $("#in-liste").value.trim();
+    btn.disabled = photoPending.busy || !nom;
+    btn.textContent = photoPending.busy ? "Identification…" : nom ? `Ajouter « ${nom} »` : "Écrivez le nom ci-dessus";
+  }
+  $("#in-liste").addEventListener("input", updatePendingAdd);
+  $("#pending-add").addEventListener("click", () => $("#f-liste").requestSubmit());
   $("#in-photo").addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0]; e.target.value = "";
     if (!file) return;
@@ -358,7 +368,7 @@
       if (ok && !$("#in-liste").value.trim()) $("#in-liste").value = ident.nom;
       showPending({ preview, path, ident: ok ? ident : null, busy: false,
         erreur: ident && ident.erreur ? "L'identification n'a pas fonctionné. Écrivez le nom; la photo y sera jointe." : "" });
-      $("#in-liste").focus();
+      if (ok) $("#pending-add").focus(); else $("#in-liste").focus();
     } catch (err) {
       console.error(err);
       if (photoPending === mine) showPending(null);
