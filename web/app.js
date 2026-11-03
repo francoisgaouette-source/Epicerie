@@ -9,7 +9,7 @@
   const DEFAULT_STORES = ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const CATS = ["Fruits et légumes", "Viandes et poissons", "Produits laitiers et œufs", "Boulangerie", "Épicerie sèche",
     "Surgelés", "Boissons", "Collations", "Hygiène et beauté", "Entretien ménager", "Autre"];
-  const state = { liste: [], surv: [], spec: [], prod: [], config: null, membres: [], email: null };
+  const state = { liste: [], surv: [], spec: [], prod: [], espaces: [], config: null, membres: [], email: null };
   let openProd = null, search = "", channel = null;
 
   // ---------- utils
@@ -171,6 +171,7 @@
       : emptyBox("Aucun spécial trouvé pour l'instant", state.surv.length ? "Rien de votre liste n'est en rabais dans les circulaires vérifiées." : "Ajoutez d'abord des articles dans « À surveiller ».");
 
     renderProducts();
+    renderMaison();
     ensureUrls([...state.liste.map((i) => photoOf(i, pm)), ...state.prod.map((p) => p.photo)]);
   }
 
@@ -233,6 +234,75 @@
       }).join("")).join("")}</ul>`;
   }
 
+  // ---------- maison : espaces et réserves
+  const espacesTries = () => [...state.espaces].sort((a, b) => (a.ordre - b.ordre) || norm(a.nom).localeCompare(norm(b.nom)));
+  const estBas = (p) => p.minimum != null && Number(p.stock || 0) <= Number(p.minimum);
+  const fmtQ = (n) => { const v = Number(n || 0); return Number.isInteger(v) ? String(v) : v.toFixed(1).replace(".", ","); };
+  const espaceSelect = (p, id) => `<select id="${id}" aria-label="Espace" data-pfield="espace_id" data-id="${p.id}">
+      <option value="">Sans espace</option>${espacesTries().map((e) => `<option value="${e.id}" ${e.id === p.espace_id ? "selected" : ""}>${esc(e.nom)}</option>`).join("")}</select>`;
+  function stockCtl(p) {
+    return `<div class="stock${estBas(p) ? " low" : ""}">
+      <button class="sbtn" type="button" data-stock="-1" data-id="${p.id}" aria-label="Retirer un ${esc(p.nom)}">−</button>
+      <span class="sval" aria-label="En réserve">${fmtQ(p.stock)}</span>
+      <button class="sbtn" type="button" data-stock="1" data-id="${p.id}" aria-label="Ajouter un ${esc(p.nom)}">+</button>
+    </div>`;
+  }
+  function renderMaison() {
+    const act = document.activeElement;
+    if (act && act.closest && act.closest("#v-maison [data-keep]")) return;
+    const esp = espacesTries();
+    const bas = state.prod.filter(estBas);
+    $("#c-maison").textContent = bas.length;
+    $("#c-maison").classList.toggle("hot", bas.length > 0);
+    const enListe = new Set(state.liste.filter((i) => !i.fait).map((i) => norm(i.nom)));
+    const aAjouter = bas.filter((p) => !enListe.has(norm(p.nom)));
+    $("#maison-alerte").innerHTML = bas.length
+      ? `<div class="mix"><b>${bas.length} produit${bas.length > 1 ? "s" : ""} sous le minimum</b> : ${bas.map((p) => esc(p.nom)).join(", ")}.
+          ${aAjouter.length ? `<br><button class="link" type="button" id="add-bas">Ajouter ${aAjouter.length > 1 ? "les " + aAjouter.length + " manquants" : "le manquant"} à la liste</button>` : " Déjà dans la liste."}</div>`
+      : "";
+    const q = norm($("#in-msearch").value);
+    const match = (p) => !q || norm([p.nom, p.marque, p.format].join(" ")).includes(q);
+    if (!esp.length) {
+      $("#list-maison").innerHTML = emptyBox("Aucun espace", "Créez vos espaces (garde-manger, frigo, congélateur…) dans « Gérer les espaces » ci-dessous.");
+    } else {
+      $("#list-maison").innerHTML = esp.map((e) => {
+        const items = state.prod.filter((p) => p.espace_id === e.id && match(p)).sort((a, b) => norm(a.nom).localeCompare(norm(b.nom)));
+        if (q && !items.length) return "";
+        return `<div class="espace">
+          <div class="espace-head"><h2>${esc(e.nom)}</h2><span class="hint">${items.length} produit${items.length > 1 ? "s" : ""}</span></div>
+          ${items.length ? `<ul class="list">${items.map((p) => `<li>
+            ${thumb(p.photo, p.nom)}
+            <div class="main"><div class="name">${esc(p.nom)}${estBas(p) ? '<span class="sale low-tag">à racheter</span>' : ""}</div>
+              <div class="meta">${esc([p.format, p.minimum != null ? "minimum " + fmtQ(p.minimum) : ""].filter(Boolean).join(" · ")) || "&nbsp;"}</div></div>
+            ${stockCtl(p)}</li>`).join("")}</ul>`
+          : `<p class="hint espace-vide">Vide. Assignez des produits à cet espace dans l'onglet Produits ou dans « Produits sans espace » ci-dessous.</p>`}
+        </div>`;
+      }).join("") || emptyBox("Aucun produit trouvé", `Rien ne correspond à « ${esc($("#in-msearch").value)} ».`);
+    }
+    const sans = state.prod.filter((p) => !p.espace_id && match(p)).sort((a, b) => norm(a.nom).localeCompare(norm(b.nom)));
+    $("#sans-espace-count").textContent = sans.length;
+    $("#list-sans-espace").innerHTML = sans.length
+      ? `<ul class="list" data-keep>${sans.map((p) => `<li>${thumb(p.photo, p.nom)}<div class="main"><div class="name">${esc(p.nom)}</div></div>${espaceSelect(p, "se-" + p.id)}</li>`).join("")}</ul>`
+      : `<p class="hint">Tous les produits ont un espace.</p>`;
+    $("#list-espaces").innerHTML = esp.map((e, i) => `<li>
+        <input id="esp-${e.id}" value="${esc(e.nom)}" aria-label="Nom de l'espace" data-espnom="${e.id}">
+        <button class="icon" type="button" data-espmove="-1" data-id="${e.id}" aria-label="Monter" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="icon" type="button" data-espmove="1" data-id="${e.id}" aria-label="Descendre" ${i === esp.length - 1 ? "disabled" : ""}>↓</button>
+        <button class="icon" type="button" data-del="espaces" data-id="${e.id}" aria-label="Supprimer ${esc(e.nom)}">✕</button></li>`).join("");
+  }
+  async function ajusterStock(id, delta) {
+    const p = state.prod.find((x) => x.id === id); if (!p) return;
+    const avant = Number(p.stock || 0), apres = Math.max(0, avant + delta);
+    if (apres === avant) return;
+    p.stock = apres; render();
+    await run(sb.from("produits").update({ stock: apres }).eq("id", id));
+    if (delta < 0 && estBas(p) && !(avant <= Number(p.minimum))) {
+      if (!state.liste.some((i) => !i.fait && norm(i.nom) === norm(p.nom))) {
+        if (await run(sb.from("epicerie").insert({ nom: p.nom, ...(p.photo ? { photo: p.photo } : {}) }), `« ${p.nom} » est sous le minimum : ajouté à la liste.`)) scheduleReload("epicerie");
+      }
+    }
+  }
+
   function productDetail(p, b) {
     const pid = p.id;
     return `<div class="prod-detail" data-stop>
@@ -245,6 +315,11 @@
         <input id="e-marque-${pid}" value="${esc(p.marque || "")}" placeholder="Marque" aria-label="Marque" data-pfield="marque" data-id="${pid}">
         <input id="e-format-${pid}" value="${esc(p.format || "")}" placeholder="Format" aria-label="Format" data-pfield="format" data-id="${pid}">
         <select id="e-cat-${pid}" aria-label="Catégorie" data-pfield="categorie" data-id="${pid}">${CATS.map((c) => `<option ${c === (p.categorie || "Autre") ? "selected" : ""}>${c}</option>`).join("")}</select>
+      </div>
+      <div class="edit-fields maison-fields">
+        <label class="mf">Espace ${espaceSelect(p, "e-esp-" + pid)}</label>
+        <label class="mf">En réserve ${stockCtl(p)}</label>
+        <label class="mf">Minimum à garder <input id="e-min-${pid}" inputmode="decimal" placeholder="Aucun" value="${p.minimum != null ? esc(fmtQ(p.minimum)) : ""}" data-nfield="minimum" data-id="${pid}"></label>
       </div>
       <div class="price-grid">${stores().map((s, ix) => {
         const e = (p.prix && p.prix[s]) || {}; const pr = priceAt(p, s);
@@ -263,7 +338,7 @@
   }
 
   // ---------- data
-  const TABLES = { epicerie: "liste", surveiller: "surv", speciaux: "spec", produits: "prod" };
+  const TABLES = { epicerie: "liste", surveiller: "surv", speciaux: "spec", produits: "prod", espaces: "espaces" };
   async function load(table) {
     if (table === "config") {
       const { data } = await sb.from("config").select("*").eq("id", 1).maybeSingle();
@@ -274,7 +349,7 @@
     if (!error) state[TABLES[table]] = data || [];
   }
   async function loadAll() {
-    await Promise.all(["epicerie", "surveiller", "produits", "config"].map(load).concat(
+    await Promise.all(["epicerie", "surveiller", "produits", "espaces", "config"].map(load).concat(
       sb.from("speciaux").select("*").limit(2000).then(({ data }) => { state.spec = data || []; })));
     render();
   }
@@ -290,7 +365,7 @@
   function subscribe() {
     if (channel) sb.removeChannel(channel);
     channel = sb.channel("epicerie-live");
-    ["epicerie", "surveiller", "speciaux", "produits", "config"].forEach((t) =>
+    ["epicerie", "surveiller", "speciaux", "produits", "espaces", "config"].forEach((t) =>
       channel.on("postgres_changes", { event: "*", schema: "public", table: t }, () => scheduleReload(t)));
     channel.subscribe();
   }
@@ -379,6 +454,14 @@
   }
   setupSuggest("#in-liste", "#sug-liste");
   setupSuggest("#in-surv", "#sug-surv");
+  $("#in-msearch").addEventListener("input", renderMaison);
+  $("#f-espace").addEventListener("submit", async (e) => {
+    e.preventDefault(); const nom = $("#in-espace").value.trim(); if (!nom) return;
+    if (state.espaces.some((x) => norm(x.nom) === norm(nom))) { status(`L'espace « ${nom} » existe déjà.`); return; }
+    $("#in-espace").value = "";
+    const ordre = Math.max(0, ...state.espaces.map((x) => x.ordre || 0)) + 1;
+    if (await run(sb.from("espaces").insert({ nom, ordre }), `Espace « ${nom} » créé.`)) scheduleReload("espaces");
+  });
 
   // ---------- ajout par photo
   let photoPending = null; // {path, ident, busy}
@@ -502,11 +585,28 @@
       const it = state.liste.find((i) => i.id === c.dataset.id);
       if (it) local("epicerie", () => (it.fait = c.checked));
       await run(sb.from("epicerie").update({ fait: c.checked }).eq("id", c.dataset.id));
+      // Acheté : on range dans la réserve de la maison (si le produit a un espace)
+      const p = it && state.prod.find((x) => norm(x.nom) === norm(it.nom));
+      if (p && p.espace_id) { const q = num(it.qte); await ajusterStock(p.id, (c.checked ? 1 : -1) * (q && q > 0 ? q : 1)); }
       return;
+    }
+    const nf = e.target.closest("[data-nfield]");
+    if (nf) {
+      const raw = nf.value.trim(), v = num(raw);
+      if (raw !== "" && v == null) { status("Inscris un nombre, par exemple 2."); return; }
+      await run(sb.from("produits").update({ [nf.dataset.nfield]: raw === "" ? null : v }).eq("id", nf.dataset.id));
+      scheduleReload("produits"); return;
+    }
+    const en = e.target.closest("[data-espnom]");
+    if (en) {
+      const v = en.value.trim(); if (!v) return;
+      await run(sb.from("espaces").update({ nom: v }).eq("id", en.dataset.espnom));
+      scheduleReload("espaces"); return;
     }
     const pf = e.target.closest("[data-pfield]");
     if (pf) {
-      const v = pf.value.trim(); if (pf.dataset.pfield === "nom" && !v) return;
+      let v = pf.value.trim(); if (pf.dataset.pfield === "nom" && !v) return;
+      if (pf.dataset.pfield === "espace_id") v = v || null;
       await run(sb.from("produits").update({ [pf.dataset.pfield]: v }).eq("id", pf.dataset.id));
       scheduleReload("produits"); return;
     }
@@ -523,6 +623,23 @@
     if (!e.target.closest("#app")) return;
     const z = e.target.closest("[data-zoom]");
     if (z) { e.preventDefault(); zoom(z.dataset.zoom); return; }
+    const sbt = e.target.closest("[data-stock]");
+    if (sbt) { await ajusterStock(sbt.dataset.id, Number(sbt.dataset.stock)); return; }
+    const mv = e.target.closest("[data-espmove]");
+    if (mv) {
+      const esp = espacesTries(); const i = esp.findIndex((x) => x.id === mv.dataset.id); const j = i + Number(mv.dataset.espmove);
+      if (i < 0 || j < 0 || j >= esp.length) return;
+      [esp[i], esp[j]] = [esp[j], esp[i]];
+      esp.forEach((x, k) => (x.ordre = k + 1)); render();
+      for (const [k, x] of esp.entries()) await run(sb.from("espaces").update({ ordre: k + 1 }).eq("id", x.id));
+      return;
+    }
+    if (e.target.closest("#add-bas")) {
+      const enListe = new Set(state.liste.filter((i) => !i.fait).map((i) => norm(i.nom)));
+      const rows = state.prod.filter((p) => estBas(p) && !enListe.has(norm(p.nom))).map((p) => ({ nom: p.nom, ...(p.photo ? { photo: p.photo } : {}) }));
+      if (rows.length && await run(sb.from("epicerie").insert(rows), `${rows.length} article${rows.length > 1 ? "s" : ""} ajouté${rows.length > 1 ? "s" : ""} à la liste.`)) scheduleReload("epicerie");
+      return;
+    }
     const pp = e.target.closest("[data-prodphoto]");
     if (pp) { prodPhotoTarget = pp.dataset.prodphoto; $("#in-prod-photo").click(); return; }
     if (e.target.closest("[data-stop] input, [data-stop] select")) return;

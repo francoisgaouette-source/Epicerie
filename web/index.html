@@ -62,6 +62,18 @@
     </div>
 
     <div class="help-item">
+      <h3>Maison</h3>
+      <p>L'inventaire de la maison, rangé par espace (garde-manger, réfrigérateur, congélateur…).</p>
+      <ul>
+        <li><b>Où est… ?</b> : cherchez un produit pour savoir dans quel espace il est rangé.</li>
+        <li><b>Réserve</b> : touchez + quand vous rangez un produit et − quand vous en utilisez un.</li>
+        <li><b>Minimum</b> : dans l'onglet Produits, indiquez combien en garder. Sous ce minimum, le produit s'ajoute tout seul à la liste.</li>
+        <li><b>Retour d'épicerie</b> : cocher un article acheté dans la Liste l'ajoute à la réserve de son espace.</li>
+        <li><b>Espaces</b> : créez, renommez ou réordonnez vos espaces dans « Gérer les espaces ». Classez les nouveaux produits dans « Produits sans espace ».</li>
+      </ul>
+    </div>
+
+    <div class="help-item">
       <h3>À surveiller</h3>
       <p>Les articles qu'on achète seulement en rabais (café, papier de toilette, viande à congeler…). Indiquez un prix cible si vous voulez être avertis seulement sous ce prix. En bas, choisissez les épiceries à vérifier.</p>
     </div>
@@ -73,7 +85,7 @@
 
     <div class="help-item">
       <h3>Produits</h3>
-      <p>Le catalogue de vos produits habituels. Il se remplit tout seul à mesure que vous ajoutez des articles. Touchez un produit pour voir son prix dans chaque épicerie (le moins cher est en vert), corriger un prix, changer sa photo, l'ajouter à la liste ou le surveiller.</p>
+      <p>Le catalogue de vos produits habituels. Il se remplit tout seul à mesure que vous ajoutez des articles. Touchez un produit pour voir son prix dans chaque épicerie (le moins cher est en vert), corriger un prix, changer sa photo, choisir son espace et son minimum à la maison, l'ajouter à la liste ou le surveiller.</p>
     </div>
 
     <div class="help-item">
@@ -86,6 +98,7 @@
 
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" data-view="liste">Liste <span class="count" id="c-liste">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="maison">Maison <span class="count" id="c-maison">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="surveiller">À surveiller <span class="count" id="c-surveiller">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="speciaux">Spéciaux <span class="count" id="c-speciaux">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="produits">Produits <span class="count" id="c-produits">0</span></button>
@@ -149,6 +162,29 @@
     <div class="stack">
       <div class="agent" id="agent-info"></div>
       <div id="list-spec"></div>
+    </div>
+  </section>
+
+  <section id="v-maison" class="view" hidden>
+    <div class="stack">
+      <p class="hint">Ce qu'on a en réserve à la maison, rangé par espace. Touchez + ou − quand vous rangez ou utilisez un produit. Quand un produit descend sous son minimum, il s'ajoute tout seul à la liste.</p>
+      <div id="maison-alerte"></div>
+      <input id="in-msearch" class="field" type="search" placeholder="Où est… ? (chercher un produit)" aria-label="Chercher un produit à la maison" style="flex:none">
+      <div id="list-maison" class="stack"></div>
+      <details>
+        <summary>Produits sans espace (<span id="sans-espace-count">0</span>)</summary>
+        <div class="inner" id="list-sans-espace"></div>
+      </details>
+      <details>
+        <summary>Gérer les espaces</summary>
+        <div class="inner">
+          <ul class="esp-list" id="list-espaces"></ul>
+          <form class="add" id="f-espace">
+            <input id="in-espace" placeholder="Nouvel espace (ex. Armoire du haut)" autocomplete="off" aria-label="Nom du nouvel espace">
+            <button class="btn" type="submit">Créer</button>
+          </form>
+        </div>
+      </details>
     </div>
   </section>
 

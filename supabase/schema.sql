@@ -165,3 +165,30 @@ create policy photos_membres_ajout on storage.objects for insert to authenticate
   with check (bucket_id = 'photos' and private.est_membre());
 create policy photos_membres_suppression on storage.objects for delete to authenticated
   using (bucket_id = 'photos' and private.est_membre());
+
+-- ---------------------------------------------------------------
+-- Maison : espaces de rangement et réserves
+-- ---------------------------------------------------------------
+create table if not exists public.espaces (
+  id    uuid primary key default gen_random_uuid(),
+  nom   text not null,
+  ordre int  not null default 0,
+  cree  timestamptz not null default now()
+);
+insert into public.espaces (nom, ordre)
+select * from (values ('Garde-manger',1),('Réfrigérateur',2),('Congélateur',3),('Sous-sol',4),('Salle de bain',5)) v(nom, ordre)
+where not exists (select 1 from public.espaces);
+
+alter table public.produits add column if not exists espace_id uuid references public.espaces(id) on delete set null;
+alter table public.produits add column if not exists stock numeric not null default 0;
+alter table public.produits add column if not exists minimum numeric;
+create index if not exists produits_espace_idx on public.produits(espace_id);
+
+alter table public.espaces enable row level security;
+drop policy if exists membres_tout on public.espaces;
+create policy membres_tout on public.espaces for all to authenticated
+  using (private.est_membre()) with check (private.est_membre());
+
+do $$ begin
+  alter publication supabase_realtime add table public.espaces;
+exception when duplicate_object then null; end $$;
