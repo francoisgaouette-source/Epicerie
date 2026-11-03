@@ -106,8 +106,6 @@
   // ---------- render
   function render() {
     const pm = prodMap();
-    $("#dl-produits").innerHTML = [...state.prod].sort((a, b) => norm(a.nom).localeCompare(norm(b.nom)))
-      .map((p) => `<option value="${esc(p.nom)}">${esc([p.format, p.categorie].filter(Boolean).join(" · "))}</option>`).join("");
 
     // LISTE
     const liste = [...state.liste].sort((a, b) => (a.fait - b.fait) || (a.cree < b.cree ? -1 : 1));
@@ -326,6 +324,47 @@
     scheduleReload("produits");
   }
 
+  // ---------- suggestions (seulement pendant la saisie)
+  const desktop = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+  const focusIfDesktop = (el) => { if (desktop) el.focus(); };
+  function setupSuggest(inputSel, boxSel) {
+    const input = $(inputSel), box = $(boxSel);
+    let shown = [], active = -1;
+    const hide = () => { box.hidden = true; box.innerHTML = ""; shown = []; active = -1; };
+    const pick = (p) => { input.value = p.nom; hide(); input.dispatchEvent(new Event("input")); hide(); };
+    function update() {
+      const q = norm(input.value);
+      if (q.length < 2 || document.activeElement !== input) return hide();
+      const words = q.split(" ");
+      shown = state.prod
+        .filter((p) => { const n = norm([p.nom, p.marque].join(" ")); return words.every((w) => n.includes(w)) && norm(p.nom) !== q; })
+        .sort((a, b) => (norm(b.nom).startsWith(q) - norm(a.nom).startsWith(q)) || norm(a.nom).localeCompare(norm(b.nom)))
+        .slice(0, 5);
+      if (!shown.length) return hide();
+      active = -1;
+      box.innerHTML = shown.map((p, i) => `<li role="option" id="${boxSel.slice(1)}-${i}" data-i="${i}">${thumb(p.photo, "")}<span>${esc(p.nom)}${p.format ? ` <span class="meta">${esc(p.format)}</span>` : ""}</span></li>`).join("");
+      box.hidden = false;
+    }
+    input.addEventListener("input", update);
+    input.addEventListener("blur", () => setTimeout(hide, 150));
+    input.addEventListener("keydown", (e) => {
+      if (box.hidden) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        active = (active + (e.key === "ArrowDown" ? 1 : -1) + shown.length) % shown.length;
+        box.querySelectorAll("li").forEach((li, i) => li.setAttribute("aria-selected", String(i === active)));
+      } else if (e.key === "Enter" && active >= 0) { e.preventDefault(); pick(shown[active]); }
+      else if (e.key === "Escape") hide();
+    });
+    box.addEventListener("pointerdown", (e) => {
+      const li = e.target.closest("li[data-i]"); if (!li) return;
+      e.preventDefault(); pick(shown[+li.dataset.i]);
+    });
+    input.form && input.form.addEventListener("submit", hide);
+  }
+  setupSuggest("#in-liste", "#sug-liste");
+  setupSuggest("#in-surv", "#sug-surv");
+
   // ---------- ajout par photo
   let photoPending = null; // {path, ident, busy}
   function showPending(p) {
@@ -368,7 +407,7 @@
       if (ok && !$("#in-liste").value.trim()) $("#in-liste").value = ident.nom;
       showPending({ preview, path, ident: ok ? ident : null, busy: false,
         erreur: ident && ident.erreur ? "L'identification n'a pas fonctionné. Écrivez le nom; la photo y sera jointe." : "" });
-      if (ok) $("#pending-add").focus(); else $("#in-liste").focus();
+      if (ok) focusIfDesktop($("#pending-add")); else focusIfDesktop($("#in-liste"));
     } catch (err) {
       console.error(err);
       if (photoPending === mine) showPending(null);
@@ -413,7 +452,7 @@
     const ph = photoPending && photoPending.path ? photoPending.path : null;
     const id = (photoPending && photoPending.ident) || {};
     const sameAsIdent = id.nom && norm(id.nom) === norm(nom);
-    $("#in-liste").value = ""; $("#in-qte").value = ""; $("#in-liste").focus();
+    $("#in-liste").value = ""; $("#in-qte").value = ""; focusIfDesktop($("#in-liste"));
     showPending(null);
     if (await run(sb.from("epicerie").insert(ph ? { nom, qte, photo: ph } : { nom, qte }))) {
       scheduleReload("epicerie");
@@ -424,7 +463,7 @@
     e.preventDefault(); const nom = $("#in-surv").value.trim(); if (!nom) return;
     const c = $("#in-cible").value.trim();
     if (c && num(c) == null) { status("Inscris le prix cible en chiffres, par exemple 9,99."); return; }
-    $("#in-surv").value = ""; $("#in-cible").value = ""; $("#in-surv").focus();
+    $("#in-surv").value = ""; $("#in-cible").value = ""; focusIfDesktop($("#in-surv"));
     if (await run(sb.from("surveiller").insert({ nom, prix_cible: num(c) }))) { scheduleReload("surveiller"); ensureProduct(nom); }
   });
   $("#f-store").addEventListener("submit", async (e) => {
@@ -437,7 +476,7 @@
     e.preventDefault(); const nom = $("#in-pnom").value.trim(); if (!nom) return;
     if (state.prod.some((p) => norm(p.nom) === norm(nom))) { status(`« ${nom} » est déjà dans le catalogue.`); return; }
     const format = $("#in-pformat").value.trim(), categorie = $("#in-pcat").value;
-    $("#in-pnom").value = ""; $("#in-pformat").value = ""; $("#in-pnom").focus();
+    $("#in-pnom").value = ""; $("#in-pformat").value = ""; focusIfDesktop($("#in-pnom"));
     if (await run(sb.from("produits").insert({ nom, format, categorie }))) scheduleReload("produits");
   });
   $("#in-search").addEventListener("input", (e) => { search = e.target.value; renderProducts(); });

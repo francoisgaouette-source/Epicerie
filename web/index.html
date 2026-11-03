@@ -52,7 +52,6 @@
   </div>
 
   <p class="status" id="status" role="status"></p>
-  <datalist id="dl-produits"></datalist>
 
   <section id="v-liste" class="view">
     <div class="stack">
@@ -61,10 +60,11 @@
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
         </label>
         <input id="in-photo" type="file" accept="image/*" capture="environment" hidden>
-        <input id="in-liste" list="dl-produits" placeholder="Ajouter un article (ex. lait 2 %)" autocomplete="off" aria-label="Article">
+        <input id="in-liste" placeholder="Ajouter un article (ex. lait 2 %)" autocomplete="off" aria-label="Article">
         <input id="in-qte" class="small" placeholder="Qté" autocomplete="off" aria-label="Quantité" inputmode="decimal">
         <button class="btn" type="submit">Ajouter</button>
       </form>
+      <ul class="suggest" id="sug-liste" role="listbox" aria-label="Produits connus" hidden></ul>
       <div class="pending" id="pending" hidden>
         <div class="pending-top">
           <img id="pending-img" alt="Photo de l'article">
@@ -86,10 +86,11 @@
     <div class="stack">
       <p class="hint">Les articles qu'on achète seulement quand ils sont en spécial. Chaque jeudi, l'agent parcourt les circulaires et affiche ce qu'il trouve dans l'onglet Spéciaux.</p>
       <form class="add" id="f-surv">
-        <input id="in-surv" list="dl-produits" placeholder="Article (ex. café Kicking Horse)" autocomplete="off" aria-label="Article à surveiller">
+        <input id="in-surv" placeholder="Article (ex. café Kicking Horse)" autocomplete="off" aria-label="Article à surveiller">
         <input id="in-cible" class="small" placeholder="Prix cible" autocomplete="off" aria-label="Prix cible" inputmode="decimal">
         <button class="btn" type="submit">Surveiller</button>
       </form>
+      <ul class="suggest" id="sug-surv" role="listbox" aria-label="Produits connus" hidden></ul>
       <div id="list-surv"></div>
       <details>
         <summary>Épiceries à vérifier</summary>
