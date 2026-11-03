@@ -145,3 +145,23 @@ insert into public.membres (email, nom) values
   ('premiere-adresse@exemple.com', 'Prénom 1'),
   ('deuxieme-adresse@exemple.com', 'Prénom 2')
 on conflict (email) do update set nom = excluded.nom;
+
+-- ---------------------------------------------------------------
+-- Photos des articles et des produits (stockage privé, membres seulement)
+-- ---------------------------------------------------------------
+alter table public.epicerie add column if not exists photo text;
+alter table public.produits add column if not exists photo text;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('photos', 'photos', false, 5242880, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do nothing;
+
+drop policy if exists photos_membres_lecture on storage.objects;
+drop policy if exists photos_membres_ajout on storage.objects;
+drop policy if exists photos_membres_suppression on storage.objects;
+create policy photos_membres_lecture on storage.objects for select to authenticated
+  using (bucket_id = 'photos' and private.est_membre());
+create policy photos_membres_ajout on storage.objects for insert to authenticated
+  with check (bucket_id = 'photos' and private.est_membre());
+create policy photos_membres_suppression on storage.objects for delete to authenticated
+  using (bucket_id = 'photos' and private.est_membre());

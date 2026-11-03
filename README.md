@@ -5,7 +5,8 @@ Liste d'épicerie partagée à deux, installable sur le téléphone, avec :
 - la **liste** en temps réel (ce que l'un ajoute, l'autre le voit aussitôt);
 - les articles **à surveiller**, qu'on achète seulement en spécial;
 - les **spéciaux** trouvés chaque jeudi dans les circulaires d'IGA, Metro, Maxi, Super C et Provigo;
-- un **catalogue de produits** avec le prix dans chaque épicerie et le magasin le moins cher pour la liste en cours.
+- un **catalogue de produits** avec le prix dans chaque épicerie et le magasin le moins cher pour la liste en cours;
+- l'**ajout par photo** : on photographie un produit, Claude l'identifie et la photo reste jointe à l'article.
 
 ## Comment c'est bâti
 
@@ -70,6 +71,12 @@ L'agent roule ensuite tout seul chaque jeudi matin.
 Connectez-vous avec votre courriel et le code reçu. Seules les adresses inscrites dans la table `membres` ont accès.
 
 ---
+
+## Ajout par photo
+
+Le bouton appareil photo à gauche du champ « Ajouter un article » ouvre la caméra. La photo est réduite, envoyée dans le stockage privé de Supabase, puis analysée par la fonction `identifier-produit` (dossier `supabase/functions/`), qui propose le nom, la marque, le format et la catégorie. On peut corriger le nom avant d'appuyer sur « Ajouter ». La photo s'affiche dans la liste et dans le catalogue; touchez-la pour l'agrandir.
+
+La fonction a besoin du secret `ANTHROPIC_API_KEY` dans Supabase (**Edge Functions > Secrets**). Chaque photo coûte une fraction de cent.
 
 ## Bon à savoir
 

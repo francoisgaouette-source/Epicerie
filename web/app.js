@@ -33,6 +33,47 @@
     return (m && m.nom) || "";
   };
 
+  // ---------- photos
+  const urls = new Map(); // chemin -> URL signée
+  let fetchingUrls = false;
+  const photoOf = (item, pm) => item.photo || (pm && (pm.get(norm(item.nom)) || {}).photo) || null;
+  async function ensureUrls(paths) {
+    const need = [...new Set(paths.filter((p) => p && !urls.has(p)))];
+    if (!need.length || fetchingUrls) return;
+    fetchingUrls = true;
+    try {
+      const { data } = await sb.storage.from("photos").createSignedUrls(need, 60 * 60 * 24 * 7);
+      (data || []).forEach((d) => { if (d.signedUrl) urls.set(d.path, d.signedUrl); });
+      need.forEach((p) => { if (!urls.has(p)) urls.set(p, ""); });
+    } catch (e) { console.error(e); }
+    fetchingUrls = false;
+    render();
+  }
+  const thumb = (path, alt) => path
+    ? `<img class="thumb" src="${esc(urls.get(path) || "")}" alt="${esc(alt)}" data-zoom="${esc(path)}" loading="lazy">`
+    : "";
+
+  // Réduit la photo (max 1280 px, JPEG) avant l'envoi
+  async function shrink(file) {
+    let src;
+    try { src = await createImageBitmap(file, { imageOrientation: "from-image" }); }
+    catch (e) {
+      src = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = URL.createObjectURL(file); });
+    }
+    const w = src.width, h = src.height, k = Math.min(1, 1280 / Math.max(w, h));
+    const c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+    c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
+    const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.82));
+    const b64 = c.toDataURL("image/jpeg", 0.82).split(",")[1];
+    return { blob, b64 };
+  }
+  async function uploadPhoto(blob) {
+    const path = `${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.jpg`;
+    const { error } = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
+    if (error) throw error;
+    return path;
+  }
+
   // ---------- prices
   function priceAt(p, store) {
     const e = p && p.prix && p.prix[store]; if (!e) return null;
@@ -80,8 +121,10 @@
       $("#list-liste").innerHTML = `<ul class="list">${liste.map((i) => {
         const by = nameOf(i.par); const p = pm.get(norm(i.nom)); const b = p && bestOf(p);
         const onSale = saleNames.has(norm(i.nom)) || (b && b.special);
+        const ph = photoOf(i, pm);
         return `<li class="${i.fait ? "done" : ""}">
           <input type="checkbox" class="check" id="chk-${i.id}" data-id="${i.id}" ${i.fait ? "checked" : ""} aria-label="Acheté : ${esc(i.nom)}">
+          ${thumb(ph, i.nom)}
           <div class="main"><div class="name">${esc(i.nom)}${i.qte ? ` <span class="meta">× ${esc(i.qte)}</span>` : ""}${onSale ? '<span class="sale">en spécial</span>' : ""}</div>
           <div class="meta">${b ? `Meilleur prix : <span class="mono">${money(b.val)}</span> chez ${esc(b.store)}` : ""}${b && by ? " · " : ""}${by ? `ajouté par ${esc(by)}` : ""}</div></div>
           <button class="icon" data-del="epicerie" data-id="${i.id}" aria-label="Supprimer ${esc(i.nom)}">✕</button></li>`;
@@ -130,6 +173,7 @@
       : emptyBox("Aucun spécial trouvé pour l'instant", state.surv.length ? "Rien de votre liste n'est en rabais dans les circulaires vérifiées." : "Ajoutez d'abord des articles dans « À surveiller ».");
 
     renderProducts();
+    ensureUrls([...state.liste.map((i) => photoOf(i, pm)), ...state.prod.map((p) => p.photo)]);
   }
 
   function renderCompare(restants, pm) {
@@ -182,6 +226,7 @@
       groups[c].sort((a, b) => norm(a.nom).localeCompare(norm(b.nom))).map((p) => {
         const b = bestOf(p);
         return `<li class="prod-row" data-prod="${p.id}">
+          ${thumb(p.photo, p.nom)}
           <div class="main"><div class="name">${esc(p.nom)}${b && b.special ? '<span class="sale">spécial</span>' : ""}</div>
           <div class="meta">${esc([p.marque, p.format].filter(Boolean).join(" · ")) || "&nbsp;"}</div></div>
           <div class="best-price">${b ? money(b.val) + `<small>${esc(b.store)}</small>` : "<small>aucun prix</small>"}</div>
@@ -193,6 +238,10 @@
   function productDetail(p, b) {
     const pid = p.id;
     return `<div class="prod-detail" data-stop>
+      <div class="prod-photo">
+        ${p.photo ? `<img src="${esc(urls.get(p.photo) || "")}" alt="${esc(p.nom)}" data-zoom="${esc(p.photo)}">` : ""}
+        <button class="btn ghost" type="button" data-prodphoto="${pid}">${p.photo ? "Changer la photo" : "Ajouter une photo"}</button>
+      </div>
       <div class="edit-fields">
         <input id="e-nom-${pid}" value="${esc(p.nom)}" aria-label="Nom" data-pfield="nom" data-id="${pid}">
         <input id="e-marque-${pid}" value="${esc(p.marque || "")}" placeholder="Marque" aria-label="Marque" data-pfield="marque" data-id="${pid}">
@@ -259,20 +308,107 @@
     status(okMsg || "");
     return true;
   }
-  async function ensureProduct(nom) {
-    if (state.prod.some((p) => norm(p.nom) === norm(nom))) return;
-    await run(sb.from("produits").insert({ nom }));
+  async function ensureProduct(nom, extra) {
+    const ex = extra || {};
+    const p = state.prod.find((x) => norm(x.nom) === norm(nom));
+    if (p) {
+      const maj = {};
+      if (ex.photo && !p.photo) maj.photo = ex.photo;
+      if (ex.marque && !p.marque) maj.marque = ex.marque;
+      if (ex.format && !p.format) maj.format = ex.format;
+      if (ex.categorie && ex.categorie !== "Autre" && (!p.categorie || p.categorie === "Autre")) maj.categorie = ex.categorie;
+      if (Object.keys(maj).length) { await run(sb.from("produits").update(maj).eq("id", p.id)); scheduleReload("produits"); }
+      return;
+    }
+    const row = { nom };
+    ["marque", "format", "categorie", "photo"].forEach((k) => { if (ex[k]) row[k] = ex[k]; });
+    await run(sb.from("produits").insert(row));
     scheduleReload("produits");
   }
+
+  // ---------- ajout par photo
+  let photoPending = null; // {path, ident, busy}
+  function showPending(p) {
+    photoPending = p;
+    $("#pending").hidden = !p;
+    if (!p) return;
+    $("#pending-img").src = p.preview || "";
+    const id = p.ident;
+    $("#pending-title").textContent = p.busy ? "Identification du produit…" : (id && id.nom) ? id.nom : "Produit non reconnu";
+    $("#pending-meta").textContent = p.busy ? "La photo sera jointe à l'article."
+      : p.erreur ? p.erreur
+      : (id && id.nom) ? [id.marque, id.format, id.categorie].filter(Boolean).join(" · ") + (id.confiance === "basse" ? " · à vérifier" : "")
+      : "Écrivez le nom de l'article; la photo y sera jointe.";
+  }
+  $("#in-photo").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    showPending({ preview, busy: true });
+    const mine = photoPending;
+    try {
+      const { blob, b64 } = await shrink(file);
+      const [path, ident] = await Promise.all([
+        uploadPhoto(blob),
+        sb.functions.invoke("identifier-produit", { body: { image: b64, media_type: "image/jpeg" } })
+          .then(({ data, error }) => (error ? { erreur: true } : data)).catch(() => ({ erreur: true })),
+      ]);
+      if (photoPending !== mine) return; // annulé entre-temps
+      const ok = ident && !ident.erreur && ident.nom;
+      if (ok && !$("#in-liste").value.trim()) $("#in-liste").value = ident.nom;
+      showPending({ preview, path, ident: ok ? ident : null, busy: false,
+        erreur: ident && ident.erreur ? "L'identification n'a pas fonctionné. Écrivez le nom; la photo y sera jointe." : "" });
+      $("#in-liste").focus();
+    } catch (err) {
+      console.error(err);
+      if (photoPending === mine) showPending(null);
+      status("La photo n'a pas pu être envoyée. Vérifiez votre connexion et réessayez.");
+    }
+  });
+  $("#pending-cancel").addEventListener("click", () => {
+    if (photoPending && photoPending.path) sb.storage.from("photos").remove([photoPending.path]);
+    if (photoPending && photoPending.ident && $("#in-liste").value.trim() === photoPending.ident.nom) $("#in-liste").value = "";
+    showPending(null);
+  });
+
+  // Photo d'un produit du catalogue
+  let prodPhotoTarget = null;
+  $("#in-prod-photo").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!file || !prodPhotoTarget) return;
+    const id = prodPhotoTarget; prodPhotoTarget = null;
+    status("Envoi de la photo…");
+    try {
+      const { blob } = await shrink(file);
+      const path = await uploadPhoto(blob);
+      if (await run(sb.from("produits").update({ photo: path }).eq("id", id), "Photo ajoutée.")) scheduleReload("produits");
+    } catch (err) { console.error(err); status("La photo n'a pas pu être envoyée. Vérifiez votre connexion et réessayez."); }
+  });
+
+  // Agrandir une photo
+  function zoom(path) {
+    const u = urls.get(path); if (!u) return;
+    $("#lightbox-img").src = u; $("#lightbox").hidden = false; $("#lightbox-close").focus();
+  }
+  $("#lightbox").addEventListener("click", () => { $("#lightbox").hidden = true; });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#lightbox").hidden = true; });
   // Optimistic local update, then sync
   function local(table, fn) { fn(); render(); }
 
   // ---------- events
   $("#f-liste").addEventListener("submit", async (e) => {
     e.preventDefault(); const nom = $("#in-liste").value.trim(); if (!nom) return;
+    if (photoPending && photoPending.busy) { status("Un instant, la photo est en cours d'envoi."); return; }
     const qte = $("#in-qte").value.trim();
+    const ph = photoPending && photoPending.path ? photoPending.path : null;
+    const id = (photoPending && photoPending.ident) || {};
+    const sameAsIdent = id.nom && norm(id.nom) === norm(nom);
     $("#in-liste").value = ""; $("#in-qte").value = ""; $("#in-liste").focus();
-    if (await run(sb.from("epicerie").insert({ nom, qte }))) { scheduleReload("epicerie"); ensureProduct(nom); }
+    showPending(null);
+    if (await run(sb.from("epicerie").insert(ph ? { nom, qte, photo: ph } : { nom, qte }))) {
+      scheduleReload("epicerie");
+      ensureProduct(nom, ph ? { photo: ph, ...(sameAsIdent ? { marque: id.marque, format: id.format, categorie: id.categorie } : {}) } : null);
+    }
   });
   $("#f-surv").addEventListener("submit", async (e) => {
     e.preventDefault(); const nom = $("#in-surv").value.trim(); if (!nom) return;
@@ -321,6 +457,10 @@
 
   document.addEventListener("click", async (e) => {
     if (!e.target.closest("#app")) return;
+    const z = e.target.closest("[data-zoom]");
+    if (z) { e.preventDefault(); zoom(z.dataset.zoom); return; }
+    const pp = e.target.closest("[data-prodphoto]");
+    if (pp) { prodPhotoTarget = pp.dataset.prodphoto; $("#in-prod-photo").click(); return; }
     if (e.target.closest("[data-stop] input, [data-stop] select")) return;
     const d = e.target.closest("[data-del]");
     if (d) {

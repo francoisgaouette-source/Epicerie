@@ -57,10 +57,19 @@
   <section id="v-liste" class="view">
     <div class="stack">
       <form class="add" id="f-liste">
+        <label class="btn ghost photo-btn" for="in-photo" title="Ajouter avec une photo" aria-label="Ajouter avec une photo">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+        </label>
+        <input id="in-photo" type="file" accept="image/*" capture="environment" hidden>
         <input id="in-liste" list="dl-produits" placeholder="Ajouter un article (ex. lait 2 %)" autocomplete="off" aria-label="Article">
         <input id="in-qte" class="small" placeholder="Qté" autocomplete="off" aria-label="Quantité" inputmode="decimal">
         <button class="btn" type="submit">Ajouter</button>
       </form>
+      <div class="pending" id="pending" hidden>
+        <img id="pending-img" alt="Photo de l'article">
+        <div class="main"><div class="name" id="pending-title">Identification du produit…</div><div class="meta" id="pending-meta"></div></div>
+        <button class="icon" type="button" id="pending-cancel" aria-label="Retirer la photo">✕</button>
+      </div>
       <div id="list-liste"></div>
       <div class="row-actions" id="liste-actions" hidden>
         <span class="hint" id="liste-hint"></span>
@@ -113,6 +122,9 @@
     </div>
   </section>
 </div>
+
+<div class="lightbox" id="lightbox" hidden><img id="lightbox-img" alt=""><button class="btn ghost" type="button" id="lightbox-close">Fermer</button></div>
+<input id="in-prod-photo" type="file" accept="image/*" capture="environment" hidden>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
