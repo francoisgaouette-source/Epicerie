@@ -192,3 +192,49 @@ create policy membres_tout on public.espaces for all to authenticated
 do $$ begin
   alter publication supabase_realtime add table public.espaces;
 exception when duplicate_object then null; end $$;
+
+-- ---------------------------------------------------------------
+-- Invitations : les membres ajoutent ou retirent des membres, maximum 4
+-- ---------------------------------------------------------------
+alter table public.membres add column if not exists invite_par text;
+alter table public.membres add column if not exists cree timestamptz not null default now();
+
+create or replace function private.verifier_membres()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    new.email := lower(trim(new.email));
+    new.nom := trim(coalesce(new.nom, ''));
+    if new.email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
+      raise exception 'courriel_invalide' using errcode = 'P0001';
+    end if;
+    if (select count(*) from public.membres) >= 4 then
+      raise exception 'limite_membres' using errcode = 'P0001';
+    end if;
+    if new.invite_par is null then new.invite_par := auth.jwt() ->> 'email'; end if;
+    return new;
+  elsif tg_op = 'DELETE' then
+    if (select count(*) from public.membres) <= 1 then
+      raise exception 'dernier_membre' using errcode = 'P0001';
+    end if;
+    return old;
+  end if;
+  return new;
+end $$;
+revoke all on function private.verifier_membres() from public, anon, authenticated;
+
+drop trigger if exists membres_verif_ins on public.membres;
+create trigger membres_verif_ins before insert on public.membres for each row execute function private.verifier_membres();
+drop trigger if exists membres_verif_del on public.membres;
+create trigger membres_verif_del before delete on public.membres for each row execute function private.verifier_membres();
+
+drop policy if exists membres_ajout on public.membres;
+create policy membres_ajout on public.membres for insert to authenticated with check (private.est_membre());
+drop policy if exists membres_retrait on public.membres;
+create policy membres_retrait on public.membres for delete to authenticated using (private.est_membre());
+drop policy if exists membres_modif on public.membres;
+create policy membres_modif on public.membres for update to authenticated using (private.est_membre()) with check (private.est_membre());
+
+do $$ begin
+  alter publication supabase_realtime add table public.membres;
+exception when duplicate_object then null; end $$;

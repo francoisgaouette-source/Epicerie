@@ -41,8 +41,30 @@
 <div class="wrap" id="app" hidden>
   <header>
     <h1>Notre épicerie</h1>
-    <span class="who"><span id="who"></span> · <button class="link" id="open-help" type="button">Aide</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
+    <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link" id="open-help" type="button">Aide</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
   </header>
+
+  <section class="help" id="membres" hidden aria-labelledby="membres-title">
+    <div class="help-head">
+      <h2 id="membres-title">Membres <span class="count" id="membres-count">0 sur 4</span></h2>
+      <button class="icon" type="button" id="close-membres" aria-label="Fermer les membres">✕</button>
+    </div>
+    <p class="hint">Les personnes qui partagent la liste. Jusqu'à 4 membres. Chaque membre peut inviter ou retirer quelqu'un.</p>
+    <ul class="list" id="list-membres"></ul>
+    <form class="add" id="f-membre">
+      <input id="in-mnom" placeholder="Prénom" autocomplete="off" aria-label="Prénom de la personne invitée" class="small">
+      <input id="in-memail" type="email" placeholder="Courriel" autocomplete="off" aria-label="Courriel de la personne invitée" required>
+      <button class="btn" type="submit" id="btn-inviter">Inviter</button>
+    </form>
+    <p class="hint" id="membres-plein" hidden>La limite de 4 membres est atteinte. Retirez quelqu'un pour inviter une autre personne.</p>
+    <div class="invite-share" id="invite-share" hidden>
+      <p id="invite-text"></p>
+      <div class="row-actions">
+        <button class="btn" type="button" id="invite-send">Envoyer l'invitation</button>
+        <button class="link" type="button" id="invite-copy">Copier le message</button>
+      </div>
+    </div>
+  </section>
 
   <section class="help" id="help" hidden aria-labelledby="help-title">
     <div class="help-head">
@@ -88,6 +110,11 @@
     <div class="help-item">
       <h3>Produits</h3>
       <p>Le catalogue de vos produits habituels. Il se remplit tout seul à mesure que vous ajoutez des articles. Touchez un produit pour voir son prix dans chaque épicerie (le moins cher est en vert), corriger un prix, changer sa photo, choisir son espace et son minimum à la maison, l'ajouter à la liste ou le surveiller.</p>
+    </div>
+
+    <div class="help-item">
+      <h3>Membres</h3>
+      <p>Touchez « Membres » en haut pour voir qui partage la liste, inviter quelqu'un (jusqu'à 4 personnes) ou retirer une personne. La personne invitée ouvre l'app et se connecte avec le courriel que vous avez inscrit.</p>
     </div>
 
     <div class="help-item">

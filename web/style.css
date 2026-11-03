@@ -183,3 +183,9 @@ html,body{min-height:100%}
 .del-link{color:var(--danger)}
 .chip-btn.danger{border-color:var(--danger);color:var(--danger)}
 .chip-btn.danger:hover{background:var(--danger);color:var(--surface)}
+
+/* Membres */
+#membres .list > li{padding:10px 12px}
+.invite-share{background:var(--best);color:var(--best-ink);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.invite-share p{white-space:pre-line;margin:0;font-size:.92rem;overflow-wrap:anywhere;user-select:text}
+#f-membre[hidden]{display:none!important}

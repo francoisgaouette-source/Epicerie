@@ -351,6 +351,11 @@
   // ---------- data
   const TABLES = { epicerie: "liste", surveiller: "surv", speciaux: "spec", produits: "prod", espaces: "espaces" };
   async function load(table) {
+    if (table === "membres") {
+      const { data } = await sb.from("membres").select("email, nom, invite_par");
+      if (data) state.membres = data;
+      renderMembres(); return;
+    }
     if (table === "config") {
       const { data } = await sb.from("config").select("*").eq("id", 1).maybeSingle();
       state.config = data; return;
@@ -376,7 +381,7 @@
   function subscribe() {
     if (channel) sb.removeChannel(channel);
     channel = sb.channel("epicerie-live");
-    ["epicerie", "surveiller", "speciaux", "produits", "espaces", "config"].forEach((t) =>
+    ["epicerie", "surveiller", "speciaux", "produits", "espaces", "config", "membres"].forEach((t) =>
       channel.on("postgres_changes", { event: "*", schema: "public", table: t }, () => scheduleReload(t)));
     channel.subscribe();
   }
@@ -410,9 +415,83 @@
     scheduleReload("produits");
   }
 
+  // ---------- membres
+  const MAX_MEMBRES = 4;
+  const APP_URL = location.origin + location.pathname.replace(/index\.html$/, "");
+  let retraitEnAttente = null;
+  function renderMembres() {
+    const m = [...state.membres].sort((a, b) => (a.nom || a.email).localeCompare(b.nom || b.email));
+    $("#membres-count").textContent = `${m.length} sur ${MAX_MEMBRES}`;
+    const plein = m.length >= MAX_MEMBRES;
+    $("#f-membre").hidden = plein; $("#membres-plein").hidden = !plein;
+    $("#list-membres").innerHTML = m.map((x) => {
+      const moi = state.email && x.email.toLowerCase() === state.email.toLowerCase();
+      const conf = retraitEnAttente === x.email;
+      return `<li><div class="main"><div class="name">${esc(x.nom || x.email)}${moi ? ' <span class="meta">(vous)</span>' : ""}</div>
+        <div class="meta">${esc(x.email)}</div></div>
+        ${m.length > 1 ? (conf
+          ? `<button class="link" type="button" data-retirer-ok="${esc(x.email)}" style="color:var(--danger)">${moi ? "Me retirer" : "Confirmer le retrait"}</button><button class="link muted" type="button" data-retirer-annuler>Annuler</button>`
+          : `<button class="icon" type="button" data-retirer="${esc(x.email)}" aria-label="Retirer ${esc(x.nom || x.email)}">✕</button>`) : ""}</li>`;
+    }).join("");
+  }
+  function showMembres(open) {
+    $("#membres").hidden = !open;
+    if (open) { $("#help").hidden = true; renderMembres(); $("#membres").scrollIntoView({ block: "start", behavior: "smooth" }); }
+  }
+  $("#open-membres").addEventListener("click", () => showMembres($("#membres").hidden));
+  $("#close-membres").addEventListener("click", () => showMembres(false));
+  let inviteMsg = "";
+  $("#f-membre").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("#in-memail").value.trim().toLowerCase(), nom = $("#in-mnom").value.trim();
+    if (!email) return;
+    if (state.membres.some((x) => x.email.toLowerCase() === email)) { status(`${email} est déjà membre.`); return; }
+    if (state.membres.length >= MAX_MEMBRES) { status("La limite de 4 membres est atteinte."); return; }
+    $("#btn-inviter").disabled = true;
+    const { error } = await sb.from("membres").insert({ email, nom });
+    $("#btn-inviter").disabled = false;
+    if (error) {
+      const msg = String(error.message || "");
+      status(msg.includes("limite_membres") ? "La limite de 4 membres est atteinte."
+        : msg.includes("courriel_invalide") ? "Ce courriel ne semble pas valide. Vérifiez-le."
+        : error.code === "23505" ? `${email} est déjà membre.`
+        : "L'invitation n'a pas été enregistrée. Vérifiez votre connexion et réessayez.");
+      return;
+    }
+    $("#in-memail").value = ""; $("#in-mnom").value = "";
+    const moi = (state.membres.find((x) => state.email && x.email.toLowerCase() === state.email.toLowerCase()) || {}).nom || "";
+    inviteMsg = `${nom ? "Salut " + nom + "! " : ""}${moi ? moi + " t'invite" : "Je t'invite"} à partager notre liste d'épicerie. Ouvre ${APP_URL} et connecte-toi avec ton courriel ${email} : tu recevras un code à 6 chiffres.`;
+    $("#invite-text").textContent = `${nom || email} a accès. Envoyez-lui ce message pour qu'elle ou il se connecte :\n\n« ${inviteMsg} »`;
+    $("#invite-send").hidden = !navigator.share;
+    $("#invite-share").hidden = false;
+    status("");
+    await load("membres");
+  });
+  $("#invite-send").addEventListener("click", async () => {
+    try { await navigator.share({ title: "Notre épicerie", text: inviteMsg }); } catch (e) {}
+  });
+  $("#invite-copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(inviteMsg); status("Message copié. Collez-le dans un texto ou un courriel."); }
+    catch (e) { status("Copie impossible ici : sélectionnez le message à la main."); }
+  });
+  $("#list-membres").addEventListener("click", async (e) => {
+    const r = e.target.closest("[data-retirer]");
+    if (r) { retraitEnAttente = r.dataset.retirer; renderMembres(); return; }
+    if (e.target.closest("[data-retirer-annuler]")) { retraitEnAttente = null; renderMembres(); return; }
+    const ok = e.target.closest("[data-retirer-ok]");
+    if (!ok) return;
+    const email = ok.dataset.retirerOk; retraitEnAttente = null;
+    const { error } = await sb.from("membres").delete().eq("email", email);
+    if (error) { status(String(error.message || "").includes("dernier_membre") ? "Il faut garder au moins un membre." : "Le retrait n'a pas fonctionné. Réessayez."); renderMembres(); return; }
+    if (state.email && email.toLowerCase() === state.email.toLowerCase()) { await sb.auth.signOut(); return; }
+    status(`${email} n'a plus accès.`);
+    await load("membres");
+  });
+
   // ---------- aide
   function showHelp(open) {
     $("#help").hidden = !open;
+    if (open) { $("#membres").hidden = true; }
     if (open) { $("#help").scrollIntoView({ block: "start", behavior: "smooth" }); }
     else { try { localStorage.setItem("aide-vue", "1"); } catch (e) {} }
   }
