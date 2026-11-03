@@ -324,6 +324,21 @@
     scheduleReload("produits");
   }
 
+  // ---------- aide
+  function showHelp(open) {
+    $("#help").hidden = !open;
+    if (open) { $("#help").scrollIntoView({ block: "start", behavior: "smooth" }); }
+    else { try { localStorage.setItem("aide-vue", "1"); } catch (e) {} }
+  }
+  $("#open-help").addEventListener("click", () => showHelp($("#help").hidden));
+  $("#close-help").addEventListener("click", () => showHelp(false));
+  $("#close-help-2").addEventListener("click", () => showHelp(false));
+  function helpFirstTime() {
+    let vue = false;
+    try { vue = localStorage.getItem("aide-vue") === "1"; } catch (e) {}
+    if (!vue) $("#help").hidden = false;
+  }
+
   // ---------- suggestions (seulement pendant la saisie)
   const desktop = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
   const focusIfDesktop = (el) => { if (desktop) el.focus(); };
@@ -595,6 +610,7 @@
     const me = membres.find((m) => m.email.toLowerCase() === state.email.toLowerCase());
     $("#who").textContent = (me && me.nom) || state.email;
     $("#login").hidden = true; $("#app").hidden = false;
+    helpFirstTime();
     await loadAll();
     subscribe();
   }

@@ -139,3 +139,13 @@ html,body{min-height:100%}
 .suggest li span{min-width:0;overflow-wrap:anywhere}
 .suggest li:hover,.suggest li[aria-selected="true"]{background:var(--soft)}
 .suggest .thumb{width:32px;height:32px;cursor:pointer}
+
+/* Aide */
+.help{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.help-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.help h2{font-size:1.15rem;text-wrap:balance}
+.help h3{font-size:.95rem;margin:0 0 4px;color:var(--accent)}
+.help p,.help li{font-size:.92rem;margin:0;max-width:65ch}
+.help ul{margin:6px 0 0;padding-left:1.1em;display:flex;flex-direction:column;gap:4px}
+.help-item{border-top:1px solid var(--line);padding-top:12px}
+.help .btn{align-self:flex-start}
