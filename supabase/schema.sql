@@ -272,3 +272,44 @@ create policy membres_tout on public.panier for all to authenticated
 do $$ begin
   alter publication supabase_realtime add table public.panier;
 exception when duplicate_object then null; end $$;
+
+-- ---------------------------------------------------------------
+-- Catalogue : surveillance des spéciaux sur le produit lui-même
+-- ---------------------------------------------------------------
+alter table public.produits add column if not exists surveiller boolean not null default false;
+alter table public.produits add column if not exists prix_cible numeric;
+
+-- ---------------------------------------------------------------
+-- Bilan du soir et notifications (Web Push)
+-- ---------------------------------------------------------------
+alter table public.config add column if not exists bilan_heure int not null default 21;
+alter table public.config add column if not exists dernier_bilan date;
+
+create table if not exists public.abonnements (
+  id       uuid primary key default gen_random_uuid(),
+  email    text not null default lower(auth.jwt() ->> 'email'),
+  endpoint text not null unique,
+  p256dh   text not null,
+  auth     text not null,
+  cree     timestamptz not null default now()
+);
+alter table public.abonnements enable row level security;
+drop policy if exists abonnements_siens on public.abonnements;
+create policy abonnements_siens on public.abonnements for all to authenticated
+  using (private.est_membre() and email = lower(auth.jwt() ->> 'email'))
+  with check (private.est_membre() and email = lower(auth.jwt() ->> 'email'));
+
+-- Clés de notification et secret du cron : lisibles seulement côté serveur (aucune règle d'accès)
+create table if not exists public.push_cles (nom text primary key, valeur text not null);
+alter table public.push_cles enable row level security;
+insert into public.push_cles (nom, valeur) values ('cron', encode(gen_random_bytes(24), 'hex')) on conflict (nom) do nothing;
+
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+-- 01 h et 02 h UTC couvrent 21 h à Montréal, été comme hiver; la fonction vérifie l'heure locale.
+select cron.schedule('rappel-bilan', '0 1,2 * * *', $$
+  select net.http_post(
+    url := 'https://gandliltstmtfsmsjaew.supabase.co/functions/v1/rappel-bilan',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron', (select valeur from public.push_cles where nom = 'cron')),
+    body := '{"action":"envoyer"}'::jsonb);
+$$);
