@@ -91,27 +91,29 @@
         <li><b>Déplacer</b> : touchez « Déplacer » sous un produit, puis choisissez son nouvel espace.</li>
         <li><b>Lire une facture</b> : touchez « Lire une facture » et photographiez le reçu (plusieurs photos pour un long reçu). Chaque article apparaît dans un panier : vérifiez le nom, la quantité, l'espace et la date de péremption, puis touchez « Approuver ». L'article est rangé dans son espace, son prix est noté et il est coché dans la liste.</li>
         <li><b>Péremption</b> : la date s'affiche sous chaque produit. Touchez « Péremption » pour la changer. Les produits qui expirent dans les 3 jours apparaissent en haut.</li>
+        <li><b>Bilan du soir</b> : à 21 h, une notification demande ce qui a été consommé. Pour chaque produit, touchez −1, −25 %, −50 % ou « Tout », ou inscrivez une quantité (25 % = le quart d'un emballage). Touchez « Enregistrer le bilan » quand c'est fini. Activez le rappel sur chaque téléphone dans « Rappel du bilan à 21 h », au bas de l'onglet Maison.</li>
         <li><b>Effacer</b> : touchez « Effacer » sous un produit. Choisissez de le retirer seulement de la maison, ou de le supprimer complètement.</li>
         <li><b>Réserve</b> : touchez + quand vous rangez un produit et − quand vous en utilisez un.</li>
         <li><b>Minimum</b> : dans l'onglet Produits, indiquez combien en garder. Sous ce minimum, le produit s'ajoute tout seul à la liste.</li>
         <li><b>Retour d'épicerie</b> : cocher un article acheté dans la Liste l'ajoute à la réserve de son espace.</li>
-        <li><b>Espaces</b> : créez, renommez ou réordonnez vos espaces dans « Gérer les espaces ». Classez les nouveaux produits dans « Produits sans espace ».</li>
+        <li><b>Espaces</b> : créez, renommez ou réordonnez vos espaces dans « Gérer les espaces ». Classez les produits sans espace dans la section du bas. Un produit épuisé quitte la Maison mais garde son espace habituel : il y retournera au prochain achat.</li>
       </ul>
     </div>
 
-    <div class="help-item">
-      <h3>À surveiller</h3>
-      <p>Les articles qu'on achète seulement en rabais (café, papier de toilette, viande à congeler…). Indiquez un prix cible si vous voulez être avertis seulement sous ce prix. En bas, choisissez les épiceries à vérifier.</p>
-    </div>
 
     <div class="help-item">
       <h3>Spéciaux</h3>
-      <p>Chaque jeudi matin, un agent parcourt les circulaires et affiche ici les articles surveillés qui sont en rabais, avec le magasin, le prix et les dates. Touchez « Ajouter à la liste » pour l'acheter, ou « Masquer » si ça ne vous intéresse pas.</p>
+      <p>Chaque jeudi matin, un agent parcourt les circulaires et affiche ici les produits surveillés (★ dans le Catalogue) qui sont en rabais, avec le magasin, le prix et les dates. Touchez « Ajouter à la liste » pour l'acheter, ou « Masquer » si ça ne vous intéresse pas. En bas, choisissez les épiceries à vérifier.</p>
     </div>
 
     <div class="help-item">
-      <h3>Produits</h3>
-      <p>Le catalogue de vos produits habituels. Il se remplit tout seul à mesure que vous ajoutez des articles. Touchez un produit pour voir son prix dans chaque épicerie (le moins cher est en vert), corriger un prix, changer sa photo, choisir son espace et son minimum à la maison, l'ajouter à la liste ou le surveiller.</p>
+      <h3>Catalogue</h3>
+      <p>Tous vos produits, achetés ou à acheter. Il se remplit tout seul à mesure que vous ajoutez des articles ou lisez des factures.</p>
+      <ul>
+        <li><b>★ Surveiller</b> : touchez l'étoile d'un produit pour que l'agent cherche ses spéciaux chaque semaine. Dans le détail du produit, indiquez un prix cible pour n'être averti que sous ce prix.</li>
+        <li><b>Filtres</b> : « Surveillés » montre les produits suivis, « À la maison » ceux qu'on a en réserve.</li>
+        <li><b>Détail</b> : touchez un produit pour voir son prix dans chaque épicerie (le moins cher est en vert), corriger un prix, changer sa photo, choisir son espace habituel, sa réserve, son minimum et sa date de péremption.</li>
+      </ul>
     </div>
 
     <div class="help-item">
@@ -130,9 +132,8 @@
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" data-view="liste">Liste <span class="count" id="c-liste">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="maison">Maison <span class="count" id="c-maison">0</span></button>
-    <button class="tab" role="tab" aria-selected="false" data-view="surveiller">À surveiller <span class="count" id="c-surveiller">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="produits">Catalogue <span class="count" id="c-produits">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="speciaux">Spéciaux <span class="count" id="c-speciaux">0</span></button>
-    <button class="tab" role="tab" aria-selected="false" data-view="produits">Produits <span class="count" id="c-produits">0</span></button>
   </div>
 
   <p class="status" id="status" role="status"></p>
@@ -166,16 +167,10 @@
     </div>
   </section>
 
-  <section id="v-surveiller" class="view" hidden>
+  <section id="v-speciaux" class="view" hidden>
     <div class="stack">
-      <p class="hint">Les articles qu'on achète seulement quand ils sont en spécial. Chaque jeudi, l'agent parcourt les circulaires et affiche ce qu'il trouve dans l'onglet Spéciaux.</p>
-      <form class="add" id="f-surv">
-        <input id="in-surv" placeholder="Article (ex. café Kicking Horse)" autocomplete="off" aria-label="Article à surveiller">
-        <input id="in-cible" class="small" placeholder="Prix cible" autocomplete="off" aria-label="Prix cible" inputmode="decimal">
-        <button class="btn" type="submit">Surveiller</button>
-      </form>
-      <ul class="suggest" id="sug-surv" role="listbox" aria-label="Produits connus" hidden></ul>
-      <div id="list-surv"></div>
+      <div class="agent" id="agent-info"></div>
+      <div id="list-spec"></div>
       <details>
         <summary>Épiceries à vérifier</summary>
         <div class="inner">
@@ -189,21 +184,15 @@
     </div>
   </section>
 
-  <section id="v-speciaux" class="view" hidden>
-    <div class="stack">
-      <div class="agent" id="agent-info"></div>
-      <div id="list-spec"></div>
-    </div>
-  </section>
-
   <section id="v-maison" class="view" hidden>
     <div class="stack">
-      <p class="hint">Ce qu'on a en réserve à la maison, rangé par espace. Touchez + ou − quand vous rangez ou utilisez un produit. Quand un produit descend sous son minimum, il s'ajoute tout seul à la liste.</p>
+      <p class="hint">Ce qu'on a à la maison, rangé par espace. Touchez + ou − quand vous rangez ou utilisez un produit. À 0, le produit quitte la Maison mais reste dans le Catalogue; sous son minimum, il s'ajoute tout seul à la Liste.</p>
       <label class="btn facture-btn" id="lbl-facture" for="in-facture">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Zm2 5v2h8V7H8Zm0 4v2h8v-2H8Zm0 4v2h5v-2H8Z"/></svg>
         Lire une facture
       </label>
       <input id="in-facture" type="file" accept="image/*" capture="environment" multiple hidden>
+      <div id="bilan"></div>
       <div id="panier"></div>
       <div id="maison-alerte"></div>
       <input id="in-msearch" class="field" type="search" placeholder="Où est… ? (chercher un produit)" aria-label="Chercher un produit à la maison" style="flex:none">
@@ -211,6 +200,18 @@
       <details>
         <summary>Produits sans espace (<span id="sans-espace-count">0</span>)</summary>
         <div class="inner" id="list-sans-espace"></div>
+      </details>
+      <details id="rappel-box">
+        <summary>Rappel du bilan à 21 h</summary>
+        <div class="inner">
+          <p class="hint">Chaque soir à 21 h, une notification demande ce qui a été consommé dans la journée. À activer sur chaque téléphone. Sur iPhone, l'app doit d'abord être installée sur l'écran d'accueil.</p>
+          <p class="hint" id="rappel-etat"></p>
+          <div class="row-actions">
+            <button class="btn" type="button" id="rappel-activer">Activer sur cet appareil</button>
+            <button class="link muted" type="button" id="rappel-desactiver" hidden>Désactiver sur cet appareil</button>
+            <button class="link" type="button" id="bilan-ouvrir">Faire le bilan maintenant</button>
+          </div>
+        </div>
       </details>
       <details>
         <summary>Gérer les espaces</summary>
@@ -227,7 +228,12 @@
 
   <section id="v-produits" class="view" hidden>
     <div class="stack">
-      <p class="hint">Le catalogue de vos produits, avec leur prix dans chaque épicerie. Il se remplit tout seul quand vous ajoutez un article à la liste, et l'agent du jeudi met les prix à jour. Touchez un produit pour corriger un prix à la main.</p>
+      <p class="hint">Tous vos produits, achetés ou à acheter, avec leur prix dans chaque épicerie. Touchez l'étoile pour surveiller les spéciaux d'un produit. Touchez un produit pour voir ou corriger ses détails.</p>
+      <div class="filters" role="group" aria-label="Filtrer le catalogue">
+        <button class="fchip" type="button" data-filter="tous" aria-pressed="true">Tous</button>
+        <button class="fchip" type="button" data-filter="surv" aria-pressed="false">★ Surveillés <span id="n-surv">0</span></button>
+        <button class="fchip" type="button" data-filter="maison" aria-pressed="false">À la maison <span id="n-maison">0</span></button>
+      </div>
       <form class="add" id="f-prod">
         <input id="in-pnom" placeholder="Produit (ex. beurre Lactantia)" autocomplete="off" aria-label="Nom du produit">
         <input id="in-pformat" class="small" placeholder="Format" autocomplete="off" aria-label="Format">

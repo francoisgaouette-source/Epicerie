@@ -113,17 +113,10 @@ async function main() {
   const config = (await must(sb.from("config").select("*").eq("id", 1).maybeSingle(), "config")) || {};
   const magasins = config.magasins?.length ? config.magasins : ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const region = config.region || "Montréal, QC";
-  const surveiller = await must(sb.from("surveiller").select("*"), "surveiller");
-  let produits = await must(sb.from("produits").select("*"), "produits");
+  const produits = await must(sb.from("produits").select("*"), "produits");
   const epicerie = await must(sb.from("epicerie").select("*").eq("fait", false), "epicerie");
-
-  // Chaque article surveillé doit exister dans le catalogue.
-  const parNom = new Map(produits.map((p) => [norm(p.nom), p]));
-  const manquants = surveiller.filter((s) => !parNom.has(norm(s.nom))).map((s) => ({ nom: s.nom }));
-  if (manquants.length) {
-    const ajoutes = await must(sb.from("produits").insert(manquants).select("*"), "ajout produits");
-    produits = produits.concat(ajoutes); ajoutes.forEach((p) => parNom.set(norm(p.nom), p));
-  }
+  // Les produits surveillés sont ceux marqués ★ dans le catalogue.
+  const surveiller = produits.filter((p) => p.surveiller).map((p) => ({ nom: p.nom, prix_cible: p.prix_cible }));
 
   // Priorité : surveillés, puis dans la liste, puis prix les plus anciens.
   const nomsSurv = new Set(surveiller.map((s) => norm(s.nom)));
