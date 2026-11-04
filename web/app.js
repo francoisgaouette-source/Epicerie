@@ -405,7 +405,16 @@
     const sans = state.prod.filter((p) => !p.espace_id && match(p)).sort((a, b) => norm(a.nom).localeCompare(norm(b.nom)));
     $("#sans-espace-count").textContent = sans.length;
     $("#list-sans-espace").innerHTML = sans.length
-      ? `<ul class="list" data-keep>${sans.map((p) => `<li>${thumb(p.photo, p.nom)}<div class="main"><div class="name">${esc(p.nom)}</div></div>${espaceSelect(p, "se-" + p.id)}</li>`).join("")}</ul>`
+      ? `<ul class="list" data-keep>${sans.map((p) => `<li class="sans-row">${thumb(p.photo, p.nom)}<div class="main"><div class="name">${esc(p.nom)}</div>
+          <div class="meta">${esc([p.format, Number(p.stock || 0) > 0 ? fmtQ(p.stock) + " à la maison" : ""].filter(Boolean).join(" · "))}</div></div>
+          <label class="mf sans-move">Déplacer vers ${espaceSelect(p, "se-" + p.id)}</label>
+          <button class="icon del-icon" type="button" data-effacer="${p.id}" aria-label="Effacer ${esc(p.nom)}">🗑</button>
+          ${delOpen === p.id ? `<div class="move-row del-row"><span class="hint">Effacer « ${esc(p.nom)} » ?</span>
+            <div class="move-choices">
+              <button class="chip-btn" type="button" data-retirer-maison="${p.id}">Il n'y en a plus (mettre à 0)</button>
+              <button class="chip-btn danger" type="button" data-effacer-ok="${p.id}">Supprimer complètement</button>
+              <button class="chip-btn muted" type="button" data-effacer-annuler>Annuler</button>
+            </div></div>` : ""}</li>`).join("")}</ul>`
       : `<p class="hint">Tous les produits ont un espace.</p>`;
     $("#list-espaces").innerHTML = esp.map((e, i) => `<li>
         <input id="esp-${e.id}" value="${esc(e.nom)}" aria-label="Nom de l'espace" data-espnom="${e.id}">

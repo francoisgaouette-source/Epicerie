@@ -205,3 +205,9 @@ html,body{min-height:100%}
 .exp.soon{color:var(--danger);font-weight:600}
 .exp.gone{color:var(--surface);background:var(--danger);border-radius:5px;padding:1px 6px}
 .exp-box{background:var(--soft);color:var(--ink)}
+
+/* Produits sans espace */
+.sans-row{flex-wrap:wrap}
+.sans-move{flex:0 1 170px}
+.sans-move select{width:100%}
+.del-icon:hover{color:var(--danger)}
