@@ -899,12 +899,77 @@
     if (cur.some((x) => norm(x) === norm(m))) return;
     if (await run(sb.from("config").update({ magasins: [...cur, m] }).eq("id", 1))) scheduleReload("config");
   });
+  // Catalogue : ajout avec la caméra
+  let catPhoto = null; // {preview, path, ident, busy}
+  function showCatPhoto(p) {
+    catPhoto = p; $("#ppending").hidden = !p; if (!p) return;
+    $("#ppending-img").src = p.preview || "";
+    const id = p.ident;
+    $("#ppending-title").textContent = p.busy ? "Identification du produit…" : (id && id.nom) ? id.nom : "Produit non reconnu";
+    $("#ppending-meta").textContent = p.busy ? "La photo sera jointe au produit."
+      : p.erreur ? p.erreur
+      : (id && id.nom) ? [id.marque, id.format, id.categorie].filter(Boolean).join(" · ") + (id.confiance === "basse" ? " · à vérifier" : "")
+      : "Écrivez le nom du produit; la photo y sera jointe.";
+    majCatBtn();
+  }
+  function majCatBtn() {
+    if (!catPhoto) return;
+    const nom = $("#in-pnom").value.trim(), b = $("#ppending-add");
+    b.disabled = catPhoto.busy || !nom;
+    b.textContent = catPhoto.busy ? "Identification…" : nom ? `Ajouter « ${nom} » au catalogue` : "Écrivez le nom ci-dessus";
+  }
+  $("#in-pnom").addEventListener("input", majCatBtn);
+  $("#ppending-add").addEventListener("click", () => $("#f-prod").requestSubmit());
+  $("#ppending-cancel").addEventListener("click", () => {
+    if (catPhoto && catPhoto.path) sb.storage.from("photos").remove([catPhoto.path]);
+    if (catPhoto && catPhoto.ident && $("#in-pnom").value.trim() === catPhoto.ident.nom) { $("#in-pnom").value = ""; $("#in-pformat").value = ""; }
+    showCatPhoto(null);
+  });
+  $("#in-pphoto").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    showCatPhoto({ preview, busy: true }); const mine = catPhoto;
+    try {
+      const { blob, b64 } = await shrink(file);
+      const [path, ident] = await Promise.all([
+        uploadPhoto(blob),
+        sb.functions.invoke("identifier-produit", { body: { image: b64, media_type: "image/jpeg" } })
+          .then(({ data, error }) => (error ? { erreur: true } : data)).catch(() => ({ erreur: true })),
+      ]);
+      if (catPhoto !== mine) return;
+      const ok = ident && !ident.erreur && ident.nom;
+      if (ok) {
+        if (!$("#in-pnom").value.trim()) $("#in-pnom").value = ident.nom;
+        if (!$("#in-pformat").value.trim() && ident.format) $("#in-pformat").value = ident.format;
+        if (ident.categorie && CATS.includes(ident.categorie)) $("#in-pcat").value = ident.categorie;
+      }
+      showCatPhoto({ preview, path, ident: ok ? ident : null, busy: false,
+        erreur: ident && ident.erreur ? "L'identification n'a pas fonctionné. Écrivez le nom; la photo y sera jointe." : "" });
+      if (ok) focusIfDesktop($("#ppending-add")); else focusIfDesktop($("#in-pnom"));
+    } catch (err) {
+      console.error(err);
+      if (catPhoto === mine) showCatPhoto(null);
+      status("La photo n'a pas pu être envoyée. Vérifiez votre connexion et réessayez.");
+    }
+  });
+
   $("#f-prod").addEventListener("submit", async (e) => {
     e.preventDefault(); const nom = $("#in-pnom").value.trim(); if (!nom) return;
-    if (state.prod.some((p) => norm(p.nom) === norm(nom))) { status(`« ${nom} » est déjà dans le catalogue.`); return; }
+    if (catPhoto && catPhoto.busy) { status("Un instant, la photo est en cours d'envoi."); return; }
     const format = $("#in-pformat").value.trim(), categorie = $("#in-pcat").value;
-    $("#in-pnom").value = ""; $("#in-pformat").value = ""; focusIfDesktop($("#in-pnom"));
-    if (await run(sb.from("produits").insert({ nom, format, categorie }))) scheduleReload("produits");
+    const ph = catPhoto && catPhoto.path, id = (catPhoto && catPhoto.ident) || {};
+    const existant = state.prod.find((p) => norm(p.nom) === norm(nom));
+    if (existant) {
+      if (ph && !existant.photo) {
+        if (await run(sb.from("produits").update({ photo: ph }).eq("id", existant.id), `« ${nom} » était déjà dans le catalogue : photo ajoutée.`)) scheduleReload("produits");
+      } else status(`« ${nom} » est déjà dans le catalogue.`);
+      showCatPhoto(null); $("#in-pnom").value = ""; $("#in-pformat").value = ""; return;
+    }
+    const row = { nom, format, categorie };
+    if (ph) { row.photo = ph; if (id.marque && norm(id.nom) === norm(nom)) row.marque = id.marque; }
+    $("#in-pnom").value = ""; $("#in-pformat").value = ""; $("#in-pcat").value = "Autre"; showCatPhoto(null); focusIfDesktop($("#in-pnom"));
+    if (await run(sb.from("produits").insert(row), `« ${nom} » ajouté au catalogue.`)) scheduleReload("produits");
   });
   $("#in-search").addEventListener("input", (e) => { search = e.target.value; renderProducts(); });
 

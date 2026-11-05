@@ -110,6 +110,7 @@
       <h3>Catalogue</h3>
       <p>Tous vos produits, achetés ou à acheter. Il se remplit tout seul à mesure que vous ajoutez des articles ou lisez des factures.</p>
       <ul>
+        <li><b>Avec la caméra</b> : touchez l'appareil photo à gauche du champ, photographiez le produit, vérifiez le nom, le format et la catégorie proposés, puis touchez « Ajouter au catalogue ». La photo reste jointe au produit.</li>
         <li><b>★ Surveiller</b> : touchez l'étoile d'un produit pour que l'agent cherche ses spéciaux chaque semaine. Dans le détail du produit, indiquez un prix cible pour n'être averti que sous ce prix.</li>
         <li><b>Filtres</b> : « Surveillés » montre les produits suivis, « À la maison » ceux qu'on a en réserve.</li>
         <li><b>Détail</b> : touchez un produit pour voir son prix dans chaque épicerie (le moins cher est en vert), corriger un prix, changer sa photo, choisir son espace habituel, sa réserve, son minimum et sa date de péremption.</li>
@@ -235,11 +236,23 @@
         <button class="fchip" type="button" data-filter="maison" aria-pressed="false">À la maison <span id="n-maison">0</span></button>
       </div>
       <form class="add" id="f-prod">
+        <label class="btn ghost photo-btn" for="in-pphoto" title="Ajouter avec une photo" aria-label="Ajouter au catalogue avec une photo">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+        </label>
+        <input id="in-pphoto" type="file" accept="image/*" capture="environment" hidden>
         <input id="in-pnom" placeholder="Produit (ex. beurre Lactantia)" autocomplete="off" aria-label="Nom du produit">
         <input id="in-pformat" class="small" placeholder="Format" autocomplete="off" aria-label="Format">
         <select id="in-pcat" class="small" aria-label="Catégorie"></select>
         <button class="btn" type="submit">Ajouter</button>
       </form>
+      <div class="pending" id="ppending" hidden>
+        <div class="pending-top">
+          <img id="ppending-img" alt="Photo du produit">
+          <div class="main"><div class="name" id="ppending-title">Identification du produit…</div><div class="meta" id="ppending-meta"></div></div>
+          <button class="icon" type="button" id="ppending-cancel" aria-label="Retirer la photo">✕</button>
+        </div>
+        <button class="btn pending-add" type="button" id="ppending-add" disabled>Identification…</button>
+      </div>
       <input id="in-search" class="field" type="search" placeholder="Chercher un produit" aria-label="Chercher un produit" style="flex:none">
       <div id="list-prod"></div>
     </div>
