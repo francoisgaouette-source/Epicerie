@@ -431,7 +431,7 @@
     conso[p.id] = Math.max(0, Math.min(Number(p.stock || 0), v || 0));
     i.blur(); renderBilan();
   });
-  $("#bilan-ouvrir").addEventListener("click", ouvrirBilan);
+  $("#bilan-ouvrir").addEventListener("click", () => { $("#rappel").hidden = true; ouvrirBilan(); });
   window.addEventListener("hashchange", () => { if (location.hash === "#bilan" && state.email) ouvrirBilan(); });
   navigator.serviceWorker && navigator.serviceWorker.addEventListener && navigator.serviceWorker.addEventListener("message", (e) => { if (e.data === "bilan") ouvrirBilan(); });
 
@@ -448,6 +448,7 @@
     const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
     if (Notification.permission === "denied") { etat.textContent = "Les notifications sont bloquées pour cette app. Autorisez-les dans les réglages du téléphone, puis revenez ici."; on.hidden = true; off.hidden = true; return; }
     etat.textContent = sub ? "Rappel activé sur cet appareil." : "Rappel non activé sur cet appareil.";
+    $("#open-rappel").classList.toggle("on", !!sub);
     on.hidden = !!sub; off.hidden = !sub;
   }
   $("#rappel-activer").addEventListener("click", async () => {
@@ -474,7 +475,12 @@
     } catch (err) { console.error(err); }
     etatRappel();
   });
-  $("#rappel-box").addEventListener("toggle", () => { if ($("#rappel-box").open) etatRappel(); });
+  function showRappel(open) {
+    $("#rappel").hidden = !open;
+    if (open) { $("#help").hidden = true; $("#membres").hidden = true; etatRappel(); $("#rappel").scrollIntoView({ block: "start", behavior: "smooth" }); }
+  }
+  $("#open-rappel").addEventListener("click", () => showRappel($("#rappel").hidden));
+  $("#close-rappel").addEventListener("click", () => showRappel(false));
 
   function renderMaison() {
     renderBilan();
@@ -683,7 +689,7 @@
   }
   function showMembres(open) {
     $("#membres").hidden = !open;
-    if (open) { $("#help").hidden = true; renderMembres(); $("#membres").scrollIntoView({ block: "start", behavior: "smooth" }); }
+    if (open) { $("#help").hidden = true; $("#rappel").hidden = true; renderMembres(); $("#membres").scrollIntoView({ block: "start", behavior: "smooth" }); }
   }
   $("#open-membres").addEventListener("click", () => showMembres($("#membres").hidden));
   $("#close-membres").addEventListener("click", () => showMembres(false));
@@ -738,7 +744,7 @@
   // ---------- aide
   function showHelp(open) {
     $("#help").hidden = !open;
-    if (open) { $("#membres").hidden = true; }
+    if (open) { $("#membres").hidden = true; $("#rappel").hidden = true; }
     if (open) { $("#help").scrollIntoView({ block: "start", behavior: "smooth" }); }
     else { try { localStorage.setItem("aide-vue", "1"); } catch (e) {} }
   }
@@ -1195,6 +1201,7 @@
     $("#login").hidden = true; $("#app").hidden = false;
     helpFirstTime();
     await loadAll();
+    etatRappel().catch(() => {});
     if (location.hash === "#bilan") ouvrirBilan();
     subscribe();
   }

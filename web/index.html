@@ -40,7 +40,13 @@
 <!-- APP -->
 <div class="wrap" id="app" hidden>
   <header>
-    <h1>Notre épicerie</h1>
+    <div class="title-row">
+      <h1>Notre épicerie</h1>
+      <button class="bell" type="button" id="open-rappel" aria-label="Rappel du bilan à 21 h" title="Rappel du bilan à 21 h">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path class="bell-shape" d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.4 15.5a2.5 2.5 0 0 0 4.8 0Z"/></svg>
+        <span class="bell-txt">21 h</span>
+      </button>
+    </div>
     <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link" id="open-help" type="button">Aide</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
   </header>
 
@@ -63,6 +69,20 @@
         <button class="btn" type="button" id="invite-send">Envoyer l'invitation</button>
         <button class="link" type="button" id="invite-copy">Copier le message</button>
       </div>
+    </div>
+  </section>
+
+  <section class="help" id="rappel" hidden aria-labelledby="rappel-title">
+    <div class="help-head">
+      <h2 id="rappel-title">Rappel du bilan à 21 h</h2>
+      <button class="icon" type="button" id="close-rappel" aria-label="Fermer">✕</button>
+    </div>
+    <p class="hint">Chaque soir à 21 h, une notification demande ce qui a été consommé dans la journée. À activer sur chaque téléphone. Sur iPhone, l'app doit d'abord être installée sur l'écran d'accueil.</p>
+    <p class="hint" id="rappel-etat"></p>
+    <div class="row-actions">
+      <button class="btn" type="button" id="rappel-activer">Activer sur cet appareil</button>
+      <button class="link muted" type="button" id="rappel-desactiver" hidden>Désactiver sur cet appareil</button>
+      <button class="link" type="button" id="bilan-ouvrir">Faire le bilan maintenant</button>
     </div>
   </section>
 
@@ -91,7 +111,7 @@
         <li><b>Déplacer</b> : touchez « Déplacer » sous un produit, puis choisissez son nouvel espace.</li>
         <li><b>Lire une facture</b> : touchez « Lire une facture » et photographiez le reçu (plusieurs photos pour un long reçu). Chaque article apparaît dans un panier : vérifiez le nom, la quantité, l'espace et la date de péremption, puis touchez « Approuver ». L'article est rangé dans son espace, son prix est noté et il est coché dans la liste.</li>
         <li><b>Péremption</b> : la date s'affiche sous chaque produit. Touchez « Péremption » pour la changer. Les produits qui expirent dans les 3 jours apparaissent en haut.</li>
-        <li><b>Bilan du soir</b> : à 21 h, une notification demande ce qui a été consommé. Pour chaque produit, touchez −1, −25 %, −50 % ou « Tout », ou inscrivez une quantité (25 % = le quart d'un emballage). Touchez « Enregistrer le bilan » quand c'est fini. Activez le rappel sur chaque téléphone dans « Rappel du bilan à 21 h », au bas de l'onglet Maison.</li>
+        <li><b>Bilan du soir</b> : à 21 h, une notification demande ce qui a été consommé. Pour chaque produit, touchez −1, −25 %, −50 % ou « Tout », ou inscrivez une quantité (25 % = le quart d'un emballage). Touchez « Enregistrer le bilan » quand c'est fini. Activez le rappel sur chaque téléphone en touchant la cloche à côté du titre « Notre épicerie ».</li>
         <li><b>Effacer</b> : touchez « Effacer » sous un produit. Choisissez de le retirer seulement de la maison, ou de le supprimer complètement.</li>
         <li><b>Réserve</b> : touchez + quand vous rangez un produit et − quand vous en utilisez un.</li>
         <li><b>Minimum</b> : dans l'onglet Produits, indiquez combien en garder. Sous ce minimum, le produit s'ajoute tout seul à la liste.</li>
@@ -201,18 +221,6 @@
       <details>
         <summary>Produits sans espace (<span id="sans-espace-count">0</span>)</summary>
         <div class="inner" id="list-sans-espace"></div>
-      </details>
-      <details id="rappel-box">
-        <summary>Rappel du bilan à 21 h</summary>
-        <div class="inner">
-          <p class="hint">Chaque soir à 21 h, une notification demande ce qui a été consommé dans la journée. À activer sur chaque téléphone. Sur iPhone, l'app doit d'abord être installée sur l'écran d'accueil.</p>
-          <p class="hint" id="rappel-etat"></p>
-          <div class="row-actions">
-            <button class="btn" type="button" id="rappel-activer">Activer sur cet appareil</button>
-            <button class="link muted" type="button" id="rappel-desactiver" hidden>Désactiver sur cet appareil</button>
-            <button class="link" type="button" id="bilan-ouvrir">Faire le bilan maintenant</button>
-          </div>
-        </div>
       </details>
       <details>
         <summary>Gérer les espaces</summary>
