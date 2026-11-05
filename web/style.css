@@ -236,3 +236,9 @@ html,body{min-height:100%}
 .bell.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .bell.on .bell-shape{fill:currentColor}
 .bell:hover{border-color:var(--accent)}
+
+.bell.off{background:var(--danger);border-color:var(--danger);color:#fff}
+.bell.on{background:#2e8b57;border-color:#2e8b57;color:#fff}
+.bell.on .bell-shape,.bell.off .bell-shape{stroke:#fff}
+.bell.on .bell-shape{fill:#fff}
+.bell .bell-txt{font-family:var(--f-body);font-size:.78rem}

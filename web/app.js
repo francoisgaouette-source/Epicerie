@@ -437,8 +437,18 @@
 
   // ---------- notifications (rappel à 21 h)
   const urlB64 = (b) => { const p = "=".repeat((4 - (b.length % 4)) % 4); const r = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...r].map((c) => c.charCodeAt(0))); };
+  let rappelActif = false;
+  function majCloche(actif) {
+    rappelActif = actif;
+    const b = $("#open-rappel");
+    b.classList.toggle("on", actif); b.classList.toggle("off", !actif);
+    b.querySelector(".bell-txt").textContent = actif ? "Rappel activé" : "Rappel pas activé";
+    b.setAttribute("aria-label", actif ? "Rappel du bilan à 21 h : activé. Toucher pour les options." : "Rappel du bilan à 21 h : pas activé. Toucher pour l'activer.");
+    b.title = actif ? "Rappel du bilan activé (21 h)" : "Toucher pour activer le rappel du bilan (21 h)";
+  }
   async function etatRappel() {
     const etat = $("#rappel-etat"); const on = $("#rappel-activer"), off = $("#rappel-desactiver");
+    majCloche(false);
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
       etat.textContent = /iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone
         ? "Sur iPhone, installez d'abord l'app sur l'écran d'accueil (Partager > Sur l'écran d'accueil), puis ouvrez-la depuis son icône."
@@ -448,10 +458,12 @@
     const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
     if (Notification.permission === "denied") { etat.textContent = "Les notifications sont bloquées pour cette app. Autorisez-les dans les réglages du téléphone, puis revenez ici."; on.hidden = true; off.hidden = true; return; }
     etat.textContent = sub ? "Rappel activé sur cet appareil." : "Rappel non activé sur cet appareil.";
-    $("#open-rappel").classList.toggle("on", !!sub);
+    majCloche(!!sub);
     on.hidden = !!sub; off.hidden = !sub;
   }
-  $("#rappel-activer").addEventListener("click", async () => {
+  const peutNotifier = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && Notification.permission !== "denied";
+  $("#rappel-activer").addEventListener("click", () => activerRappel());
+  async function activerRappel() {
     try {
       const perm = await Notification.requestPermission();
       if (perm !== "granted") { await etatRappel(); return; }
@@ -466,7 +478,7 @@
       status("Rappel activé : une notification d'essai vient d'être envoyée.");
     } catch (err) { console.error(err); status("Le rappel n'a pas pu être activé. Réessayez, ou vérifiez que l'app est installée sur l'écran d'accueil."); }
     etatRappel();
-  });
+  }
   $("#rappel-desactiver").addEventListener("click", async () => {
     try {
       const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
@@ -479,7 +491,10 @@
     $("#rappel").hidden = !open;
     if (open) { $("#help").hidden = true; $("#membres").hidden = true; etatRappel(); $("#rappel").scrollIntoView({ block: "start", behavior: "smooth" }); }
   }
-  $("#open-rappel").addEventListener("click", () => showRappel($("#rappel").hidden));
+  $("#open-rappel").addEventListener("click", async () => {
+    if (!rappelActif && peutNotifier()) { await activerRappel(); if (!rappelActif) showRappel(true); return; }
+    showRappel($("#rappel").hidden);
+  });
   $("#close-rappel").addEventListener("click", () => showRappel(false));
 
   function renderMaison() {

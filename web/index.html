@@ -42,9 +42,9 @@
   <header>
     <div class="title-row">
       <h1>Notre épicerie</h1>
-      <button class="bell" type="button" id="open-rappel" aria-label="Rappel du bilan à 21 h" title="Rappel du bilan à 21 h">
+      <button class="bell off" type="button" id="open-rappel" aria-label="Rappel du bilan à 21 h" title="Rappel du bilan à 21 h">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path class="bell-shape" d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.4 15.5a2.5 2.5 0 0 0 4.8 0Z"/></svg>
-        <span class="bell-txt">21 h</span>
+        <span class="bell-txt">Rappel pas activé</span>
       </button>
     </div>
     <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link" id="open-help" type="button">Aide</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
@@ -111,7 +111,7 @@
         <li><b>Déplacer</b> : touchez « Déplacer » sous un produit, puis choisissez son nouvel espace.</li>
         <li><b>Lire une facture</b> : touchez « Lire une facture » et photographiez le reçu (plusieurs photos pour un long reçu). Chaque article apparaît dans un panier : vérifiez le nom, la quantité, l'espace et la date de péremption, puis touchez « Approuver ». L'article est rangé dans son espace, son prix est noté et il est coché dans la liste.</li>
         <li><b>Péremption</b> : la date s'affiche sous chaque produit. Touchez « Péremption » pour la changer. Les produits qui expirent dans les 3 jours apparaissent en haut.</li>
-        <li><b>Bilan du soir</b> : à 21 h, une notification demande ce qui a été consommé. Pour chaque produit, touchez −1, −25 %, −50 % ou « Tout », ou inscrivez une quantité (25 % = le quart d'un emballage). Touchez « Enregistrer le bilan » quand c'est fini. Activez le rappel sur chaque téléphone en touchant la cloche à côté du titre « Notre épicerie ».</li>
+        <li><b>Bilan du soir</b> : à 21 h, une notification demande ce qui a été consommé. Pour chaque produit, touchez −1, −25 %, −50 % ou « Tout », ou inscrivez une quantité (25 % = le quart d'un emballage). Touchez « Enregistrer le bilan » quand c'est fini. À côté du titre, la cloche est verte (« Rappel activé ») ou rouge (« Rappel pas activé ») : touchez-la quand elle est rouge pour activer le rappel sur ce téléphone.</li>
         <li><b>Effacer</b> : touchez « Effacer » sous un produit. Choisissez de le retirer seulement de la maison, ou de le supprimer complètement.</li>
         <li><b>Réserve</b> : touchez + quand vous rangez un produit et − quand vous en utilisez un.</li>
         <li><b>Minimum</b> : dans l'onglet Produits, indiquez combien en garder. Sous ce minimum, le produit s'ajoute tout seul à la liste.</li>
