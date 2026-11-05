@@ -80,3 +80,5 @@ drop policy if exists abonnements_siens on public.abonnements;
 create policy abonnements_siens on public.abonnements for all to authenticated
   using (private.est_membre() and user_id = auth.uid())
   with check (private.est_membre() and user_id = auth.uid());
+
+alter function private.tel_e164(text) set search_path = '';
