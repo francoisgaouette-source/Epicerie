@@ -91,7 +91,7 @@
   const prodMap = () => { const m = new Map(); state.prod.forEach((p) => m.set(norm(p.nom), p)); return m; };
 
   // ---------- tabs
-  let view = "liste";
+  let view = "produits";
   try { const v = localStorage.getItem("vue"); if (v && document.getElementById("v-" + v)) view = v; } catch (e) {}
   function showView(v) {
     view = v;
