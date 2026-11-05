@@ -242,3 +242,14 @@ html,body{min-height:100%}
 .bell.on .bell-shape,.bell.off .bell-shape{stroke:#fff}
 .bell.on .bell-shape{fill:#fff}
 .bell .bell-txt{font-family:var(--f-body);font-size:.78rem}
+
+/* Connexion par cellulaire */
+.login-form{display:flex;flex-direction:column;gap:8px}
+.login-form h2{font-size:1.15rem}
+.login-form .mf{font-size:.82rem;color:var(--muted);margin-top:4px}
+.login-form input{font:inherit;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.login-links{justify-content:space-between}
+.alt-login{margin-top:6px;background:transparent;border:1px dashed var(--line)}
+.alt-login summary{font-weight:500;color:var(--muted);font-size:.88rem}
+.membre-row{flex-wrap:wrap}
+.tel-edit{flex-basis:100%}

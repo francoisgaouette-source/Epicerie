@@ -27,10 +27,16 @@
     return isNaN(d) ? esc(iso) : d.toLocaleDateString("fr-CA", { day: "numeric", month: "long" });
   }
   const emptyBox = (t, x) => `<div class="empty"><strong>${t}</strong>${x}</div>`;
-  const nameOf = (email) => {
-    if (!email) return "";
-    if (state.email && email.toLowerCase() === state.email.toLowerCase()) return "toi";
-    const m = state.membres.find((x) => x.email.toLowerCase() === email.toLowerCase());
+  const chiffres = (t) => String(t || "").replace(/\D/g, "");
+  const tel10 = (t) => { const d = chiffres(t); return d.length === 11 && d[0] === "1" ? d.slice(1) : d; };
+  const fmtTel = (t) => { const d = tel10(t); return d.length === 10 ? `${d.slice(0, 3)} ${d.slice(3, 6)}-${d.slice(6)}` : (t || ""); };
+  const e164 = (t) => { const d = tel10(t); return d.length === 10 ? "+1" + d : ""; };
+  const memeContact = (m, id) => !!id && ((m.email && m.email.toLowerCase() === String(id).toLowerCase()) || (m.telephone && chiffres(id).length >= 10 && tel10(m.telephone) === tel10(id)));
+  const estMoi = (m) => !!m && ((state.userEmail && m.email && m.email.toLowerCase() === state.userEmail.toLowerCase()) || (state.userPhone && m.telephone && tel10(m.telephone) === tel10(state.userPhone)));
+  const nameOf = (par) => {
+    if (!par) return "";
+    const m = state.membres.find((x) => memeContact(x, par));
+    if (m && estMoi(m)) return "toi";
     return (m && m.nom) || "";
   };
 
@@ -620,7 +626,7 @@
   const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier" };
   async function load(table) {
     if (table === "membres") {
-      const { data } = await sb.from("membres").select("email, nom, invite_par");
+      const { data } = await sb.from("membres").select("id, email, telephone, nom, invite_par");
       if (data) state.membres = data;
       renderMembres(); return;
     }
@@ -687,20 +693,26 @@
   const MAX_MEMBRES = 4;
   const APP_URL = location.origin + location.pathname.replace(/index\.html$/, "");
   let retraitEnAttente = null;
+  let telEnEdition = null;
   function renderMembres() {
-    const m = [...state.membres].sort((a, b) => (a.nom || a.email).localeCompare(b.nom || b.email));
+    const lib = (x) => x.nom || (x.telephone ? fmtTel(x.telephone) : x.email) || "Membre";
+    const m = [...state.membres].sort((a, b) => lib(a).localeCompare(lib(b)));
     $("#membres-count").textContent = `${m.length} sur ${MAX_MEMBRES}`;
     const plein = m.length >= MAX_MEMBRES;
     $("#f-membre").hidden = plein; $("#membres-plein").hidden = !plein;
     $("#list-membres").innerHTML = m.map((x) => {
-      const moi = state.email && x.email.toLowerCase() === state.email.toLowerCase();
-      const conf = retraitEnAttente === x.email;
-      return `<li><div class="main"><div class="name">${esc(x.nom || x.email)}${moi ? ' <span class="meta">(vous)</span>' : ""}</div>
-        <div class="meta">${esc(x.email)}</div></div>
+      const moi = estMoi(x);
+      const conf = retraitEnAttente === x.id;
+      const contact = [x.telephone ? "☎ " + fmtTel(x.telephone) : "", x.email || ""].filter(Boolean).join(" · ");
+      return `<li class="membre-row"><div class="main"><div class="name">${esc(lib(x))}${moi ? ' <span class="meta">(vous)</span>' : ""}</div>
+        <div class="meta">${esc(contact)}${!x.telephone && telEnEdition !== x.id ? ` · <button class="link move-link" type="button" data-settel="${x.id}">+ Ajouter le cellulaire</button>` : ""}</div></div>
         ${m.length > 1 ? (conf
-          ? `<button class="link" type="button" data-retirer-ok="${esc(x.email)}" style="color:var(--danger)">${moi ? "Me retirer" : "Confirmer le retrait"}</button><button class="link muted" type="button" data-retirer-annuler>Annuler</button>`
-          : `<button class="icon" type="button" data-retirer="${esc(x.email)}" aria-label="Retirer ${esc(x.nom || x.email)}">✕</button>`) : ""}</li>`;
+          ? `<button class="link" type="button" data-retirer-ok="${x.id}" style="color:var(--danger)">${moi ? "Me retirer" : "Confirmer le retrait"}</button><button class="link muted" type="button" data-retirer-annuler>Annuler</button>`
+          : `<button class="icon" type="button" data-retirer="${x.id}" aria-label="Retirer ${esc(lib(x))}">✕</button>`) : ""}
+        ${telEnEdition === x.id ? `<form class="add tel-edit" data-telform="${x.id}"><input id="tel-${x.id}" type="tel" inputmode="tel" placeholder="Cellulaire (514 555-1234)" aria-label="Cellulaire de ${esc(lib(x))}" required>
+          <button class="btn" type="submit">Enregistrer</button><button class="link muted" type="button" data-settel-annuler>Annuler</button></form>` : ""}</li>`;
     }).join("");
+    if (telEnEdition) { const i = document.getElementById("tel-" + telEnEdition); if (i) i.focus(); }
   }
   function showMembres(open) {
     $("#membres").hidden = !open;
@@ -709,27 +721,29 @@
   $("#open-membres").addEventListener("click", () => showMembres($("#membres").hidden));
   $("#close-membres").addEventListener("click", () => showMembres(false));
   let inviteMsg = "";
+  const msgErreurMembre = (error, quoi) => {
+    const msg = String((error && error.message) || "");
+    return msg.includes("limite_membres") ? "La limite de 4 membres est atteinte."
+      : msg.includes("cellulaire_invalide") ? "Ce numéro de cellulaire ne semble pas valide (10 chiffres)."
+      : msg.includes("courriel_invalide") ? "Ce courriel ne semble pas valide. Vérifiez-le."
+      : error && error.code === "23505" ? `${quoi} est déjà membre.`
+      : "La modification n'a pas été enregistrée. Vérifiez votre connexion et réessayez.";
+  };
   $("#f-membre").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = $("#in-memail").value.trim().toLowerCase(), nom = $("#in-mnom").value.trim();
-    if (!email) return;
-    if (state.membres.some((x) => x.email.toLowerCase() === email)) { status(`${email} est déjà membre.`); return; }
+    const tel = $("#in-mtel").value.trim(), nom = $("#in-mnom").value.trim();
+    if (!tel) return;
+    if (!e164(tel)) { status("Entrez un numéro de cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
+    if (state.membres.some((x) => x.telephone && tel10(x.telephone) === tel10(tel))) { status(`${fmtTel(tel)} est déjà membre.`); return; }
     if (state.membres.length >= MAX_MEMBRES) { status("La limite de 4 membres est atteinte."); return; }
     $("#btn-inviter").disabled = true;
-    const { error } = await sb.from("membres").insert({ email, nom });
+    const { error } = await sb.from("membres").insert({ telephone: tel, nom });
     $("#btn-inviter").disabled = false;
-    if (error) {
-      const msg = String(error.message || "");
-      status(msg.includes("limite_membres") ? "La limite de 4 membres est atteinte."
-        : msg.includes("courriel_invalide") ? "Ce courriel ne semble pas valide. Vérifiez-le."
-        : error.code === "23505" ? `${email} est déjà membre.`
-        : "L'invitation n'a pas été enregistrée. Vérifiez votre connexion et réessayez.");
-      return;
-    }
-    $("#in-memail").value = ""; $("#in-mnom").value = "";
-    const moi = (state.membres.find((x) => state.email && x.email.toLowerCase() === state.email.toLowerCase()) || {}).nom || "";
-    inviteMsg = `${nom ? "Salut " + nom + "! " : ""}${moi ? moi + " t'invite" : "Je t'invite"} à partager notre liste d'épicerie. Ouvre ${APP_URL} et connecte-toi avec ton courriel ${email} : tu recevras un code à 6 chiffres.`;
-    $("#invite-text").textContent = `${nom || email} a accès. Envoyez-lui ce message pour qu'elle ou il se connecte :\n\n« ${inviteMsg} »`;
+    if (error) { status(msgErreurMembre(error, fmtTel(tel))); return; }
+    $("#in-mtel").value = ""; $("#in-mnom").value = "";
+    const moi = (state.membres.find(estMoi) || {}).nom || "";
+    inviteMsg = `${nom ? "Salut " + nom + "! " : ""}${moi ? moi + " t'invite" : "Je t'invite"} à partager notre liste d'épicerie. Ouvre ${APP_URL}, touche « Créer mon compte » et entre ton cellulaire ${fmtTel(tel)} : tu recevras un code par texto, puis tu choisiras ton mot de passe.`;
+    $("#invite-text").textContent = `${nom || fmtTel(tel)} a accès. Envoyez-lui ce message pour qu'elle ou il crée son compte :\n\n« ${inviteMsg} »`;
     $("#invite-send").hidden = !navigator.share;
     $("#invite-share").hidden = false;
     status("");
@@ -743,16 +757,30 @@
     catch (e) { status("Copie impossible ici : sélectionnez le message à la main."); }
   });
   $("#list-membres").addEventListener("click", async (e) => {
+    const st = e.target.closest("[data-settel]");
+    if (st) { telEnEdition = st.dataset.settel; renderMembres(); return; }
+    if (e.target.closest("[data-settel-annuler]")) { telEnEdition = null; renderMembres(); return; }
     const r = e.target.closest("[data-retirer]");
     if (r) { retraitEnAttente = r.dataset.retirer; renderMembres(); return; }
     if (e.target.closest("[data-retirer-annuler]")) { retraitEnAttente = null; renderMembres(); return; }
     const ok = e.target.closest("[data-retirer-ok]");
     if (!ok) return;
-    const email = ok.dataset.retirerOk; retraitEnAttente = null;
-    const { error } = await sb.from("membres").delete().eq("email", email);
+    const id = ok.dataset.retirerOk; retraitEnAttente = null;
+    const cible = state.membres.find((x) => x.id === id);
+    const { error } = await sb.from("membres").delete().eq("id", id);
     if (error) { status(String(error.message || "").includes("dernier_membre") ? "Il faut garder au moins un membre." : "Le retrait n'a pas fonctionné. Réessayez."); renderMembres(); return; }
-    if (state.email && email.toLowerCase() === state.email.toLowerCase()) { await sb.auth.signOut(); return; }
-    status(`${email} n'a plus accès.`);
+    if (estMoi(cible)) { await sb.auth.signOut(); return; }
+    status(`${(cible && (cible.nom || fmtTel(cible.telephone) || cible.email)) || "Ce membre"} n'a plus accès.`);
+    await load("membres");
+  });
+  $("#list-membres").addEventListener("submit", async (e) => {
+    const f = e.target.closest("[data-telform]"); if (!f) return;
+    e.preventDefault();
+    const id = f.dataset.telform, tel = f.querySelector("input").value.trim();
+    if (!e164(tel)) { status("Entrez un numéro de cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
+    const { error } = await sb.from("membres").update({ telephone: tel }).eq("id", id);
+    if (error) { status(msgErreurMembre(error, fmtTel(tel))); return; }
+    telEnEdition = null; status("Cellulaire enregistré. Cette personne peut maintenant créer son compte avec son cellulaire.");
     await load("membres");
   });
 
@@ -1170,9 +1198,71 @@
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.email) loadAll(); });
 
-  // ---------- auth
-  let pendingEmail = "";
+  // ---------- auth (comme Le 19e : cellulaire + code texto pour créer le compte, puis mot de passe)
+  let pendingEmail = "", pendingTel = "";
   const loginStatus = (m) => { $("#login-status").textContent = m || ""; };
+  const loginForms = ["#f-login", "#f-sms", "#f-smscode"];
+  function loginView(id) { loginForms.forEach((f) => ($(f).hidden = f !== id)); $("#alt-login").hidden = id !== "#f-login"; loginStatus(""); }
+  function ouvrirSms(mode) {
+    $("#sms-title").textContent = mode === "oubli" ? "Nouveau mot de passe" : "Créer mon compte";
+    $("#sms-intro").textContent = mode === "oubli"
+      ? "Entrez votre cellulaire. Vous recevrez un code par texto pour choisir un nouveau mot de passe."
+      : "Entrez votre cellulaire. Vous recevrez un code par texto, puis vous choisirez votre mot de passe.";
+    if ($("#in-tel").value.trim()) $("#in-tel2").value = $("#in-tel").value.trim();
+    loginView("#f-sms"); $("#in-tel2").focus();
+  }
+  $("#go-creer").addEventListener("click", () => ouvrirSms("creer"));
+  $("#go-oubli").addEventListener("click", () => ouvrirSms("oubli"));
+  document.querySelectorAll("[data-back-login]").forEach((b) => b.addEventListener("click", () => loginView("#f-login")));
+
+  $("#f-login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const phone = e164($("#in-tel").value), password = $("#in-pw").value;
+    if (!phone) { loginStatus("Entrez votre cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
+    loginStatus("Connexion…");
+    const { error } = await sb.auth.signInWithPassword({ phone, password });
+    if (error) {
+      loginStatus(/rate|too many/i.test(error.message || "") ? "Trop d'essais. Réessayez dans quelques minutes, ou touchez « Mot de passe oublié ? »."
+        : "Cellulaire ou mot de passe incorrect. Première fois ? Touchez « Créer mon compte ».");
+      return;
+    }
+    $("#in-pw").value = ""; loginStatus("");
+  });
+  $("#f-sms").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    pendingTel = e164($("#in-tel2").value);
+    if (!pendingTel) { loginStatus("Entrez votre cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
+    loginStatus("Vérification du numéro…");
+    const { data: inscrit, error: e0 } = await sb.rpc("cellulaire_inscrit", { tel: pendingTel });
+    if (e0) { loginStatus("Le service est injoignable. Vérifiez votre connexion et réessayez."); return; }
+    if (!inscrit) { loginStatus(`Le ${fmtTel(pendingTel)} n'est pas inscrit. Demandez à un membre de l'ajouter dans « Membres ».`); return; }
+    loginStatus("Envoi du code par texto…");
+    const { error } = await sb.auth.signInWithOtp({ phone: pendingTel, options: { shouldCreateUser: true, channel: "sms" } });
+    if (error) {
+      console.error(error);
+      loginStatus(/provider|sms|twilio|disabled|unsupported/i.test(error.message || "") ? "L'envoi de textos n'est pas encore configuré. Utilisez « Se connecter avec un code par courriel » en attendant."
+        : /rate|seconds/i.test(error.message || "") ? "Un code vient d'être envoyé. Attendez une minute avant d'en demander un autre."
+        : "Le texto n'a pas pu être envoyé. Réessayez dans une minute.");
+      return;
+    }
+    $("#smscode-hint").textContent = `Entrez le code envoyé par texto au ${fmtTel(pendingTel)}.`;
+    loginView("#f-smscode"); $("#in-smscode").focus();
+  });
+  $("#f-smscode").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = chiffres($("#in-smscode").value), pw = $("#in-newpw").value;
+    if (token.length !== 6) { loginStatus("Entrez le code à 6 chiffres reçu par texto."); return; }
+    if (pw.length < 6) { loginStatus("Le mot de passe doit avoir au moins 6 caractères."); return; }
+    loginStatus("Vérification…");
+    const { error } = await sb.auth.verifyOtp({ phone: pendingTel, token, type: "sms" });
+    if (error) { loginStatus("Ce code ne fonctionne pas ou a expiré. Vérifiez-le ou touchez « Retour » pour en demander un autre."); return; }
+    const { error: e2 } = await sb.auth.updateUser({ password: pw });
+    if (e2) { status("Vous êtes connecté, mais le mot de passe n'a pas été enregistré. Utilisez « Mot de passe oublié ? » plus tard."); }
+    else status("Compte prêt : la prochaine fois, connectez-vous avec votre cellulaire et ce mot de passe.");
+    $("#in-smscode").value = ""; $("#in-newpw").value = ""; $("#in-tel").value = fmtTel(pendingTel); loginStatus("");
+  });
+
+  // Secours : code par courriel
   $("#f-email").addEventListener("submit", async (e) => {
     e.preventDefault();
     pendingEmail = $("#in-email").value.trim().toLowerCase(); if (!pendingEmail) return;
@@ -1196,23 +1286,26 @@
 
   async function onSession(session) {
     if (!session) {
-      state.email = null;
+      state.email = null; state.userEmail = null; state.userPhone = null;
       if (channel) { sb.removeChannel(channel); channel = null; }
       $("#app").hidden = true; $("#login").hidden = false;
       $("#f-code").hidden = true; $("#f-email").hidden = false;
+      if ($("#f-smscode").hidden && $("#f-sms").hidden) loginView("#f-login");
       return;
     }
-    state.email = session.user.email;
-    const { data: membres } = await sb.from("membres").select("email, nom");
+    state.userEmail = session.user.email || null;
+    state.userPhone = session.user.phone || null;
+    state.email = state.userEmail || state.userPhone;
+    const { data: membres } = await sb.from("membres").select("id, email, telephone, nom, invite_par");
     if (!membres || !membres.length) {
-      $("#login").hidden = false; $("#app").hidden = true;
-      loginStatus(`L'adresse ${state.email} n'a pas accès à cette liste. Demandez à l'ajouter dans la table « membres ».`);
+      $("#login").hidden = false; $("#app").hidden = true; loginView("#f-login");
+      loginStatus(`${state.userPhone ? "Le " + fmtTel(state.userPhone) : "L'adresse " + state.userEmail} n'a pas accès à cette liste. Demandez à un membre de l'ajouter dans « Membres ».`);
       await sb.auth.signOut({ scope: "local" });
       return;
     }
     state.membres = membres;
-    const me = membres.find((m) => m.email.toLowerCase() === state.email.toLowerCase());
-    $("#who").textContent = (me && me.nom) || state.email;
+    const me = membres.find(estMoi);
+    $("#who").textContent = (me && me.nom) || (state.userPhone ? fmtTel(state.userPhone) : state.userEmail);
     $("#login").hidden = true; $("#app").hidden = false;
     helpFirstTime();
     await loadAll();
@@ -1222,10 +1315,10 @@
   }
   let current, started = false;
   sb.auth.onAuthStateChange((evt, session) => {
-    const email = (session && session.user && session.user.email) || null;
-    if (started && email === current && evt !== "SIGNED_OUT") return;
+    const ident = (session && session.user && (session.user.id)) || null;
+    if (started && ident === current && evt !== "SIGNED_OUT") return;
     started = true;
-    current = email;
+    current = ident;
     setTimeout(() => onSession(session), 0);
   });
 
