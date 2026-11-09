@@ -109,12 +109,23 @@ N'inclus une épicerie que si tu as trouvé au moins un prix pour elle.`;
 }
 
 // ---------- programme principal
+// Chaque foyer actif dont l'agent des circulaires est activé (foyers.circulaires = true)
 async function main() {
-  const config = (await must(sb.from("config").select("*").eq("id", 1).maybeSingle(), "config")) || {};
+  const foyers = await must(sb.from("foyers").select("id, nom, essai_fin, paye_jusqua, circulaires").eq("circulaires", true), "foyers");
+  const actifs = foyers.filter((f) => new Date(f.essai_fin) > new Date() || (f.paye_jusqua && new Date(f.paye_jusqua) > new Date()));
+  console.log(`${actifs.length} foyer(s) à traiter.`);
+  for (const f of actifs) {
+    console.log(`\n=== Foyer « ${f.nom} » ===`);
+    try { await traiterFoyer(f.id); } catch (e) { console.error(`Foyer ${f.nom} : ${e.message}`); }
+  }
+}
+
+async function traiterFoyer(FOYER) {
+  const config = (await must(sb.from("config").select("*").eq("foyer_id", FOYER).maybeSingle(), "config")) || {};
   const magasins = config.magasins?.length ? config.magasins : ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const region = config.region || "Montréal, QC";
-  const produits = await must(sb.from("produits").select("*"), "produits");
-  const epicerie = await must(sb.from("epicerie").select("*").eq("fait", false), "epicerie");
+  const produits = await must(sb.from("produits").select("*").eq("foyer_id", FOYER), "produits");
+  const epicerie = await must(sb.from("epicerie").select("*").eq("foyer_id", FOYER).eq("fait", false), "epicerie");
   // Les produits surveillés sont ceux marqués ★ dans le catalogue.
   const surveiller = produits.filter((p) => p.surveiller).map((p) => ({ nom: p.nom, prix_cible: p.prix_cible }));
 
@@ -177,8 +188,8 @@ async function main() {
   }
 
   // ---------- spéciaux des articles surveillés
-  await must(sb.from("speciaux").delete().or(`fin.lt.${TODAY},fin.is.null`), "nettoyage spéciaux");
-  const existants = await must(sb.from("speciaux").select("item, magasin, fin"), "spéciaux existants");
+  await must(sb.from("speciaux").delete().eq("foyer_id", FOYER).or(`fin.lt.${TODAY},fin.is.null`), "nettoyage spéciaux");
+  const existants = await must(sb.from("speciaux").select("item, magasin, fin").eq("foyer_id", FOYER), "spéciaux existants");
   const cle = (item, mag, fin) => `${norm(item)}|${norm(mag)}|${fin || ""}`;
   const deja = new Set(existants.map((s) => cle(s.item, s.magasin, s.fin)));
   const nouveaux = [];
@@ -187,13 +198,13 @@ async function main() {
     for (const t of trouves.filter((t) => norm(t.p.nom) === norm(s.nom))) {
       if (cible != null && t.prix > cible) continue;
       if (deja.has(cle(s.nom, t.magasin, t.fin))) continue;
-      nouveaux.push({ item: s.nom, magasin: t.magasin, prix: t.prix, prix_reg: t.reg, detail: t.detail, debut: t.debut, fin: t.fin, lien: t.lien, semaine: semaine || "" });
+      nouveaux.push({ foyer_id: FOYER, item: s.nom, magasin: t.magasin, prix: t.prix, prix_reg: t.reg, detail: t.detail, debut: t.debut, fin: t.fin, lien: t.lien, semaine: semaine || "" });
     }
   }
   if (nouveaux.length) await must(sb.from("speciaux").insert(nouveaux), "ajout spéciaux");
 
   // ---------- magasin le moins cher pour la liste en cours
-  const prodFrais = await must(sb.from("produits").select("nom, prix"), "relecture produits");
+  const prodFrais = await must(sb.from("produits").select("nom, prix").eq("foyer_id", FOYER), "relecture produits");
   const pm = new Map(prodFrais.map((p) => [norm(p.nom), p]));
   const prixA = (p, m) => { const e = p?.prix?.[m]; if (!e) return null; if (e.special != null && (!e.finSpecial || e.finSpecial >= TODAY)) return e.special; return e.reg ?? null; };
   const totaux = magasins.map((m) => {
@@ -206,7 +217,7 @@ async function main() {
   const nbSurvSpecial = new Set(nouveaux.map((n) => norm(n.item))).size;
   const resume = `${nbSurvSpecial} article${nbSurvSpecial > 1 ? "s" : ""} surveillé${nbSurvSpecial > 1 ? "s" : ""} en spécial; prix mis à jour pour ${nbMaj} produit${nbMaj > 1 ? "s" : ""}.` +
     (meilleur && epicerie.length ? ` Pour la liste en cours, ${meilleur.m} est le moins cher (${meilleur.t.toFixed(2).replace(".", ",")} $ pour ${meilleur.n} article${meilleur.n > 1 ? "s" : ""} avec prix).` : "");
-  await must(sb.from("config").update({ derniere_verif: new Date().toISOString(), semaine: semaine || null, resume }).eq("id", 1), "état agent");
+  await must(sb.from("config").update({ derniere_verif: new Date().toISOString(), semaine: semaine || null, resume }).eq("foyer_id", FOYER), "état agent");
 
   const lignes = nouveaux.map((n) => `- ${n.item} : ${n.prix.toFixed(2)} $ chez ${n.magasin}${n.fin ? ` (jusqu'au ${n.fin})` : ""}`);
   const rapport = [`## Circulaires ${semaine || ""}`, resume, "", ...(lignes.length ? lignes : ["Aucun article surveillé n'est en spécial cette semaine."]), "",

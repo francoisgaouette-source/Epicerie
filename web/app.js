@@ -75,7 +75,7 @@
     return { blob, b64 };
   }
   async function uploadPhoto(blob, dossier) {
-    const path = `${dossier ? dossier + "/" : ""}${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.jpg`;
+    const path = `${state.foyer ? state.foyer.id + "/" : ""}${dossier ? dossier + "/" : ""}${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.jpg`;
     const { error } = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
     if (error) throw error;
     return path;
@@ -479,7 +479,7 @@
   async function marquerBilanFait() {
     const auj = today();
     if (state.config) state.config.dernier_bilan = auj;
-    await run(sb.from("config").update({ dernier_bilan: auj }).eq("id", 1));
+    await run(sb.from("config").update({ dernier_bilan: auj }).eq("foyer_id", state.foyer && state.foyer.id));
   }
   async function enregistrerBilan() {
     const ids = Object.keys(conso).filter((id) => conso[id] > 0);
@@ -701,13 +701,17 @@
   // ---------- data
   const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier", listes: "listes", lieux: "lieux", inventaire: "inv" };
   async function load(table) {
+    if (table === "foyers") {
+      const { data } = await sb.from("foyers").select("*").maybeSingle();
+      if (data) state.foyer = data; renderForfait(); return;
+    }
     if (table === "membres") {
-      const { data } = await sb.from("membres").select("id, email, telephone, nom, invite_par");
+      const { data } = await sb.from("membres").select("id, email, telephone, nom, invite_par, role");
       if (data) state.membres = data;
       renderMembres(); return;
     }
     if (table === "config") {
-      const { data } = await sb.from("config").select("*").eq("id", 1).maybeSingle();
+      const { data } = await sb.from("config").select("*").limit(1).maybeSingle();
       state.config = data; return;
     }
     if (table === "inventaire") {
@@ -738,7 +742,7 @@
   function subscribe() {
     if (channel) sb.removeChannel(channel);
     channel = sb.channel("epicerie-live");
-    ["epicerie", "speciaux", "produits", "espaces", "panier", "listes", "lieux", "inventaire", "config", "membres"].forEach((t) =>
+    ["epicerie", "speciaux", "produits", "espaces", "panier", "listes", "lieux", "inventaire", "config", "membres", "foyers"].forEach((t) =>
       channel.on("postgres_changes", { event: "*", schema: "public", table: t }, () => scheduleReload(t)));
     channel.subscribe();
   }
@@ -787,7 +791,7 @@
       const moi = estMoi(x);
       const conf = retraitEnAttente === x.id;
       const contact = [x.telephone ? "☎ " + fmtTel(x.telephone) : "", x.email || ""].filter(Boolean).join(" · ");
-      return `<li class="membre-row"><div class="main"><div class="name">${esc(lib(x))}${moi ? ' <span class="meta">(vous)</span>' : ""}</div>
+      return `<li class="membre-row"><div class="main"><div class="name">${esc(lib(x))}${moi ? ' <span class="meta">(vous)</span>' : ""}${x.role === "proprio" ? ' <span class="role-tag">Propriétaire</span>' : ""}</div>
         <div class="meta">${esc(contact)}${!x.telephone && telEnEdition !== x.id ? ` · <button class="link move-link" type="button" data-settel="${x.id}">+ Ajouter le cellulaire</button>` : ""}</div></div>
         ${m.length > 1 ? (conf
           ? `<button class="link" type="button" data-retirer-ok="${x.id}" style="color:var(--danger)">${moi ? "Me retirer" : "Confirmer le retrait"}</button><button class="link muted" type="button" data-retirer-annuler>Annuler</button>`
@@ -1002,7 +1006,7 @@
     const me = moiMembre() || {};
     const contexte = { prenom: prenom(me.nom), nouveau: !lsGet("demarrer.masque." + state.userId) && etapesDemarrer().filter((x) => x.done).length < 3,
       produits: state.prod.length, maison: state.prod.filter((p) => Number(p.stock || 0) > 0).length, liste: state.liste.filter((i) => !i.fait).length,
-      surveilles: state.prod.filter((p) => p.surveiller).length, rappel: rappelActif, installee: installee(), onglet: ECRANS[view] || view };
+      surveilles: state.prod.filter((p) => p.surveiller).length, rappel: rappelActif, forfait: etatForfait().type, proprio: estProprio(), installee: installee(), onglet: ECRANS[view] || view };
     try {
       const { data, error } = await sb.functions.invoke("commis", { body: { messages: commis.msgs.slice(1), contexte } });
       commis.msgs.push({ role: "assistant", content: !error && data && data.text ? data.text : "Je n'ai pas pu répondre pour l'instant. Réessayez dans un moment, ou consultez le guide complet. [[ecran:guide]]" });
@@ -1164,7 +1168,7 @@
     e.preventDefault(); const m = $("#in-store").value.trim(); if (!m) return;
     const cur = stores(); $("#in-store").value = "";
     if (cur.some((x) => norm(x) === norm(m))) return;
-    if (await run(sb.from("config").update({ magasins: [...cur, m] }).eq("id", 1))) scheduleReload("config");
+    if (await run(sb.from("config").update({ magasins: [...cur, m] }).eq("foyer_id", state.foyer && state.foyer.id))) scheduleReload("config");
   });
   // Catalogue : ajout avec la caméra
   let catPhoto = null; // {preview, path, ident, busy}
@@ -1382,7 +1386,7 @@
     const st = e.target.closest("[data-store]");
     if (st) {
       const cur = [...stores()]; cur.splice(+st.dataset.store, 1);
-      if (await run(sb.from("config").update({ magasins: cur }).eq("id", 1))) scheduleReload("config"); return;
+      if (await run(sb.from("config").update({ magasins: cur }).eq("foyer_id", state.foyer && state.foyer.id))) scheduleReload("config"); return;
     }
     const a = e.target.closest("[data-addfrom]");
     if (a) { const s = state.spec.find((x) => x.id === a.dataset.addfrom); if (s) { const p = state.prod.find((x) => norm(x.nom) === norm(s.item)); const l = listeDe(p); if (await run(sb.from("epicerie").insert({ nom: s.item, liste_id: l }), `« ${s.item} » ajouté à « ${nomListe(l)} ».`)) scheduleReload("epicerie"); } return; }
@@ -1499,13 +1503,13 @@
   // ---------- auth (comme Le 19e : cellulaire + code texto pour créer le compte, puis mot de passe)
   let pendingEmail = "", pendingTel = "";
   const loginStatus = (m) => { $("#login-status").textContent = m || ""; };
-  const loginForms = ["#f-login", "#f-sms", "#f-smscode"];
+  const loginForms = ["#f-login", "#f-sms", "#f-smscode", "#f-foyer"];
   function loginView(id) { loginForms.forEach((f) => ($(f).hidden = f !== id)); $("#alt-login").hidden = id !== "#f-login"; loginStatus(""); }
   function ouvrirSms(mode) {
     $("#sms-title").textContent = mode === "oubli" ? "Nouveau mot de passe" : "Créer mon compte";
     $("#sms-intro").textContent = mode === "oubli"
       ? "Entrez votre cellulaire. Vous recevrez un code par texto pour choisir un nouveau mot de passe."
-      : "Entrez votre cellulaire. Vous recevrez un code par texto, puis vous choisirez votre mot de passe.";
+      : "Entrez votre cellulaire. Vous recevrez un code par texto, puis vous choisirez votre mot de passe. Invité par quelqu'un ? Entrez le cellulaire qu'il a inscrit. Nouveau ? Vous créerez votre foyer : 30 jours d'essai gratuit.";
     if ($("#in-tel").value.trim()) $("#in-tel2").value = $("#in-tel").value.trim();
     loginView("#f-sms"); $("#in-tel2").focus();
   }
@@ -1530,10 +1534,6 @@
     e.preventDefault();
     pendingTel = e164($("#in-tel2").value);
     if (!pendingTel) { loginStatus("Entrez votre cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
-    loginStatus("Vérification du numéro…");
-    const { data: inscrit, error: e0 } = await sb.rpc("cellulaire_inscrit", { tel: pendingTel });
-    if (e0) { loginStatus("Le service est injoignable. Vérifiez votre connexion et réessayez."); return; }
-    if (!inscrit) { loginStatus(`Le ${fmtTel(pendingTel)} n'est pas inscrit. Demandez à un membre de l'ajouter dans « Membres ».`); return; }
     loginStatus("Envoi du code par texto…");
     const { error } = await sb.auth.signInWithOtp({ phone: pendingTel, options: { shouldCreateUser: true, channel: "sms" } });
     if (error) {
@@ -1582,9 +1582,51 @@
   $("#back-email").addEventListener("click", () => { $("#f-code").hidden = true; $("#f-email").hidden = false; $("#in-code").value = ""; loginStatus(""); });
   $("#logout").addEventListener("click", () => sb.auth.signOut());
 
+  // ---------- créer son foyer (essai de 30 jours)
+  $("#f-foyer").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nom = $("#in-foyer-nom").value.trim(), prenom = $("#in-foyer-prenom").value.trim();
+    if (!prenom) { loginStatus("Entrez votre prénom."); return; }
+    loginStatus("Création de votre foyer…");
+    const { error } = await sb.rpc("creer_foyer", { p_nom: nom || "Mon foyer", p_prenom: prenom });
+    if (error) { console.error(error); loginStatus(String(error.message || "").includes("deja_membre") ? "Vous faites déjà partie d'un foyer. Reconnectez-vous." : "Le foyer n'a pas pu être créé. Réessayez dans un moment."); return; }
+    loginStatus("");
+    const { data } = await sb.auth.getSession();
+    current = null; await onSession(data && data.session);
+    status("Votre foyer est créé. L'essai gratuit dure 30 jours : tout est ouvert.");
+  });
+  $("#foyer-annuler").addEventListener("click", () => sb.auth.signOut());
+
+  // ---------- forfait : essai, payé, terminé
+  const PRIX = "7,99 $ par année";
+  const estProprio = () => !!(state.foyer && state.userId && state.foyer.proprio === state.userId);
+  function etatForfait() {
+    const f = state.foyer; if (!f) return { actif: true, type: "inconnu" };
+    const now = Date.now(), essai = new Date(f.essai_fin).getTime(), paye = f.paye_jusqua ? new Date(f.paye_jusqua).getTime() : 0;
+    if (paye > now) return { actif: true, type: "paye", jusqua: f.paye_jusqua, fondateur: new Date(f.paye_jusqua).getFullYear() >= 2090 };
+    if (essai > now) return { actif: true, type: "essai", jours: Math.max(1, Math.ceil((essai - now) / 864e5)) };
+    return { actif: false, type: "termine" };
+  }
+  const lienAchat = () => `achat.html?foyer=${encodeURIComponent(state.foyer ? state.foyer.id : "")}&nom=${encodeURIComponent(state.foyer ? state.foyer.nom : "")}`;
+  function renderForfait() {
+    const box = $("#forfait"), et = etatForfait(), proprio = estProprio();
+    const nomProprio = (state.membres.find((m) => m.role === "proprio") || {}).nom || "le propriétaire";
+    document.body.classList.toggle("lecture-seule", !et.actif);
+    if (et.type === "paye" && et.fondateur) { box.innerHTML = ""; return; }
+    if (et.type === "paye") { box.innerHTML = `<p class="hint forfait-ok">Forfait actif jusqu'au ${fmtDate(String(et.jusqua).slice(0, 10))}.${proprio ? ` <a class="link" href="${lienAchat()}" target="_blank" rel="noopener">Renouveler</a>` : ""}</p>`; return; }
+    if (et.type === "essai") {
+      box.innerHTML = `<div class="forfait essai"><span><b>Essai gratuit</b> : ${et.jours} jour${et.jours > 1 ? "s" : ""} restant${et.jours > 1 ? "s" : ""}.</span>
+        ${proprio ? `<a class="btn small" href="${lienAchat()}" target="_blank" rel="noopener">Acheter · ${PRIX}</a>` : `<span class="hint">${esc(prenom(nomProprio))} pourra acheter l'app.</span>`}</div>`;
+      return;
+    }
+    box.innerHTML = `<div class="forfait fini"><div><b>L'essai gratuit est terminé.</b><br>Vos données sont gardées : vous pouvez les consulter, mais plus les modifier.</div>
+      ${proprio ? `<a class="btn" href="${lienAchat()}" target="_blank" rel="noopener">Acheter l'app · ${PRIX}</a><p class="hint">L'app se réactive toute seule après le paiement.</p>`
+        : `<p class="hint">Demandez à ${esc(prenom(nomProprio))}, propriétaire du foyer, d'acheter l'app.</p>`}</div>`;
+  }
+
   async function onSession(session) {
     if (!session) {
-      state.email = null; state.userEmail = null; state.userPhone = null; state.userId = null;
+      state.email = null; state.userEmail = null; state.userPhone = null; state.userId = null; state.foyer = null;
       $("#bienvenue").hidden = true; $("#demarrer").innerHTML = "";
       if (channel) { sb.removeChannel(channel); channel = null; }
       $("#app").hidden = true; $("#login").hidden = false;
@@ -1595,18 +1637,21 @@
     state.userEmail = session.user.email || null;
     state.userPhone = session.user.phone || null;
     state.email = state.userEmail || state.userPhone;
-    const { data: membres } = await sb.from("membres").select("id, email, telephone, nom, invite_par");
+    const { data: membres } = await sb.from("membres").select("id, email, telephone, nom, invite_par, role");
     if (!membres || !membres.length) {
-      $("#login").hidden = false; $("#app").hidden = true; loginView("#f-login");
-      loginStatus(`${state.userPhone ? "Le " + fmtTel(state.userPhone) : "L'adresse " + state.userEmail} n'a pas accès à cette liste. Demandez à un membre de l'ajouter dans « Membres ».`);
-      await sb.auth.signOut({ scope: "local" });
+      // Pas encore membre d'un foyer : on propose d'en créer un (essai gratuit de 30 jours)
+      $("#login").hidden = false; $("#app").hidden = true; loginView("#f-foyer");
+      $("#foyer-intro").textContent = `${state.userPhone ? "Le " + fmtTel(state.userPhone) : "L'adresse " + state.userEmail} n'appartient à aucun foyer. Créez le vôtre : l'essai est gratuit pendant 30 jours. Si quelqu'un vous a invité, demandez-lui de vérifier le cellulaire inscrit dans « Membres ».`;
       return;
     }
+    const { data: foyer } = await sb.from("foyers").select("*").maybeSingle();
+    state.foyer = foyer || null;
     state.membres = membres;
     const me = membres.find(estMoi);
     $("#who").textContent = (me && me.nom) || (state.userPhone ? fmtTel(state.userPhone) : state.userEmail);
     $("#login").hidden = true; $("#app").hidden = false;
     state.userId = session.user.id;
+    renderForfait();
     await loadAll();
     await etatRappel().catch(() => {});
     maybeBienvenue(); renderDemarrer();

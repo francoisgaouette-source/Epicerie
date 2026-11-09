@@ -55,6 +55,18 @@
     <button class="link" type="button" data-back-login>Retour</button>
   </form>
 
+  <form id="f-foyer" class="login-form" hidden>
+    <h2>Créer mon foyer</h2>
+    <p class="hint" id="foyer-intro">Créez votre foyer : l'essai est gratuit pendant 30 jours.</p>
+    <label class="mf" for="in-foyer-prenom">Votre prénom</label>
+    <input id="in-foyer-prenom" autocomplete="given-name" required placeholder="Prénom">
+    <label class="mf" for="in-foyer-nom">Nom du foyer</label>
+    <input id="in-foyer-nom" autocomplete="off" placeholder="ex. Famille Tremblay">
+    <button class="btn" type="submit">Créer mon foyer · 30 jours gratuits</button>
+    <p class="hint">Ensuite : 7,99 $ par année, pour jusqu'à 4 personnes. Vous serez le propriétaire du foyer.</p>
+    <button class="link muted" type="button" id="foyer-annuler">Se déconnecter</button>
+  </form>
+
   <details class="alt-login" id="alt-login">
     <summary>Se connecter avec un code par courriel</summary>
     <form id="f-email" class="login-form">
@@ -90,7 +102,7 @@
       <h2 id="membres-title">Membres <span class="count" id="membres-count">0 sur 4</span></h2>
       <button class="icon" type="button" id="close-membres" aria-label="Fermer les membres">✕</button>
     </div>
-    <p class="hint">Les personnes qui partagent la liste. Jusqu'à 4 membres. Chaque membre peut inviter ou retirer quelqu'un.</p>
+    <p class="hint">Les personnes qui partagent le foyer. Jusqu'à 4 membres. Chaque membre peut inviter ou retirer quelqu'un. Le propriétaire détient le forfait.</p>
     <ul class="list" id="list-membres"></ul>
     <form class="add" id="f-membre">
       <input id="in-mnom" placeholder="Prénom" autocomplete="off" aria-label="Prénom de la personne invitée" class="small">
@@ -213,6 +225,7 @@
     <button class="tab" role="tab" aria-selected="false" data-view="speciaux">Spéciaux <span class="count" id="c-speciaux">0</span></button>
   </div>
 
+  <div id="forfait"></div>
   <p class="status" id="status" role="status"></p>
   <div id="demarrer"></div>
 

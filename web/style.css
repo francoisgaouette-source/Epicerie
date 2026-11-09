@@ -313,3 +313,14 @@ html,body{min-height:100%}
 .liste-chip .count{margin-left:4px}
 .fchip[aria-pressed="true"] .count{background:var(--accent-ink);color:var(--accent)}
 .esp-list li{flex-wrap:wrap}
+
+/* Forfait : essai, payé, terminé */
+.forfait{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-radius:12px;padding:10px 14px;font-size:.92rem}
+.forfait.essai{background:var(--best);color:var(--best-ink)}
+.forfait.fini{background:var(--surface);border:2px solid var(--danger);flex-direction:column;align-items:stretch}
+.forfait.fini .btn{align-self:flex-start}
+.forfait-ok{margin:0}
+.role-tag{display:inline-block;font:600 .68rem var(--f-mono);text-transform:uppercase;letter-spacing:.05em;background:var(--tag);color:var(--tag-ink);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+/* Lecture seule quand l'essai est terminé */
+.lecture-seule #app form.add,.lecture-seule #app .photo-btn,.lecture-seule #app .facture-btn,.lecture-seule #app .sbtn,.lecture-seule #app .star,
+.lecture-seule #app .check,.lecture-seule #app [data-del],.lecture-seule #app .move-link,.lecture-seule #app #demarrer{pointer-events:none;opacity:.45}
