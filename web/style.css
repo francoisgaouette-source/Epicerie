@@ -253,3 +253,56 @@ html,body{min-height:100%}
 .alt-login summary{font-weight:500;color:var(--muted);font-size:.88rem}
 .membre-row{flex-wrap:wrap}
 .tel-edit{flex-basis:100%}
+
+/* Accueil des nouveaux */
+.bienvenue{position:fixed;inset:0;z-index:60;background:var(--bg);overflow-y:auto;
+  padding:max(24px, env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) max(24px, env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px))}
+.bv-in{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.bv-card{position:relative;align-self:center;width:min(280px,100%);background:var(--tag);color:var(--tag-ink);border-radius:14px 14px 14px 14px;padding:26px 20px 18px;
+  clip-path:polygon(50% 0,100% 18%,100% 100%,0 100%,0 18%);text-align:center;margin-top:8px}
+.bv-hole{position:absolute;left:50%;top:14px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bg)}
+.bv-brand{font:600 .72rem var(--f-mono);text-transform:uppercase;letter-spacing:.12em;margin-top:10px;opacity:.8}
+.bv-name{font:700 1.5rem var(--f-display);margin-top:6px;overflow-wrap:anywhere}
+.bv-sub{font-size:.85rem;opacity:.85}
+.bv-in h1{font-size:1.7rem;text-wrap:balance;text-align:center}
+.bv-lead{margin:0;color:var(--muted);text-align:center;max-width:60ch;align-self:center}
+.bv-tabs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;counter-reset:t}
+.bv-tabs li{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;counter-increment:t}
+.bv-tabs li b::before{content:counter(t) ". ";color:var(--accent)}
+.bv-tabs li span{font-size:.88rem;color:var(--muted)}
+.bv-steps{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.bv-commis{display:flex;align-items:center;gap:10px;margin:0;font-size:.92rem;background:var(--soft);border-radius:12px;padding:10px 12px}
+.bv-go{padding:14px;font-size:1.05rem}
+.commis-av{flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;justify-content:center;font:700 .95rem var(--f-display)}
+
+/* Bien démarrer */
+.onboard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.onb-head{display:flex;justify-content:space-between;align-items:baseline}
+.onb-head h2{font-size:1.05rem}
+.onb-count{font:500 .85rem var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.onb-bar{height:6px;background:var(--soft);border-radius:999px;overflow:hidden}
+.onb-bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.onb-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.onb-list li{display:flex;align-items:center;gap:10px;padding:6px 4px;border-radius:10px}
+.onb-list li.next{background:var(--best);padding:10px}
+.onb-list li.done b{color:var(--muted);text-decoration:line-through;font-weight:500}
+.onb-list small{display:block;color:var(--muted);font-size:.84rem;margin-top:2px}
+.onb-dot{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--accent-ink)}
+.onb-list li.done .onb-dot{background:var(--accent);border-color:var(--accent)}
+.onb-list li.next .onb-dot{border-color:var(--accent)}
+.btn.small{padding:8px 12px;font-size:.88rem;flex:none}
+.onb-more{appearance:none;border:0;background:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:2px 8px;flex:none}
+.onb-foot{margin:0}
+
+/* Le Commis */
+.commis-id{display:flex;align-items:center;gap:10px}
+.commis-id h2{font-size:1.1rem}
+.commis-id .hint{margin:0}
+.cad-log{display:flex;flex-direction:column;gap:8px;max-height:min(55vh,460px);overflow-y:auto;padding:2px}
+.cad-msg{max-width:88%;padding:10px 12px;border-radius:14px;font-size:.94rem;line-height:1.45;overflow-wrap:anywhere}
+.cad-msg.bot{align-self:flex-start;background:var(--soft);border-bottom-left-radius:4px}
+.cad-msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.cad-msg.busy{color:var(--muted);letter-spacing:.2em}
+.cad-go{display:block;margin-top:8px}
+.cad-sugg{display:flex;flex-wrap:wrap;gap:6px}
+.cad-sugg .fchip{font-weight:500;text-align:left}

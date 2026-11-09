@@ -168,6 +168,7 @@
 
     renderProducts();
     renderMaison();
+    if (state.userId) renderDemarrer();
     ensureUrls([...state.liste.map((i) => photoOf(i, pm)), ...state.prod.map((p) => p.photo)]);
   }
 
@@ -451,6 +452,7 @@
     b.querySelector(".bell-txt").textContent = actif ? "Rappel activé" : "Rappel pas activé";
     b.setAttribute("aria-label", actif ? "Rappel du bilan à 21 h : activé. Toucher pour les options." : "Rappel du bilan à 21 h : pas activé. Toucher pour l'activer.");
     b.title = actif ? "Rappel du bilan activé (21 h)" : "Toucher pour activer le rappel du bilan (21 h)";
+    if (typeof renderDemarrer === "function" && state.userId) renderDemarrer();
   }
   async function etatRappel() {
     const etat = $("#rappel-etat"); const on = $("#rappel-activer"), off = $("#rappel-desactiver");
@@ -495,7 +497,7 @@
   });
   function showRappel(open) {
     $("#rappel").hidden = !open;
-    if (open) { $("#help").hidden = true; $("#membres").hidden = true; etatRappel(); $("#rappel").scrollIntoView({ block: "start", behavior: "smooth" }); }
+    if (open) { $("#help").hidden = true; $("#membres").hidden = true; $("#commis").hidden = true; etatRappel(); $("#rappel").scrollIntoView({ block: "start", behavior: "smooth" }); }
   }
   $("#open-rappel").addEventListener("click", async () => {
     if (!rappelActif && peutNotifier()) { await activerRappel(); if (!rappelActif) showRappel(true); return; }
@@ -716,7 +718,7 @@
   }
   function showMembres(open) {
     $("#membres").hidden = !open;
-    if (open) { $("#help").hidden = true; $("#rappel").hidden = true; renderMembres(); $("#membres").scrollIntoView({ block: "start", behavior: "smooth" }); }
+    if (open) { $("#help").hidden = true; $("#rappel").hidden = true; $("#commis").hidden = true; renderMembres(); $("#membres").scrollIntoView({ block: "start", behavior: "smooth" }); }
   }
   $("#open-membres").addEventListener("click", () => showMembres($("#membres").hidden));
   $("#close-membres").addEventListener("click", () => showMembres(false));
@@ -784,21 +786,156 @@
     await load("membres");
   });
 
-  // ---------- aide
+  // ---------- aide : guide complet
+  const fermerPanneaux = (sauf) => ["#help", "#membres", "#rappel", "#commis"].forEach((id) => { if (id !== sauf) $(id).hidden = true; });
   function showHelp(open) {
     $("#help").hidden = !open;
-    if (open) { $("#membres").hidden = true; $("#rappel").hidden = true; }
-    if (open) { $("#help").scrollIntoView({ block: "start", behavior: "smooth" }); }
-    else { try { localStorage.setItem("aide-vue", "1"); } catch (e) {} }
+    if (open) { fermerPanneaux("#help"); $("#help").scrollIntoView({ block: "start", behavior: "smooth" }); }
   }
-  $("#open-help").addEventListener("click", () => showHelp($("#help").hidden));
+  $("#open-help").addEventListener("click", () => showHelp(true));
   $("#close-help").addEventListener("click", () => showHelp(false));
   $("#close-help-2").addEventListener("click", () => showHelp(false));
-  function helpFirstTime() {
-    let vue = false;
-    try { vue = localStorage.getItem("aide-vue") === "1"; } catch (e) {}
-    if (!vue) $("#help").hidden = false;
+
+  // ---------- accueil des nouveaux (comme Le 19e)
+  const prenom = (n) => String(n || "").trim().split(/\s+/)[0] || "";
+  const moiMembre = () => state.membres.find(estMoi) || null;
+  const cleAccueil = () => "accueil." + (state.userId || "");
+  const installee = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  function invitePar(me) {
+    if (!me || !me.invite_par) return null;
+    const m = state.membres.find((x) => !estMoi(x) && memeContact(x, me.invite_par));
+    return m ? prenom(m.nom) || null : null;
   }
+  function montrerBienvenue() {
+    const me = moiMembre() || {}, nom = prenom(me.nom), parQui = invitePar(me);
+    const autres = state.membres.filter((x) => !estMoi(x)).map((x) => prenom(x.nom)).filter(Boolean);
+    const box = $("#bienvenue");
+    box.innerHTML = `<div class="bv-in">
+      <div class="bv-card" aria-hidden="true"><span class="bv-hole"></span><div class="bv-brand">Notre épicerie</div>
+        <div class="bv-name">${esc(me.nom || "Bienvenue")}</div><div class="bv-sub">${autres.length ? "avec " + esc(autres.join(", ")) : "Membre"}</div></div>
+      <h1 id="bv-title">Bienvenue${nom ? ", " + esc(nom) : ""}.</h1>
+      <p class="bv-lead">${parQui ? esc(parQui) + " vous a invité" + " à partager l'épicerie de la maison." : "Vous partagez maintenant l'épicerie de la maison."} Tout ce que vous ajoutez apparaît aussitôt chez les autres.</p>
+      <ol class="bv-tabs">
+        <li><b>Catalogue</b><span>Tous vos produits. Photographiez-en un pour l'ajouter. L'étoile ★ surveille ses spéciaux.</span></li>
+        <li><b>Maison</b><span>Ce que vous avez, rangé par espace, avec les dates de péremption.</span></li>
+        <li><b>Liste épicerie</b><span>Ce qu'il faut acheter. Cochez en magasin.</span></li>
+        <li><b>Spéciaux</b><span>Chaque jeudi, les rabais sur vos produits ★.</span></li>
+      </ol>
+      <p class="bv-commis"><span class="commis-av" aria-hidden="true">C</span> Une question ? Touchez <b>Aide</b> en haut : le Commis vous répond.</p>
+      <button class="btn bv-go" type="button" id="bv-go">Commencer</button>
+    </div>`;
+    box.hidden = false;
+    $("#bv-go").onclick = () => { lsSet(cleAccueil(), String(Date.now())); box.hidden = true; renderDemarrer(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    setTimeout(() => $("#bv-go").focus(), 60);
+  }
+  function maybeBienvenue() { if (state.userId && !lsGet(cleAccueil())) montrerBienvenue(); }
+
+  // Installer sur l'écran d'accueil
+  function montrerEcran() {
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent), box = $("#ecran-sheet");
+    box.innerHTML = `<div class="bv-in">
+      <h1 id="ec-title">Notre épicerie sur votre écran d'accueil</h1>
+      <ol class="bv-steps">${ios
+        ? "<li>Ouvrez l'app dans <b>Safari</b>.</li><li>Touchez le bouton <b>Partager</b> (le carré avec une flèche vers le haut).</li><li>Choisissez <b>Sur l'écran d'accueil</b>, puis <b>Ajouter</b>.</li><li>Ouvrez ensuite l'app depuis sa nouvelle icône.</li>"
+        : "<li>Ouvrez l'app dans <b>Chrome</b>.</li><li>Touchez le menu <b>⋮</b> en haut à droite.</li><li>Choisissez <b>Installer l'application</b> (ou <b>Ajouter à l'écran d'accueil</b>).</li><li>Ouvrez ensuite l'app depuis sa nouvelle icône.</li>"}</ol>
+      <p class="hint">C'est nécessaire pour recevoir le rappel du soir.</p>
+      <div class="row-actions"><button class="btn" type="button" id="ec-ok">C'est fait</button><button class="link muted" type="button" id="ec-later">Plus tard</button></div>
+    </div>`;
+    box.hidden = false;
+    $("#ec-ok").onclick = () => { lsSet("demarrer.ecran", "1"); box.hidden = true; renderDemarrer(); };
+    $("#ec-later").onclick = () => { box.hidden = true; };
+  }
+
+  // ---------- Bien démarrer : les étapes, avec la prochaine en évidence
+  function etapesDemarrer() {
+    const nProd = state.prod.length, nMaison = state.prod.filter((p) => Number(p.stock || 0) > 0).length;
+    const nListe = state.liste.length, nSurv = state.prod.filter((p) => p.surveiller).length;
+    return [
+      { k: "ecran", done: installee() || lsGet("demarrer.ecran") === "1", t: "Mettez l'app sur votre écran d'accueil", d: "Elle s'ouvre comme une vraie app, et le rappel du soir peut vous joindre.", b: "Comment", act: montrerEcran },
+      { k: "rappel", done: rappelActif, t: "Activez le rappel de 21 h", d: "Chaque soir, l'app vous demande ce qui a été consommé.", b: "Activer", act: () => activerRappel() },
+      { k: "produits", done: nProd >= 5, t: "Ajoutez vos produits habituels", d: nProd ? `${nProd} produit${nProd > 1 ? "s" : ""} au catalogue. Visez-en au moins 5. Le plus rapide : la photo.` : "Le plus rapide : touchez l'appareil photo et photographiez un produit.", b: "Photographier", act: () => { showView("produits"); $("#in-pphoto").click(); } },
+      { k: "maison", done: nMaison >= 1, t: "Rangez ce que vous avez à la maison", d: "Dans le Catalogue, touchez un produit : choisissez son espace et mettez sa réserve avec +. Ou lisez votre dernière facture.", b: "Maison", act: () => showView("maison") },
+      { k: "liste", done: nListe >= 1, t: "Commencez la liste d'épicerie", d: "Ajoutez ce qui manque. Les autres le voient aussitôt.", b: "Liste", act: () => { showView("liste"); setTimeout(() => $("#in-liste").focus(), 50); } },
+      { k: "surv", done: nSurv >= 1, t: "Surveillez un spécial", d: "Dans le Catalogue, touchez l'étoile ☆ d'un produit que vous achetez souvent.", b: "Catalogue", act: () => { showView("produits"); filtre = "tous"; renderProducts(); } },
+    ];
+  }
+  function renderDemarrer() {
+    const box = $("#demarrer");
+    if (!state.userId || lsGet("demarrer.masque." + state.userId) === "1" || !$("#bienvenue").hidden) { box.innerHTML = ""; return; }
+    const st = etapesDemarrer(), n = st.filter((x) => x.done).length;
+    if (n === st.length) { box.innerHTML = ""; return; }
+    const next = st.find((x) => !x.done);
+    box.innerHTML = `<section class="onboard">
+      <div class="onb-head"><h2>Bien démarrer</h2><span class="onb-count">${n} / ${st.length}</span></div>
+      <div class="onb-bar"><i style="width:${Math.round(n / st.length * 100)}%"></i></div>
+      <ol class="onb-list">${st.map((x) => `<li class="${x.done ? "done" : x === next ? "next" : ""}"><span class="onb-dot">${x.done ? "✓" : ""}</span>
+        <div class="main"><b>${esc(x.t)}</b>${x === next ? `<small>${esc(x.d)}</small>` : ""}</div>
+        ${x.done ? "" : `<button class="${x === next ? "btn small" : "onb-more"}" type="button" data-onb="${x.k}" aria-label="${esc(x.b)}">${x === next ? esc(x.b) : "›"}</button>`}</li>`).join("")}</ol>
+      <p class="hint onb-foot">Une question ? <button class="link" type="button" data-onb-commis>Demandez au Commis</button> · <button class="link muted" type="button" data-onb-masquer>Masquer</button></p>
+    </section>`;
+  }
+  $("#demarrer").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-onb]");
+    if (b) { const x = etapesDemarrer().find((y) => y.k === b.dataset.onb); if (x) x.act(); return; }
+    if (e.target.closest("[data-onb-commis]")) return ouvrirCommis();
+    if (e.target.closest("[data-onb-masquer]")) { lsSet("demarrer.masque." + state.userId, "1"); renderDemarrer(); status("Vous pouvez toujours demander de l'aide au Commis avec « Aide », en haut."); }
+  });
+
+  // ---------- le Commis : l'agent qui répond aux questions
+  const ECRANS = { produits: "Catalogue", maison: "Maison", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet" };
+  const commis = { msgs: [], busy: false };
+  function allerA(k) {
+    $("#commis").hidden = true;
+    if (["produits", "maison", "liste", "speciaux"].includes(k)) { showView(k); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    else if (k === "membres") showMembres(true);
+    else if (k === "rappel") showRappel(true);
+    else if (k === "bilan") ouvrirBilan();
+    else if (k === "facture") { showView("maison"); $("#in-facture").click(); }
+    else if (k === "ecran") montrerEcran();
+    else if (k === "guide") showHelp(true);
+  }
+  function msgHtml(m) {
+    let t = String(m.content || ""), go = null;
+    t = t.replace(/\[\[ecran:([a-z]+)\]\]/g, (x, k) => { if (ECRANS[k]) go = k; return ""; }).trim();
+    const html = esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+    return `<div class="cad-msg ${m.role === "assistant" ? "bot" : "me"}">${html}${go && m.role === "assistant" ? `<button class="btn small cad-go" type="button" data-cadgo="${go}">Aller à : ${ECRANS[go]}</button>` : ""}</div>`;
+  }
+  function renderCommis() {
+    const nom = prenom((moiMembre() || {}).nom);
+    if (!commis.msgs.length) commis.msgs.push({ role: "assistant", content: `Bonjour${nom ? " " + nom : ""} ! Je suis le Commis. Posez-moi vos questions sur l'app : ajouter un produit, ranger la maison, la liste, les spéciaux…` });
+    $("#commis-log").innerHTML = commis.msgs.map(msgHtml).join("") + (commis.busy ? '<div class="cad-msg bot busy">…</div>' : "");
+    const sugg = ["Comment ajouter un produit avec la photo ?", "Comment ranger ce que j'ai acheté ?", "Comment marche le bilan du soir ?", "Comment inviter quelqu'un ?"];
+    $("#commis-sugg").innerHTML = commis.msgs.length < 2 ? sugg.map((q) => `<button class="fchip" type="button" data-cadq="${esc(q)}">${esc(q)}</button>`).join("") : "";
+    $("#in-commis").disabled = commis.busy; $("#btn-commis").disabled = commis.busy;
+    const log = $("#commis-log"); log.scrollTop = log.scrollHeight;
+  }
+  function ouvrirCommis() {
+    fermerPanneaux("#commis"); $("#commis").hidden = false; renderCommis();
+    $("#commis").scrollIntoView({ block: "start", behavior: "smooth" });
+    setTimeout(() => focusIfDesktop($("#in-commis")), 80);
+  }
+  async function demanderCommis(q) {
+    commis.msgs.push({ role: "user", content: q }); commis.busy = true; renderCommis();
+    const me = moiMembre() || {};
+    const contexte = { prenom: prenom(me.nom), nouveau: !lsGet("demarrer.masque." + state.userId) && etapesDemarrer().filter((x) => x.done).length < 3,
+      produits: state.prod.length, maison: state.prod.filter((p) => Number(p.stock || 0) > 0).length, liste: state.liste.filter((i) => !i.fait).length,
+      surveilles: state.prod.filter((p) => p.surveiller).length, rappel: rappelActif, installee: installee(), onglet: ECRANS[view] || view };
+    try {
+      const { data, error } = await sb.functions.invoke("commis", { body: { messages: commis.msgs.slice(1), contexte } });
+      commis.msgs.push({ role: "assistant", content: !error && data && data.text ? data.text : "Je n'ai pas pu répondre pour l'instant. Réessayez dans un moment, ou consultez le guide complet. [[ecran:guide]]" });
+    } catch (e) { commis.msgs.push({ role: "assistant", content: "Pas de réseau pour l'instant. Réessayez dans un moment." }); }
+    commis.busy = false; renderCommis();
+    if (!desktop) $("#in-commis").blur();
+  }
+  $("#open-commis").addEventListener("click", () => ($("#commis").hidden ? ouvrirCommis() : ($("#commis").hidden = true)));
+  $("#close-commis").addEventListener("click", () => { $("#commis").hidden = true; });
+  $("#f-commis").addEventListener("submit", (e) => { e.preventDefault(); const q = $("#in-commis").value.trim(); if (!q || commis.busy) return; $("#in-commis").value = ""; demanderCommis(q); });
+  $("#commis").addEventListener("click", (e) => {
+    const g = e.target.closest("[data-cadgo]"); if (g) return allerA(g.dataset.cadgo);
+    const q = e.target.closest("[data-cadq]"); if (q && !commis.busy) demanderCommis(q.dataset.cadq);
+  });
 
   // ---------- suggestions (seulement pendant la saisie)
   const desktop = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
@@ -1286,7 +1423,8 @@
 
   async function onSession(session) {
     if (!session) {
-      state.email = null; state.userEmail = null; state.userPhone = null;
+      state.email = null; state.userEmail = null; state.userPhone = null; state.userId = null;
+      $("#bienvenue").hidden = true; $("#demarrer").innerHTML = "";
       if (channel) { sb.removeChannel(channel); channel = null; }
       $("#app").hidden = true; $("#login").hidden = false;
       $("#f-code").hidden = true; $("#f-email").hidden = false;
@@ -1307,9 +1445,10 @@
     const me = membres.find(estMoi);
     $("#who").textContent = (me && me.nom) || (state.userPhone ? fmtTel(state.userPhone) : state.userEmail);
     $("#login").hidden = true; $("#app").hidden = false;
-    helpFirstTime();
+    state.userId = session.user.id;
     await loadAll();
-    etatRappel().catch(() => {});
+    await etatRappel().catch(() => {});
+    maybeBienvenue(); renderDemarrer();
     if (location.hash === "#bilan") ouvrirBilan();
     subscribe();
   }

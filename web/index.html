@@ -82,7 +82,7 @@
         <span class="bell-txt">Rappel pas activé</span>
       </button>
     </div>
-    <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link" id="open-help" type="button">Aide</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
+    <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link" id="open-commis" type="button">Aide</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
   </header>
 
   <section class="help" id="membres" hidden aria-labelledby="membres-title">
@@ -121,10 +121,29 @@
     </div>
   </section>
 
+  <section class="help commis" id="commis" hidden aria-labelledby="commis-title">
+    <div class="help-head">
+      <div class="commis-id"><span class="commis-av" aria-hidden="true">C</span><div><h2 id="commis-title">Le Commis</h2><p class="hint">Votre aide pour l'app. Posez votre question.</p></div></div>
+      <button class="icon" type="button" id="close-commis" aria-label="Fermer le Commis">✕</button>
+    </div>
+    <div class="cad-log" id="commis-log" aria-live="polite"></div>
+    <div class="cad-sugg" id="commis-sugg"></div>
+    <form class="add" id="f-commis">
+      <input id="in-commis" placeholder="Votre question" autocomplete="off" aria-label="Votre question au Commis">
+      <button class="btn" type="submit" id="btn-commis">Envoyer</button>
+    </form>
+    <p class="hint"><button class="link" type="button" id="open-help">Voir le guide complet</button></p>
+  </section>
+
   <section class="help" id="help" hidden aria-labelledby="help-title">
     <div class="help-head">
       <h2 id="help-title">Comment utiliser Notre épicerie</h2>
       <button class="icon" type="button" id="close-help" aria-label="Fermer l'aide">✕</button>
+    </div>
+
+    <div class="help-item">
+      <h3>Pour bien démarrer</h3>
+      <p>En haut de l'app, la carte « Bien démarrer » montre les prochaines étapes, une à la fois, avec le bouton pour la faire. Pour toute question, touchez « Aide » : le Commis vous répond et vous amène au bon écran.</p>
     </div>
 
     <div class="help-item">
@@ -193,6 +212,7 @@
   </div>
 
   <p class="status" id="status" role="status"></p>
+  <div id="demarrer"></div>
 
   <section id="v-liste" class="view">
     <div class="stack">
@@ -303,6 +323,8 @@
 </div>
 
 <div class="lightbox" id="lightbox" hidden><img id="lightbox-img" alt=""><button class="btn ghost" type="button" id="lightbox-close">Fermer</button></div>
+<div class="bienvenue" id="bienvenue" hidden role="dialog" aria-modal="true" aria-labelledby="bv-title"></div>
+<div class="bienvenue" id="ecran-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="ec-title"></div>
 <input id="in-prod-photo" type="file" accept="image/*" capture="environment" hidden>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
