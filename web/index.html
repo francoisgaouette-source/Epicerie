@@ -159,7 +159,8 @@
     </div>
 
     <div class="help-item">
-      <h3>Maison</h3>
+      <h3>Maison (et autres lieux)</h3>
+      <p>Vous pouvez avoir plusieurs lieux, comme la Maison et le Chalet. Touchez le nom d'un lieu en haut de l'onglet pour l'ouvrir, « ＋ Lieu » pour en créer un, et « Gérer les lieux » pour les renommer, les réordonner ou les supprimer. Chaque lieu a ses espaces, ses réserves, ses minimums et ses dates de péremption. Le Catalogue est commun et indique combien il y en a dans chaque lieu. Les factures, le bilan du soir et les articles cochés dans la liste vont dans le lieu ouvert sur votre téléphone.</p>
       <p>L'inventaire de la maison, rangé par espace (garde-manger, réfrigérateur, congélateur…).</p>
       <ul>
         <li><b>Où est… ?</b> : cherchez un produit pour savoir dans quel espace il est rangé.</li>
@@ -207,7 +208,7 @@
 
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" data-view="produits">Catalogue <span class="count" id="c-produits">0</span></button>
-    <button class="tab" role="tab" aria-selected="false" data-view="maison">Maison <span class="count" id="c-maison">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="maison"><span id="tab-lieu-nom">Maison</span> <span class="count" id="c-maison">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="liste">Liste épicerie <span class="count" id="c-liste">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="speciaux">Spéciaux <span class="count" id="c-speciaux">0</span></button>
   </div>
@@ -275,7 +276,12 @@
 
   <section id="v-maison" class="view" hidden>
     <div class="stack">
-      <p class="hint">Ce qu'on a à la maison, rangé par espace. Touchez + ou − quand vous rangez ou utilisez un produit. À 0, le produit quitte la Maison mais reste dans le Catalogue; sous son minimum, il s'ajoute tout seul à la Liste.</p>
+      <div class="filters listes-bar" id="lieux-bar" role="group" aria-label="Choisir le lieu"></div>
+      <form class="add" id="f-nouveau-lieu" hidden>
+        <input id="in-nouveau-lieu" placeholder="Nom du nouveau lieu (ex. Chalet)" autocomplete="off" aria-label="Nom du nouveau lieu">
+        <button class="btn" type="submit">Créer</button>
+      </form>
+      <p class="hint">Ce qu'on a dans ce lieu, rangé par espace. Touchez + ou − quand vous rangez ou utilisez un produit. À 0, le produit quitte la Maison mais reste dans le Catalogue; sous son minimum, il s'ajoute tout seul à la Liste.</p>
       <label class="btn facture-btn" id="lbl-facture" for="in-facture">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Zm2 5v2h8V7H8Zm0 4v2h8v-2H8Zm0 4v2h5v-2H8Z"/></svg>
         Lire une facture
@@ -289,6 +295,13 @@
       <details>
         <summary>Produits sans espace (<span id="sans-espace-count">0</span>)</summary>
         <div class="inner" id="list-sans-espace"></div>
+      </details>
+      <details>
+        <summary>Gérer les lieux</summary>
+        <div class="inner">
+          <p class="hint">Chaque lieu (Maison, Chalet…) a ses espaces et ses réserves. Pour en créer un, touchez « ＋ Lieu » en haut.</p>
+          <ul class="esp-list" id="list-lieux"></ul>
+        </div>
       </details>
       <details>
         <summary>Gérer les espaces</summary>
@@ -309,7 +322,7 @@
       <div class="filters" role="group" aria-label="Filtrer le catalogue">
         <button class="fchip" type="button" data-filter="tous" aria-pressed="true">Tous</button>
         <button class="fchip" type="button" data-filter="surv" aria-pressed="false">★ Surveillés <span id="n-surv">0</span></button>
-        <button class="fchip" type="button" data-filter="maison" aria-pressed="false">À la maison <span id="n-maison">0</span></button>
+        <button class="fchip" type="button" data-filter="maison" aria-pressed="false"><span id="f-lieu-nom">À la maison</span> <span id="n-maison">0</span></button>
       </div>
       <form class="add" id="f-prod">
         <label class="btn ghost photo-btn" for="in-pphoto" title="Ajouter avec une photo" aria-label="Ajouter au catalogue avec une photo">
