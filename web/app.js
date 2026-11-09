@@ -9,7 +9,7 @@
   const DEFAULT_STORES = ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const CATS = ["Fruits et légumes", "Viandes et poissons", "Produits laitiers et œufs", "Boulangerie", "Épicerie sèche",
     "Surgelés", "Boissons", "Collations", "Hygiène et beauté", "Entretien ménager", "Autre"];
-  const state = { liste: [], spec: [], prod: [], espaces: [], panier: [], config: null, membres: [], email: null };
+  const state = { liste: [], listes: [], spec: [], prod: [], espaces: [], panier: [], config: null, membres: [], email: null };
   let openProd = null, search = "", channel = null, filtre = "tous";
   const surveilles = () => state.prod.filter((p) => p.surveiller);
 
@@ -111,15 +111,46 @@
   $("#in-pcat").value = "Autre";
 
   // ---------- render
+  // ---------- plusieurs listes
+  let listeActive = null;
+  try { listeActive = localStorage.getItem("liste-active"); } catch (e) {}
+  const listesTriees = () => [...state.listes].sort((a, b) => (a.ordre - b.ordre) || String(a.cree).localeCompare(String(b.cree)));
+  const idListeActive = () => { const l = state.listes.find((x) => x.id === listeActive) || listesTriees()[0]; return l ? l.id : null; };
+  const nomListe = (id) => (state.listes.find((x) => x.id === id) || {}).nom || "la liste";
+  const listeDe = (p) => (p && p.liste_id && state.listes.some((l) => l.id === p.liste_id)) ? p.liste_id : idListeActive();
+  const dansListe = (nom, lid) => state.liste.some((i) => !i.fait && i.liste_id === lid && norm(i.nom) === norm(nom));
+  let listeEnEdition = false, listeASupprimer = null;
+  function choisirListe(id) { listeActive = id; try { localStorage.setItem("liste-active", id); } catch (e) {} render(); }
+  function renderListes() {
+    const act = idListeActive(), ls = listesTriees();
+    const nb = (id) => state.liste.filter((i) => !i.fait && i.liste_id === id).length;
+    $("#listes-bar").innerHTML = ls.map((l) => `<button class="fchip liste-chip" type="button" data-liste="${l.id}" aria-pressed="${l.id === act}">${esc(l.nom)} <span class="count">${nb(l.id)}</span></button>`).join("")
+      + `<button class="fchip" type="button" data-liste-new aria-label="Nouvelle liste">＋ Liste</button>`;
+    $("#f-nouvelle-liste").hidden = !listeEnEdition;
+    const act2 = document.activeElement;
+    if (act2 && act2.closest && act2.closest("#list-listes")) return;
+    $("#list-listes").innerHTML = ls.map((l, i) => `<li>
+        <input id="lst-${l.id}" value="${esc(l.nom)}" aria-label="Nom de la liste" data-listenom="${l.id}">
+        <button class="icon" type="button" data-listemove="-1" data-id="${l.id}" aria-label="Monter" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="icon" type="button" data-listemove="1" data-id="${l.id}" aria-label="Descendre" ${i === ls.length - 1 ? "disabled" : ""}>↓</button>
+        ${ls.length > 1 ? `<button class="icon" type="button" data-listedel="${l.id}" aria-label="Supprimer ${esc(l.nom)}">✕</button>` : ""}
+        ${listeASupprimer === l.id ? `<div class="move-row del-row"><span class="hint">Supprimer « ${esc(l.nom)} »${state.liste.some((x) => x.liste_id === l.id) ? " et ses " + state.liste.filter((x) => x.liste_id === l.id).length + " article(s)" : ""} ?</span>
+          <div class="move-choices"><button class="chip-btn danger" type="button" data-listedel-ok="${l.id}">Supprimer</button><button class="chip-btn muted" type="button" data-listedel-annuler>Annuler</button></div></div>` : ""}
+      </li>`).join("");
+  }
+
   function render() {
     const pm = prodMap();
 
-    // LISTE
-    const liste = [...state.liste].sort((a, b) => (a.fait - b.fait) || (a.cree < b.cree ? -1 : 1));
+    // LISTE (la liste choisie)
+    renderListes();
+    const lid = idListeActive();
+    $("#in-liste").placeholder = `Ajouter à « ${state.listes.length ? nomListe(lid) : "la liste"} »`;
+    const liste = state.liste.filter((i) => i.liste_id === lid || (!i.liste_id && lid === (listesTriees()[0] || {}).id)).sort((a, b) => (a.fait - b.fait) || (a.cree < b.cree ? -1 : 1));
     const restants = liste.filter((i) => !i.fait);
-    $("#c-liste").textContent = restants.length;
+    $("#c-liste").textContent = state.liste.filter((i) => !i.fait).length;
     if (!liste.length) {
-      $("#list-liste").innerHTML = emptyBox("La liste est vide", "Ajoute un article ci-dessus. L'autre personne le verra aussitôt.");
+      $("#list-liste").innerHTML = emptyBox(`« ${esc(nomListe(lid))} » est vide`, "Ajoutez un article ci-dessus. Les autres le verront aussitôt.");
       $("#liste-actions").hidden = true;
     } else {
       const saleNames = new Set(state.spec.filter((s) => !s.ignore).map((s) => norm(s.item)));
@@ -582,8 +613,8 @@
     p.stock = apres; if (apres === 0) p.peremption = null; render();
     await run(sb.from("produits").update(apres === 0 ? { stock: 0, peremption: null } : { stock: apres }).eq("id", id));
     if (delta < 0 && estBas(p) && !(avant <= Number(p.minimum))) {
-      if (!state.liste.some((i) => !i.fait && norm(i.nom) === norm(p.nom))) {
-        if (await run(sb.from("epicerie").insert({ nom: p.nom, ...(p.photo ? { photo: p.photo } : {}) }), `« ${p.nom} » est sous le minimum : ajouté à la liste.`)) scheduleReload("epicerie");
+      if (!dansListe(p.nom, listeDe(p))) {
+        if (await run(sb.from("epicerie").insert({ nom: p.nom, liste_id: listeDe(p), ...(p.photo ? { photo: p.photo } : {}) }), `« ${p.nom} » est sous le minimum : ajouté à « ${nomListe(listeDe(p))} ».`)) scheduleReload("epicerie");
       }
     }
   }
@@ -603,6 +634,7 @@
       </div>
       <div class="edit-fields maison-fields">
         <label class="mf">Espace ${espaceSelect(p, "e-esp-" + pid)}</label>
+        <label class="mf">Liste habituelle <select id="e-lst-${pid}" data-pfield="liste_id" data-id="${pid}"><option value="">Liste ouverte</option>${listesTriees().map((l) => `<option value="${l.id}" ${l.id === p.liste_id ? "selected" : ""}>${esc(l.nom)}</option>`).join("")}</select></label>
         <label class="mf">En réserve ${stockCtl(p)}</label>
         <label class="mf">Prix cible (spéciaux) <input id="e-cible-${pid}" inputmode="decimal" placeholder="Tout rabais" value="${p.prix_cible != null ? esc(String(p.prix_cible).replace(".", ",")) : ""}" data-nfield="prix_cible" data-id="${pid}"></label>
         <label class="mf">Péremption <input type="date" id="e-per-${pid}" value="${esc(p.peremption || "")}" data-dfield="peremption" data-id="${pid}"></label>
@@ -625,7 +657,7 @@
   }
 
   // ---------- data
-  const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier" };
+  const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier", listes: "listes" };
   async function load(table) {
     if (table === "membres") {
       const { data } = await sb.from("membres").select("id, email, telephone, nom, invite_par");
@@ -641,7 +673,7 @@
     if (!error) state[TABLES[table]] = data || [];
   }
   async function loadAll() {
-    await Promise.all(["epicerie", "produits", "espaces", "panier", "config"].map(load).concat(
+    await Promise.all(["epicerie", "produits", "espaces", "panier", "listes", "config"].map(load).concat(
       sb.from("speciaux").select("*").limit(2000).then(({ data }) => { state.spec = data || []; })));
     render();
   }
@@ -657,7 +689,7 @@
   function subscribe() {
     if (channel) sb.removeChannel(channel);
     channel = sb.channel("epicerie-live");
-    ["epicerie", "speciaux", "produits", "espaces", "panier", "config", "membres"].forEach((t) =>
+    ["epicerie", "speciaux", "produits", "espaces", "panier", "listes", "config", "membres"].forEach((t) =>
       channel.on("postgres_changes", { event: "*", schema: "public", table: t }, () => scheduleReload(t)));
     channel.subscribe();
   }
@@ -1074,7 +1106,7 @@
     const sameAsIdent = id.nom && norm(id.nom) === norm(nom);
     $("#in-liste").value = ""; $("#in-qte").value = ""; focusIfDesktop($("#in-liste"));
     showPending(null);
-    if (await run(sb.from("epicerie").insert(ph ? { nom, qte, photo: ph } : { nom, qte }))) {
+    if (await run(sb.from("epicerie").insert(ph ? { nom, qte, photo: ph, liste_id: idListeActive() } : { nom, qte, liste_id: idListeActive() }))) {
       scheduleReload("epicerie");
       ensureProduct(nom, ph ? { photo: ph, ...(sameAsIdent ? { marque: id.marque, format: id.format, categorie: id.categorie } : {}) } : null);
     }
@@ -1201,7 +1233,7 @@
     const pf = e.target.closest("[data-pfield]");
     if (pf) {
       let v = pf.value.trim(); if (pf.dataset.pfield === "nom" && !v) return;
-      if (pf.dataset.pfield === "espace_id") v = v || null;
+      if (pf.dataset.pfield === "espace_id" || pf.dataset.pfield === "liste_id") v = v || null;
       await run(sb.from("produits").update({ [pf.dataset.pfield]: v }).eq("id", pf.dataset.id));
       scheduleReload("produits"); return;
     }
@@ -1282,8 +1314,7 @@
       return;
     }
     if (e.target.closest("#add-bas")) {
-      const enListe = new Set(state.liste.filter((i) => !i.fait).map((i) => norm(i.nom)));
-      const rows = state.prod.filter((p) => estBas(p) && !enListe.has(norm(p.nom))).map((p) => ({ nom: p.nom, ...(p.photo ? { photo: p.photo } : {}) }));
+      const rows = state.prod.filter((p) => estBas(p) && !dansListe(p.nom, listeDe(p))).map((p) => ({ nom: p.nom, liste_id: listeDe(p), ...(p.photo ? { photo: p.photo } : {}) }));
       if (rows.length && await run(sb.from("epicerie").insert(rows), `${rows.length} article${rows.length > 1 ? "s" : ""} ajouté${rows.length > 1 ? "s" : ""} à la liste.`)) scheduleReload("epicerie");
       return;
     }
@@ -1303,14 +1334,15 @@
       if (await run(sb.from("config").update({ magasins: cur }).eq("id", 1))) scheduleReload("config"); return;
     }
     const a = e.target.closest("[data-addfrom]");
-    if (a) { const s = state.spec.find((x) => x.id === a.dataset.addfrom); if (s && await run(sb.from("epicerie").insert({ nom: s.item }))) scheduleReload("epicerie"); return; }
+    if (a) { const s = state.spec.find((x) => x.id === a.dataset.addfrom); if (s) { const p = state.prod.find((x) => norm(x.nom) === norm(s.item)); const l = listeDe(p); if (await run(sb.from("epicerie").insert({ nom: s.item, liste_id: l }), `« ${s.item} » ajouté à « ${nomListe(l)} ».`)) scheduleReload("epicerie"); } return; }
     const ig = e.target.closest("[data-ignore]");
     if (ig) { local("speciaux", () => (state.spec = state.spec.filter((x) => x.id !== ig.dataset.ignore))); await run(sb.from("speciaux").update({ ignore: true }).eq("id", ig.dataset.ignore)); return; }
     const tl = e.target.closest("[data-tolist]");
     if (tl) {
       const p = state.prod.find((x) => x.id === tl.dataset.tolist); if (!p) return;
-      if (state.liste.some((i) => !i.fait && norm(i.nom) === norm(p.nom))) { status(`« ${p.nom} » est déjà dans la liste.`); return; }
-      if (await run(sb.from("epicerie").insert({ nom: p.nom }), `« ${p.nom} » ajouté à la liste.`)) scheduleReload("epicerie"); return;
+      const l = listeDe(p);
+      if (dansListe(p.nom, l)) { status(`« ${p.nom} » est déjà dans « ${nomListe(l)} ».`); return; }
+      if (await run(sb.from("epicerie").insert({ nom: p.nom, liste_id: l }), `« ${p.nom} » ajouté à « ${nomListe(l)} ».`)) scheduleReload("epicerie"); return;
     }
     const tw = e.target.closest("[data-survtoggle]");
     if (tw) {
@@ -1327,10 +1359,47 @@
     const row = e.target.closest("[data-prod]");
     if (row) { openProd = openProd === row.dataset.prod ? null : row.dataset.prod; renderProducts(); }
   });
+  $("#v-liste").addEventListener("click", async (e) => {
+    const c = e.target.closest("[data-liste]"); if (c) return choisirListe(c.dataset.liste);
+    if (e.target.closest("[data-liste-new]")) { listeEnEdition = !listeEnEdition; renderListes(); if (listeEnEdition) setTimeout(() => $("#in-nouvelle-liste").focus(), 30); return; }
+    const mv = e.target.closest("[data-listemove]");
+    if (mv) {
+      const ls = listesTriees(), i = ls.findIndex((x) => x.id === mv.dataset.id), j = i + Number(mv.dataset.listemove);
+      if (i < 0 || j < 0 || j >= ls.length) return;
+      [ls[i], ls[j]] = [ls[j], ls[i]]; ls.forEach((x, k) => (x.ordre = k + 1)); render();
+      for (const [k, x] of ls.entries()) await run(sb.from("listes").update({ ordre: k + 1 }).eq("id", x.id));
+      return;
+    }
+    const d = e.target.closest("[data-listedel]"); if (d) { listeASupprimer = d.dataset.listedel; renderListes(); return; }
+    if (e.target.closest("[data-listedel-annuler]")) { listeASupprimer = null; renderListes(); return; }
+    const ok = e.target.closest("[data-listedel-ok]");
+    if (ok) {
+      const id = ok.dataset.listedelOk, nom = nomListe(id); listeASupprimer = null;
+      state.listes = state.listes.filter((x) => x.id !== id); state.liste = state.liste.filter((x) => x.liste_id !== id);
+      if (listeActive === id) listeActive = null; render();
+      await run(sb.from("listes").delete().eq("id", id), `Liste « ${nom} » supprimée.`); scheduleReload("epicerie"); return;
+    }
+  });
+  $("#v-liste").addEventListener("change", async (e) => {
+    const n = e.target.closest("[data-listenom]"); if (!n) return;
+    const v = n.value.trim(); if (!v) return;
+    await run(sb.from("listes").update({ nom: v }).eq("id", n.dataset.listenom), "Liste renommée."); scheduleReload("listes");
+  });
+  $("#f-nouvelle-liste").addEventListener("submit", async (e) => {
+    e.preventDefault(); const nom = $("#in-nouvelle-liste").value.trim(); if (!nom) return;
+    if (state.listes.some((x) => norm(x.nom) === norm(nom))) { status(`La liste « ${nom} » existe déjà.`); return; }
+    const ordre = Math.max(0, ...state.listes.map((x) => x.ordre || 0)) + 1;
+    const { data, error } = await sb.from("listes").insert({ nom, ordre }).select("*").single();
+    if (error) { status("La liste n'a pas pu être créée. Réessayez."); return; }
+    state.listes.push(data); $("#in-nouvelle-liste").value = ""; listeEnEdition = false; choisirListe(data.id);
+    status(`Liste « ${nom} » créée. Ajoutez-y vos articles.`);
+  });
+
   $("#clear-done").addEventListener("click", async () => {
-    const ids = state.liste.filter((i) => i.fait).map((i) => i.id);
+    const lid = idListeActive();
+    const ids = state.liste.filter((i) => i.fait && (i.liste_id === lid || !i.liste_id)).map((i) => i.id);
     if (!ids.length) return;
-    local("epicerie", () => (state.liste = state.liste.filter((i) => !i.fait)));
+    local("epicerie", () => (state.liste = state.liste.filter((i) => !ids.includes(i.id))));
     await run(sb.from("epicerie").delete().in("id", ids));
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.email) loadAll(); });

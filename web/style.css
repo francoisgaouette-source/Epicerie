@@ -306,3 +306,10 @@ html,body{min-height:100%}
 .cad-go{display:block;margin-top:8px}
 .cad-sugg{display:flex;flex-wrap:wrap;gap:6px}
 .cad-sugg .fchip{font-weight:500;text-align:left}
+
+/* Plusieurs listes */
+.listes-bar{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.listes-bar .fchip{flex:none;white-space:nowrap}
+.liste-chip .count{margin-left:4px}
+.fchip[aria-pressed="true"] .count{background:var(--accent-ink);color:var(--accent)}
+.esp-list li{flex-wrap:wrap}

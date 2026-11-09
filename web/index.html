@@ -148,6 +148,7 @@
 
     <div class="help-item">
       <h3>Liste épicerie</h3>
+      <p>Vous pouvez avoir plusieurs listes (Épicerie, Costco, Pharmacie…). Touchez le nom d'une liste en haut de l'onglet pour l'ouvrir, « ＋ Liste » pour en créer une, et « Gérer les listes » en bas pour les renommer, les réordonner ou les supprimer. Dans le Catalogue, chaque produit peut avoir sa « liste habituelle ».</p>
       <p>La liste d'épicerie commune. Ce que l'un ajoute, coche ou supprime apparaît aussitôt chez l'autre.</p>
       <ul>
         <li><b>Ajouter</b> : écrivez l'article et, au besoin, la quantité. Dès 2 lettres, l'app propose les produits déjà connus.</li>
@@ -216,6 +217,11 @@
 
   <section id="v-liste" class="view">
     <div class="stack">
+      <div class="filters listes-bar" id="listes-bar" role="group" aria-label="Choisir la liste"></div>
+      <form class="add" id="f-nouvelle-liste" hidden>
+        <input id="in-nouvelle-liste" placeholder="Nom de la nouvelle liste (ex. Costco, Pharmacie)" autocomplete="off" aria-label="Nom de la nouvelle liste">
+        <button class="btn" type="submit">Créer</button>
+      </form>
       <form class="add" id="f-liste">
         <label class="btn ghost photo-btn" for="in-photo" title="Ajouter avec une photo" aria-label="Ajouter avec une photo">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
@@ -240,6 +246,13 @@
         <button class="link" id="clear-done" type="button">Retirer les articles cochés</button>
       </div>
       <div id="compare"></div>
+      <details>
+        <summary>Gérer les listes</summary>
+        <div class="inner">
+          <p class="hint">Renommez, réordonnez ou supprimez vos listes. Pour en créer une, touchez « ＋ Liste » en haut.</p>
+          <ul class="esp-list" id="list-listes"></ul>
+        </div>
+      </details>
     </div>
   </section>
 
