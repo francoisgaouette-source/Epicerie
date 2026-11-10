@@ -2,28 +2,28 @@
 
 /* Layout: one narrow column like a till receipt; tabs on top, quick-add bar, list rows */
 :root{
-  --bg:#f6f7f4; --surface:#ffffff; --ink:#1d2420; --muted:#66706a; --line:#dfe3dd;
-  --accent:#2f6f4a; --accent-ink:#ffffff; --tag:#f5c838; --tag-ink:#2a2200; --danger:#b33b2e;
-  --soft:#e8efe9; --best:#d9eedf; --best-ink:#1e5135;
-  --f-display:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --bg:#F6F5EF; --surface:#FFFFFF; --ink:#1D2520; --muted:#59635C; --line:#DCDFD8;
+  --accent:#1F5B3A; --accent-ink:#FFFFFF; --tag:#F2C230; --tag-ink:#2A2000; --danger:#A3271F;
+  --soft:#E9EEE6; --best:#DCEBDF; --best-ink:#1F5B3A; --kraft:#D6BB8E; --prix-tag:#8A1F17;
+  --f-display:"Bricolage Grotesque", "Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
   --f-body:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
   --f-mono:"DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#121614; --surface:#1a201d; --ink:#e6ebe7; --muted:#97a29b; --line:#2b332e;
-  --accent:#6cbf8c; --accent-ink:#0d1a12; --tag:#e9bd35; --tag-ink:#231c00; --danger:#ef7f71;
-  --soft:#1f2b24; --best:#21402d; --best-ink:#a9e3bd; color-scheme:dark}}
+  --bg:#121613; --surface:#1B201C; --ink:#EDF1EC; --muted:#A1ABA4; --line:#2E3631;
+  --accent:#62BC88; --accent-ink:#0D1F14; --tag:#E9B82A; --tag-ink:#2A2000; --danger:#FF8A7E;
+  --soft:#1F2A23; --best:#1E3428; --best-ink:#A9E3BD; --kraft:#7A6141; --prix-tag:#8A1F17; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#121614; --surface:#1a201d; --ink:#e6ebe7; --muted:#97a29b; --line:#2b332e;
-  --accent:#6cbf8c; --accent-ink:#0d1a12; --tag:#e9bd35; --tag-ink:#231c00; --danger:#ef7f71;
-  --soft:#1f2b24; --best:#21402d; --best-ink:#a9e3bd; color-scheme:dark}
+  --bg:#121613; --surface:#1B201C; --ink:#EDF1EC; --muted:#A1ABA4; --line:#2E3631;
+  --accent:#62BC88; --accent-ink:#0D1F14; --tag:#E9B82A; --tag-ink:#2A2000; --danger:#FF8A7E;
+  --soft:#1F2A23; --best:#1E3428; --best-ink:#A9E3BD; --kraft:#7A6141; --prix-tag:#8A1F17; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45}
 .wrap{max-width:680px;margin:0 auto;padding-block:20px 48px;
   padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
   display:flex;flex-direction:column;gap:18px}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
-h1{font-family:var(--f-display);font-size:1.75rem;font-weight:700;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-family:var(--f-display);font-size:1.85rem;font-weight:800;margin:0;letter-spacing:-.02em;line-height:1.05;text-wrap:balance}
 h2{font-size:1rem;font-weight:700;margin:0}
 .who{font-size:.85rem;color:var(--muted)}
 .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--soft);padding:4px;border-radius:12px}
@@ -113,7 +113,9 @@ details .inner{display:flex;flex-direction:column;gap:10px}
 /* App shell additions */
 html,body{min-height:100%}
 .login{max-width:420px;margin:0 auto;padding-block:12vh 40px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
-.login h1{font-size:2rem}
+.login h1{font-size:2.6rem}
+.slogan{margin:-6px 0 0;color:var(--muted);font-size:1rem}
+.title-row .marque{width:30px;height:30px;flex:none}
 .login form{display:flex;flex-direction:column;gap:10px}
 .login input{font:inherit;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
 .login .code{font-family:var(--f-mono);font-size:1.4rem;letter-spacing:.3em;text-align:center}
@@ -313,3 +315,9 @@ html,body{min-height:100%}
 .liste-chip .count{margin-left:4px}
 .fchip[aria-pressed="true"] .count{background:var(--accent-ink);color:var(--accent)}
 .esp-list li{flex-wrap:wrap}
+
+/* Le Commis : titres de panneaux en police d'enseigne, prix des spéciaux en rouge d'étiquette */
+h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
+.bv-brand{font-family:var(--f-display);font-weight:800;font-size:1rem;letter-spacing:-.01em;text-transform:none;opacity:1}
+.title-row h1{white-space:nowrap}
+@media (max-width:420px){.title-row h1{font-size:1.6rem}}

@@ -1,7 +1,7 @@
 // Service worker : garde l'interface en cache pour qu'elle s'ouvre vite.
 // Les données viennent toujours de Supabase, jamais du cache.
-const CACHE = "epicerie-v21";
-const SHELL = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png"];
+const CACHE = "commis-v22";
+const SHELL = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon.svg", "icons/marque.svg", "icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -24,7 +24,7 @@ self.addEventListener("fetch", (e) => {
 self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data && e.data.text() }; }
-  e.waitUntil(self.registration.showNotification(d.title || "Notre épicerie", {
+  e.waitUntil(self.registration.showNotification(d.title || "Le Commis", {
     body: d.body || "", icon: "icons/icon-192.png", badge: "icons/icon-192.png",
     tag: "bilan", renotify: true, data: { url: d.url || "./#bilan" },
   }));

@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Notre épicerie</title>
-<meta name="description" content="Notre liste d'épicerie partagée, avec les spéciaux de la semaine.">
-<meta name="theme-color" content="#2f6f4a">
+<title>Le Commis</title>
+<meta name="description" content="Votre commis d'épicerie, à la maison : la liste, la maison et les spéciaux.">
+<meta name="theme-color" content="#1F5B3A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Épicerie">
+<meta name="apple-mobile-web-app-title" content="Le Commis">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,7 +22,8 @@
 <!-- CONNEXION -->
 <section class="login" id="login" hidden>
   <img src="icons/icon.svg" alt="" class="tag-logo">
-  <h1>Notre épicerie</h1>
+  <h1>Le Commis</h1>
+  <p class="slogan">Votre commis d'épicerie, à la maison.</p>
   <form id="f-login" class="login-form">
     <p class="hint">Connectez-vous avec votre cellulaire et votre mot de passe.</p>
     <label class="mf" for="in-tel">Cellulaire</label>
@@ -76,7 +77,8 @@
 <div class="wrap" id="app" hidden>
   <header>
     <div class="title-row">
-      <h1>Notre épicerie</h1>
+      <img src="icons/marque.svg" alt="" class="marque">
+      <h1>Le Commis</h1>
       <button class="bell off" type="button" id="open-rappel" aria-label="Rappel du bilan à 21 h" title="Rappel du bilan à 21 h">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path class="bell-shape" d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.4 15.5a2.5 2.5 0 0 0 4.8 0Z"/></svg>
         <span class="bell-txt">Rappel pas activé</span>
@@ -137,7 +139,7 @@
 
   <section class="help" id="help" hidden aria-labelledby="help-title">
     <div class="help-head">
-      <h2 id="help-title">Comment utiliser Notre épicerie</h2>
+      <h2 id="help-title">Comment utiliser Le Commis</h2>
       <button class="icon" type="button" id="close-help" aria-label="Fermer l'aide">✕</button>
     </div>
 
