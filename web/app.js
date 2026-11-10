@@ -837,7 +837,7 @@
     await load("membres");
   });
   $("#invite-send").addEventListener("click", async () => {
-    try { await navigator.share({ title: "Notre épicerie", text: inviteMsg }); } catch (e) {}
+    try { await navigator.share({ title: "Le Commis", text: inviteMsg }); } catch (e) {}
   });
   $("#invite-copy").addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(inviteMsg); status("Message copié. Collez-le dans un texto ou un courriel."); }
@@ -898,7 +898,7 @@
     const autres = state.membres.filter((x) => !estMoi(x)).map((x) => prenom(x.nom)).filter(Boolean);
     const box = $("#bienvenue");
     box.innerHTML = `<div class="bv-in">
-      <div class="bv-card" aria-hidden="true"><span class="bv-hole"></span><div class="bv-brand">Notre épicerie</div>
+      <div class="bv-card" aria-hidden="true"><span class="bv-hole"></span><div class="bv-brand">Le Commis</div>
         <div class="bv-name">${esc(me.nom || "Bienvenue")}</div><div class="bv-sub">${autres.length ? "avec " + esc(autres.join(", ")) : "Membre"}</div></div>
       <h1 id="bv-title">Bienvenue${nom ? ", " + esc(nom) : ""}.</h1>
       <p class="bv-lead">${parQui ? esc(parQui) + " vous a invité" + " à partager l'épicerie de la maison." : "Vous partagez maintenant l'épicerie de la maison."} Tout ce que vous ajoutez apparaît aussitôt chez les autres.</p>
@@ -921,7 +921,7 @@
   function montrerEcran() {
     const ios = /iPhone|iPad|iPod/.test(navigator.userAgent), box = $("#ecran-sheet");
     box.innerHTML = `<div class="bv-in">
-      <h1 id="ec-title">Notre épicerie sur votre écran d'accueil</h1>
+      <h1 id="ec-title">Le Commis sur votre écran d'accueil</h1>
       <ol class="bv-steps">${ios
         ? "<li>Ouvrez l'app dans <b>Safari</b>.</li><li>Touchez le bouton <b>Partager</b> (le carré avec une flèche vers le haut).</li><li>Choisissez <b>Sur l'écran d'accueil</b>, puis <b>Ajouter</b>.</li><li>Ouvrez ensuite l'app depuis sa nouvelle icône.</li>"
         : "<li>Ouvrez l'app dans <b>Chrome</b>.</li><li>Touchez le menu <b>⋮</b> en haut à droite.</li><li>Choisissez <b>Installer l'application</b> (ou <b>Ajouter à l'écran d'accueil</b>).</li><li>Ouvrez ensuite l'app depuis sa nouvelle icône.</li>"}</ol>

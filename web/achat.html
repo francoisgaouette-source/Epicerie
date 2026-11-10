@@ -3,18 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Acheter Notre épicerie</title>
-<meta name="description" content="Notre épicerie : la liste, la maison et les spéciaux de votre foyer. 7,99 $ par année.">
+<title>Acheter Le Commis</title>
+<meta name="theme-color" content="#1F5B3A">
+<meta name="description" content="Le Commis, votre commis d'épicerie à la maison : la liste, la maison et les spéciaux de votre foyer. 7,99 $ par année.">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="style.css">
 <style>
 .page{max-width:640px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
 .page h1{font-size:2rem;text-wrap:balance}
 .lead{color:var(--muted);margin:0;max-width:60ch}
 .prix{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
-.prix .montant{font:700 2.4rem var(--f-display)}
+.enseigne{display:flex;align-items:center;gap:10px;font:800 1.4rem var(--f-display);letter-spacing:-.01em}
+.page h1{font-weight:800}
+.prix .montant{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.etiq{display:inline-flex;flex-direction:column;gap:2px;background:var(--tag);color:var(--tag-ink);padding:12px 16px 10px 24px;border-radius:6px;clip-path:polygon(12px 0,100% 0,100% 100%,12px 100%,0 50%)}
+.etiq-mot{font:600 .7rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase}
+.etiq-prix{font:500 2rem/1.1 var(--f-mono);color:var(--prix-tag);font-variant-numeric:tabular-nums}
 .prix .montant small{font:500 1rem var(--f-body);color:var(--muted)}
 .prix ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
 .pour{background:var(--best);color:var(--best-ink);border-radius:12px;padding:10px 14px;margin:0}
@@ -29,15 +35,16 @@
 <body>
 <main class="page">
   <a href="./" class="link">← Retour à l'app</a>
-  <h1>Notre épicerie, pour toute l'année</h1>
+  <div class="enseigne"><img src="icons/marque.svg" alt="" width="34" height="38"><span>Le Commis</span></div>
+  <h1>Votre commis d'épicerie, à la maison. Toute l'année.</h1>
   <p class="lead">La liste d'épicerie partagée, ce que vous avez à la maison et au chalet, les dates de péremption et les spéciaux de la semaine, pour jusqu'à 4 personnes.</p>
   <p class="pour" id="pour" hidden></p>
   <section class="prix">
-    <div class="montant">7,99 $ <small>par année, taxes en sus</small></div>
+    <div class="montant"><span class="etiq"><span class="etiq-mot">Par année</span><span class="etiq-prix">7,99 $</span></span><small>taxes en sus · après 30 jours d'essai</small></div>
     <ul>
       <li>Jusqu'à 4 membres dans le foyer</li>
       <li>Catalogue avec photos, plusieurs lieux et listes</li>
-      <li>Lecture des factures, bilan du soir, le Commis</li>
+      <li>Lecture des factures, bilan du soir et l'aide du Commis</li>
       <li>Paiement unique pour 12 mois, sans renouvellement automatique</li>
     </ul>
     <p class="soon" id="soon" hidden>Les ventes ouvrent bientôt. Votre essai continue d'ici là.</p>

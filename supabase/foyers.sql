@@ -1,4 +1,4 @@
--- Notre épicerie : plusieurs foyers (chaque acheteur a le sien), lieux et réserves par lieu.
+-- Le Commis : plusieurs foyers (chaque acheteur a le sien), lieux et réserves par lieu.
 -- Chaque foyer a un propriétaire, un essai de 30 jours, puis un forfait payé jusqu'à une date.
 
 -- =========================================================

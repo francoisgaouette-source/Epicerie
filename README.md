@@ -1,4 +1,4 @@
-# Notre épicerie
+# Le Commis
 
 Liste d'épicerie partagée à deux, installable sur le téléphone, avec :
 
