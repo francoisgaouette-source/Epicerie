@@ -1,6 +1,6 @@
 // Service worker : garde l'interface en cache pour qu'elle s'ouvre vite.
 // Les données viennent toujours de Supabase, jamais du cache.
-const CACHE = "commis-v24";
+const CACHE = "commis-v25";
 const SHELL = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon.svg", "icons/marque.svg", "icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {

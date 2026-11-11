@@ -1607,7 +1607,7 @@
     if (essai > now) return { actif: true, type: "essai", jours: Math.max(1, Math.ceil((essai - now) / 864e5)) };
     return { actif: false, type: "termine" };
   }
-  const lienAchat = () => `achat.html?foyer=${encodeURIComponent(state.foyer ? state.foyer.id : "")}&nom=${encodeURIComponent(state.foyer ? state.foyer.nom : "")}`;
+  const lienAchat = () => `${(window.EPICERIE_CONFIG && window.EPICERIE_CONFIG.siteUrl) || "https://lecommis.ai/"}achat.html?foyer=${encodeURIComponent(state.foyer ? state.foyer.id : "")}&nom=${encodeURIComponent(state.foyer ? state.foyer.nom : "")}`;
   function renderForfait() {
     const box = $("#forfait"), et = etatForfait(), proprio = estProprio();
     const nomProprio = (state.membres.find((m) => m.role === "proprio") || {}).nom || "le propriétaire";
