@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Le Commis · votre commis d'épicerie, à la maison</title>
+<meta name="description" content="Le Commis tient la liste d'épicerie de toute la maison, sait ce qu'il reste dans le garde-manger et trouve les spéciaux de la semaine chez IGA, Metro, Maxi, Super C et Provigo. 30 jours gratuits, puis 7,99 $ par année pour tout le foyer. Fait au Québec.">
+<meta name="theme-color" content="#173F2A">
+<meta property="og:title" content="Le Commis · votre commis d'épicerie, à la maison">
+<meta property="og:description" content="La liste de toute la maison, le garde-manger et les spéciaux de la semaine. 7,99 $ par année pour tout le foyer.">
+<meta property="og:image" content="https://lecommis.ai/img/partage.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<script src="config.js"></script>
+<style>
+:root {
+  --vert-nuit: #173F2A;   /* le vert d'épicier, foncé pour les grands aplats */
+  --vert-nuit-2: #1D4A33;
+  --epicerie: #1F5B3A;
+  --vert-pale: #DCEBDF;
+  --etiquette: #F2C230;
+  --sur-etiquette: #2A2000;
+  --prix-etiquette: #8A1F17;
+  --kraft: #D6BB8E;
+  --kraft-pale: #EFE3CC;
+  --creme: #F6F5EF;
+  --ink: #1D2520;
+  --muted: #59635C;
+  --ligne: #DCDFD8;
+  --blanc: #FFFFFF;
+  --display: 'Bricolage Grotesque', 'Familjen Grotesk', system-ui, sans-serif;
+  --body: 'Familjen Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'DM Mono', ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+html, body { overflow-x: clip; }
+body { margin: 0; background: var(--creme); color: var(--ink); font-family: var(--body); font-size: 18px; line-height: 1.55; }
+img { max-width: 100%; display: block; }
+a { color: var(--epicerie); }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--etiquette); outline-offset: 3px; border-radius: 4px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* En-tête */
+.top { background: var(--vert-nuit); color: var(--blanc); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 68px; }
+.mark { font-family: var(--display); font-weight: 800; font-size: 28px; letter-spacing: -.01em; color: var(--blanc); text-decoration: none; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.mark img { width: 26px; height: 29px; }
+.nav { display: flex; align-items: center; gap: 26px; }
+.nav a { color: #CFDCD3; text-decoration: none; font-weight: 500; font-size: 16px; }
+.nav a:hover { color: var(--blanc); }
+.nav .try { background: var(--etiquette); color: var(--sur-etiquette); padding: 8px 16px; border-radius: 8px; font-weight: 600; }
+.nav .try:hover { color: var(--sur-etiquette); background: #F6CF52; }
+.nav .login { border: 1.5px solid #4E7360; padding: 7px 14px; border-radius: 8px; color: var(--blanc); }
+.nav .login:hover { border-color: var(--blanc); }
+@media (max-width: 440px) { .nav .login { display: none !important; } }
+@media (max-width: 820px) { .nav a:not(.try):not(.login) { display: none; } .nav { gap: 10px; } .nav .login, .nav .try { font-size: 15px; padding: 7px 12px; white-space: nowrap; } .mark { font-size: 24px; } }
+
+/* Ouverture */
+.hero { background: var(--vert-nuit); color: var(--blanc); padding: 56px 0 0; overflow: hidden; }
+.hero .wrap { display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: end; }
+.hero h1 { font-family: var(--display); font-weight: 800; font-size: clamp(50px, 7.6vw, 96px); line-height: .94; letter-spacing: -.025em; margin: 0 0 24px; max-width: 11ch; }
+.hero h1 em { font-style: normal; color: var(--etiquette); }
+.hero .lead { font-size: 21px; color: #D6E3DA; max-width: 34em; margin: 0 0 32px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.btn { display: inline-flex; align-items: center; min-height: 52px; padding: 0 24px; border-radius: 10px; font-weight: 600; font-size: 18px; text-decoration: none; }
+.btn.main { background: var(--etiquette); color: var(--sur-etiquette); }
+.btn.main:hover { background: #F6CF52; }
+.btn.ghost { color: var(--blanc); border: 1.5px solid #4E7360; }
+.btn.ghost:hover { border-color: var(--blanc); }
+.hero .small { color: #A9C1B1; font-size: 15px; margin: 0 0 56px; }
+.hero .phone-zone { justify-self: center; position: relative; }
+.hero .tag-flottant { position: absolute; left: -96px; top: -56px; z-index: 2; transform: rotate(-8deg); box-shadow: 0 10px 24px rgba(0,0,0,.25); }
+@media (max-width: 860px) { .hero .wrap { grid-template-columns: 1fr; gap: 8px; } .hero .phone-zone { margin-top: 30px; } .hero .tag-flottant { left: -12px; top: -30px; } }
+
+/* Le téléphone et ses écrans, dessinés en HTML aux couleurs de l'app */
+.phone { width: 300px; background: #08140D; border-radius: 40px 40px 0 0; padding: 12px 12px 0; }
+.phone.full { border-radius: 40px; padding: 12px; }
+.ecran { background: var(--creme); border-radius: 30px 30px 0 0; height: 470px; overflow: hidden; padding: 22px 16px 0; color: var(--ink); font-size: 14px; line-height: 1.35; }
+.phone.full .ecran { border-radius: 30px; height: 560px; }
+@media (max-width: 860px) { .phone { width: 270px; } .ecran { height: 400px; } }
+.e-titre { display: flex; align-items: center; gap: 8px; white-space: nowrap; font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: -.02em; margin: 0 0 4px; }
+.e-titre img { width: 20px; height: 22px; }
+.e-titre .cloche { margin-left: auto; font: 600 10px var(--body); background: var(--epicerie); color: #fff; border-radius: 999px; padding: 4px 8px; letter-spacing: 0; }
+.e-qui { font-size: 11px; color: var(--muted); margin: 0 0 10px; }
+.e-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; background: #E9EEE6; padding: 3px; border-radius: 10px; margin-bottom: 10px; }
+.e-tabs span { text-align: center; font-weight: 600; font-size: 10.5px; padding: 6px 2px; border-radius: 8px; }
+.e-tabs .on { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.e-puces { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.e-puces span { border: 1px solid var(--ligne); background: #fff; border-radius: 999px; padding: 3px 10px; font-weight: 600; font-size: 11.5px; }
+.e-puces .on { background: var(--epicerie); border-color: var(--epicerie); color: #fff; }
+.e-liste { background: #fff; border: 1px solid var(--ligne); border-radius: 12px; overflow: hidden; }
+.e-liste > div { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--ligne); }
+.e-liste > div:first-child { border-top: 0; }
+.e-case { width: 18px; height: 18px; border: 2px solid #B9C2BC; border-radius: 5px; flex: none; }
+.e-case.ok { background: var(--epicerie); border-color: var(--epicerie); position: relative; }
+.e-case.ok::after { content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.e-nom { font-weight: 600; }
+.e-meta { font-size: 11px; color: var(--muted); }
+.e-fait .e-nom { text-decoration: line-through; color: var(--muted); }
+.e-qte { margin-left: auto; font: 500 11px var(--mono); color: var(--muted); white-space: nowrap; }
+.e-mini { display: inline-block; font: 600 9px var(--mono); letter-spacing: .08em; text-transform: uppercase; background: var(--etiquette); color: var(--sur-etiquette); border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: 1px; }
+.e-rouge { display: inline-block; font: 600 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; background: #F6DEDB; color: #8A1F17; border-radius: 4px; padding: 1px 5px; }
+.e-section { font: 600 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+.e-compare { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; background: #fff; border: 1px solid var(--ligne); border-radius: 12px; padding: 10px 12px; margin-top: 10px; font-size: 12.5px; }
+.e-compare .m { font-family: var(--mono); text-align: right; }
+.e-compare .best { color: var(--epicerie); font-weight: 700; }
+.e-btn { display: inline-block; background: var(--epicerie); color: #fff; border-radius: 7px; padding: 4px 9px; font-weight: 600; font-size: 11px; }
+.e-btn.doux { background: var(--vert-pale); color: var(--ink); }
+.e-bilan { background: var(--vert-pale); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+.e-bilan b { font-family: var(--display); font-size: 15px; }
+.e-ctl { display: flex; gap: 4px; margin-top: 4px; }
+.e-ctl span { border: 1px solid var(--ligne); background: #fff; border-radius: 6px; padding: 2px 6px; font: 500 10.5px var(--mono); }
+.e-ctl .on { background: var(--epicerie); color: #fff; border-color: var(--epicerie); }
+
+/* L'étiquette de spécial : la signature de la marque */
+.etiq { display: inline-flex; flex-direction: column; gap: 1px; background: var(--etiquette); color: var(--sur-etiquette); padding: 12px 18px 10px 28px; border-radius: 6px; clip-path: polygon(14px 0,100% 0,100% 100%,14px 100%,0 50%); position: relative; }
+.etiq::before { content: ''; position: absolute; left: 13px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--vert-nuit); }
+.etiq .mot { font: 600 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.etiq .prix { font: 500 30px/1.05 var(--mono); color: var(--prix-etiquette); font-variant-numeric: tabular-nums; }
+.etiq .reg { font: 500 12px var(--mono); text-decoration: line-through; opacity: .75; }
+.etiq.petite { padding: 8px 12px 7px 22px; clip-path: polygon(10px 0,100% 0,100% 100%,10px 100%,0 50%); }
+.etiq.petite::before { left: 9px; width: 6px; height: 6px; margin-top: -3px; }
+.etiq.petite .prix { font-size: 18px; }
+.etiq.petite .mot { font-size: 8.5px; }
+
+/* Bandeau des rayons */
+.strip { background: var(--creme); padding: 34px 0 6px; }
+.strip-title { font: 600 13px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 18px; }
+.strip .wrap[role=tablist] { display: grid; grid-template-columns: repeat(8, 1fr); position: relative; padding-bottom: 8px; }
+.strip .wrap[role=tablist]::before { content: ''; position: absolute; left: calc(24px + 6%); right: calc(24px + 6%); top: 27px; border-top: 3px dashed #C9B48D; z-index: 0; }
+.strip button { all: unset; box-sizing: border-box; cursor: pointer; position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 4px 10px; text-align: center; font-family: var(--display); font-weight: 700; font-size: 15px; line-height: 1.15; color: var(--ink); }
+.strip b { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--blanc); border: 2.5px solid var(--epicerie); color: var(--epicerie); font-size: 22px; font-weight: 800; box-shadow: 0 4px 12px rgba(23,63,42,.12); transition: transform .15s, background .15s, color .15s; }
+.strip button:hover b { transform: translateY(-3px); background: var(--epicerie); color: var(--blanc); }
+.strip button[aria-expanded="true"] b { background: var(--etiquette); border-color: var(--etiquette); color: var(--sur-etiquette); transform: translateY(-3px) scale(1.06); }
+.strip button:focus-visible b { outline: 3px solid var(--etiquette); outline-offset: 3px; }
+.step-panels { background: var(--creme); padding-bottom: 30px; }
+.step-panel { background: var(--vert-nuit); color: #E3ECE6; border-radius: 22px; padding: 28px 32px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 32px; align-items: center; }
+.step-panel[hidden] { display: none; }
+.step-panel h3 { font-family: var(--display); font-size: 28px; margin: 0 0 6px; color: var(--blanc); display: flex; align-items: baseline; gap: 12px; letter-spacing: -.01em; }
+.step-panel h3 span { color: var(--etiquette); font-size: 34px; font-weight: 800; }
+.step-panel p { margin: 0 0 10px; font-size: 18px; }
+.step-panel a { color: var(--etiquette); font-weight: 600; }
+.sp-vis { background: var(--creme); color: var(--ink); border-radius: 16px; padding: 14px; font-size: 14px; }
+.step-hint { margin: 0; padding: 4px 0 0; font-size: 15px; color: var(--muted); text-align: center; }
+@media (max-width: 760px) {
+  .strip .wrap[role=tablist] { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 86px; overflow-x: auto; scroll-snap-type: x mandatory; padding-top: 8px; }
+  .strip .wrap[role=tablist]::before { left: 66px; right: auto; width: 620px; }
+  .strip button { scroll-snap-align: start; }
+  .step-panel { grid-template-columns: 1fr; gap: 18px; padding: 22px 20px; }
+}
+
+/* Sections */
+section { padding: 88px 0; }
+h2 { font-family: var(--display); font-weight: 800; font-size: clamp(36px, 5vw, 56px); line-height: 1; margin: 0 0 16px; letter-spacing: -.02em; }
+.intro { font-size: 20px; color: var(--muted); max-width: 36em; margin: 0 0 48px; }
+
+/* Pourquoi */
+.how .wrap { display: grid; grid-template-columns: 1fr 324px; gap: 64px; align-items: start; }
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 64px 1fr; gap: 20px; padding: 24px 0; border-top: 1px solid var(--ligne); }
+.steps li:last-child { border-bottom: 1px solid var(--ligne); }
+.steps li::before { content: counter(s); font-family: var(--display); font-weight: 800; font-size: 54px; line-height: .9; color: var(--epicerie); }
+.steps h3 { font-family: var(--display); font-weight: 700; font-size: 26px; margin: 0 0 4px; line-height: 1.1; letter-spacing: -.01em; }
+.steps p { margin: 0; color: var(--muted); max-width: 34em; }
+.how .phone { position: sticky; top: 24px; }
+@media (max-width: 860px) { .how .wrap { grid-template-columns: 1fr; } .how .phone { position: static; } }
+
+/* Les quatre onglets */
+.tour { background: var(--vert-nuit); color: #DCE7DF; }
+.tour h2 { color: var(--blanc); }
+.tour .intro { color: #B3C8BA; }
+.onglets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 0 0 40px; }
+.onglet { background: var(--vert-nuit-2); border: 1px solid #2F5C44; border-radius: 16px; padding: 20px; }
+.onglet .num { font: 600 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--etiquette); }
+.onglet h3 { font-family: var(--display); font-weight: 800; font-size: 26px; color: var(--blanc); margin: 6px 0 8px; letter-spacing: -.01em; }
+.onglet p { margin: 0; font-size: 16px; line-height: 1.45; }
+.lieux { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.lieux > div { border: 1.5px dashed #46705A; border-radius: 16px; padding: 18px 20px; font-size: 16px; }
+.lieux b { display: block; color: var(--blanc); font-family: var(--display); font-size: 22px; margin-bottom: 4px; }
+@media (max-width: 980px) { .onglets { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 620px) { .onglets, .lieux { grid-template-columns: 1fr; } }
+
+/* Spéciaux */
+.spec { background: var(--kraft-pale); }
+.spec .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+.tag-mur { display: grid; grid-template-columns: repeat(2, max-content); gap: 22px 18px; align-items: start; justify-content: start; }
+@media (max-width: 380px) { .tag-mur { grid-template-columns: 1fr; } }
+.tag-mur .item { display: flex; flex-direction: column; gap: 6px; }
+.tag-mur .item span { font-size: 14px; font-weight: 600; }
+.tag-mur .item small { font: 500 11px var(--mono); color: var(--muted); }
+.magasins { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; padding: 0; list-style: none; }
+.magasins li { background: var(--blanc); border: 1px solid #D9C9A8; border-radius: 999px; padding: 5px 14px; font-weight: 600; font-size: 15px; }
+.spec .note { font-size: 15px; color: var(--muted); margin: 16px 0 0; }
+@media (max-width: 860px) { .spec .wrap { grid-template-columns: 1fr; gap: 40px; } }
+
+/* Et aussi */
+.extra-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.extra { background: var(--blanc); border-radius: 16px; padding: 24px; border: 1.5px solid var(--ligne); }
+.extra h3 { font-family: var(--display); font-weight: 700; font-size: 24px; margin: 0 0 6px; letter-spacing: -.01em; }
+.extra p { margin: 0; color: var(--muted); }
+.extra svg { color: var(--epicerie); margin-bottom: 10px; }
+@media (max-width: 860px) { .extra-grid { grid-template-columns: 1fr; } }
+
+/* Le Commis, l'aide */
+.aide { background: var(--blanc); }
+.aide .wrap { display: grid; grid-template-columns: 1fr 324px; gap: 64px; align-items: center; }
+.bulle { background: var(--creme); border-radius: 14px 14px 14px 4px; padding: 10px 12px; margin: 0 0 8px; max-width: 90%; }
+.bulle.moi { background: var(--epicerie); color: #fff; border-radius: 14px 14px 4px 14px; margin-left: auto; }
+.aide .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.aide .checks li { padding-left: 32px; position: relative; }
+.aide .checks li::before { content: ''; position: absolute; left: 2px; top: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--epicerie); box-shadow: inset 0 0 0 5px var(--epicerie), inset 0 0 0 9px #fff; }
+@media (max-width: 860px) { .aide .wrap { grid-template-columns: 1fr; gap: 40px; } }
+
+/* Prix */
+.plans { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; }
+.plan { background: var(--blanc); border: 1.5px solid var(--ligne); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; }
+.plan.pro { border: 2.5px solid var(--epicerie); }
+.plan h3 { font-family: var(--display); font-weight: 800; font-size: 30px; margin: 0; letter-spacing: -.01em; }
+.price { font-family: var(--display); font-weight: 800; font-size: 60px; line-height: 1; margin: 12px 0 4px; letter-spacing: -.02em; }
+.price small { display: block; font-family: var(--body); font-weight: 500; font-size: 16px; color: var(--muted); margin-top: 6px; line-height: 1.3; letter-spacing: 0; }
+.plan .for { color: var(--muted); margin: 0 0 20px; }
+.plan ul { list-style: none; padding: 0; margin: 0 0 28px; flex: 1; }
+.plan li { padding: 8px 0 8px 28px; border-top: 1px solid var(--ligne); position: relative; }
+.plan li::before { content: ''; position: absolute; left: 4px; top: 17px; width: 10px; height: 10px; border-radius: 50%; background: var(--etiquette); }
+.plan .btn { align-self: flex-start; }
+.plan .btn.main { background: var(--epicerie); color: var(--blanc); }
+.plan .btn.main:hover { background: #184B30; }
+.plan .btn.line { border: 1.5px solid var(--epicerie); color: var(--epicerie); }
+.plan .tag-coin { margin: 4px 0 8px; }
+.plans-note { color: var(--muted); font-size: 16px; margin: 20px 0 0; }
+@media (max-width: 760px) { .plans { grid-template-columns: 1fr; } }
+
+/* Questions */
+.faq { background: var(--blanc); }
+.faq .list { max-width: 820px; }
+details { border-top: 1px solid var(--ligne); }
+details:last-child { border-bottom: 1px solid var(--ligne); }
+summary { cursor: pointer; list-style: none; padding: 20px 40px 20px 0; font-weight: 600; font-size: 20px; position: relative; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: '+'; position: absolute; right: 4px; top: 14px; font-family: var(--display); font-size: 32px; color: var(--epicerie); }
+details[open] summary::after { content: '−'; }
+details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
+
+/* Dernier appel */
+.fin { background: var(--etiquette); color: var(--sur-etiquette); padding: 72px 0; }
+.fin .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; }
+.fin h2 { margin: 0; max-width: 16ch; }
+.fin .btn.main { background: var(--vert-nuit); color: var(--blanc); }
+.fin .btn.main:hover { background: var(--epicerie); }
+
+/* Pied */
+.foot { background: var(--vert-nuit); color: #B3C8BA; padding: 48px 0; font-size: 16px; }
+.foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; }
+.foot a { color: #E3ECE6; }
+.foot .links { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="#"><img src="img/marque.svg" alt="">Le Commis</a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#comment">Comment ça marche</a>
+      <a href="#onglets">L'app</a>
+      <a href="#speciaux">Spéciaux</a>
+      <a href="#prix">Prix</a>
+      <a href="#questions">Questions</a>
+      <a class="login app-link" href="https://app.lecommis.ai/">Se connecter</a>
+      <a class="try app-link" href="https://app.lecommis.ai/">Essayer</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Votre commis d'épicerie, <em>à la maison.</em></h1>
+      <p class="lead">Le Commis tient la liste de toute la maison, sait ce qu'il reste dans le garde-manger et trouve les spéciaux de la semaine. Fini le « on a-tu encore du lait? » texté de l'allée 4.</p>
+      <div class="ctas">
+        <a class="btn main app-link" href="https://app.lecommis.ai/">Essayer 30 jours gratuits</a>
+        <a class="btn ghost" href="#prix">7,99 $ par année</a>
+      </div>
+      <p class="small">30 jours complets, sans carte de crédit. Jusqu'à 4 personnes par foyer. Sur iPhone, Android et ordinateur. Fait au Québec, en français.</p>
+    </div>
+    <div class="phone-zone">
+      <div class="etiq tag-flottant" aria-hidden="true"><span class="mot">Spécial · Maxi</span><span class="prix">3,49 $</span><span class="reg">5,29 $</span></div>
+      <div class="phone" role="img" aria-label="L'onglet Liste épicerie du Commis : six articles, dont deux cochés, et le coût estimé dans chaque épicerie.">
+        <div class="ecran" aria-hidden="true">
+          <div class="e-titre"><img src="img/marque.svg" alt="">Le Commis<span class="cloche">Rappel activé</span></div>
+          <p class="e-qui">Francois · Membres · Aide</p>
+          <div class="e-tabs"><span>Catalogue</span><span>Maison</span><span class="on">Liste épicerie</span><span>Spéciaux</span></div>
+          <div class="e-puces"><span class="on">Épicerie 6</span><span>Costco 3</span><span>Pharmacie</span></div>
+          <div class="e-liste">
+            <div><span class="e-case"></span><div><div class="e-nom">Lait 2 % <span class="e-mini">Spécial</span></div><div class="e-meta">Ajouté par Marie-Eve</div></div><span class="e-qte">2 × 2 L</span></div>
+            <div><span class="e-case"></span><div><div class="e-nom">Beurre salé</div><div class="e-meta">Sous le minimum · Frigo</div></div><span class="e-qte">454 g</span></div>
+            <div><span class="e-case"></span><div><div class="e-nom">Bananes</div><div class="e-meta">Ajouté par Francois</div></div><span class="e-qte">1 régime</span></div>
+            <div><span class="e-case"></span><div><div class="e-nom">Café moulu <span class="e-mini">Spécial</span></div><div class="e-meta">Garde-manger</div></div><span class="e-qte">925 g</span></div>
+            <div class="e-fait"><span class="e-case ok"></span><div><div class="e-nom">Pain tranché</div></div><span class="e-qte">1</span></div>
+            <div class="e-fait"><span class="e-case ok"></span><div><div class="e-nom">Yogourt grec</div></div><span class="e-qte">750 g</span></div>
+          </div>
+          <div class="e-compare"><span>Maxi</span><span class="m best">41,18 $</span><span>Super C</span><span class="m">42,07 $</span><span>IGA</span><span class="m">46,90 $</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="strip">
+  <div class="wrap"><p class="strip-title">De la circulaire au garde-manger, en 8 rayons</p></div>
+  <div class="wrap" role="tablist" aria-label="Les 8 étapes">
+    <button type="button" data-step="0" aria-expanded="false"><b>1</b>Catalogue</button><button type="button" data-step="1" aria-expanded="false"><b>2</b>Surveiller</button><button type="button" data-step="2" aria-expanded="false"><b>3</b>Spéciaux</button><button type="button" data-step="3" aria-expanded="false"><b>4</b>Liste</button><button type="button" data-step="4" aria-expanded="false"><b>5</b>À l'épicerie</button><button type="button" data-step="5" aria-expanded="false"><b>6</b>Facture</button><button type="button" data-step="6" aria-expanded="false"><b>7</b>Rangé</button><button type="button" data-step="7" aria-expanded="false"><b>8</b>Bilan du soir</button>
+  </div>
+</div>
+<div class="step-panels"><div class="wrap">
+  <p class="step-hint" id="stepHint">Touchez un rayon pour voir comment ça marche.</p>
+
+  <div class="step-panel" id="step0" hidden><div><h3><span>1</span>Le catalogue</h3><p>Tous vos produits, avec leur photo et leur prix dans chaque épicerie. Il se remplit tout seul : photographiez un produit et l'app reconnaît la marque, le format et la catégorie.</p><a href="#onglets">Voir l'app →</a></div>
+    <div class="sp-vis" aria-hidden="true"><div class="e-liste"><div><div><div class="e-nom">Café moulu Maxwell House</div><div class="e-meta">925 g · Épicerie sèche</div></div><span class="e-qte">★</span></div><div><div><div class="e-nom">Beurre salé Lactantia</div><div class="e-meta">454 g · Produits laitiers</div></div><span class="e-qte">☆</span></div></div></div></div>
+
+  <div class="step-panel" id="step1" hidden><div><h3><span>2</span>Surveiller</h3><p>Touchez l'étoile d'un produit pour que le Commis guette ses spéciaux. Ajoutez un prix cible si vous voulez n'être averti que sous ce prix.</p><a href="#speciaux">Voir les spéciaux →</a></div>
+    <div class="sp-vis" aria-hidden="true"><div class="e-section">Prix cible</div><div class="e-liste"><div><div><div class="e-nom">Café moulu</div><div class="e-meta">M'avertir sous</div></div><span class="e-qte">10,00 $</span></div></div></div></div>
+
+  <div class="step-panel" id="step2" hidden><div><h3><span>3</span>Les spéciaux</h3><p>Chaque jeudi matin, le Commis parcourt les circulaires d'IGA, Metro, Maxi, Super C et Provigo. Vos produits surveillés en rabais apparaissent avec le magasin, le prix et les dates.</p><a href="#speciaux">Voir la section →</a></div>
+    <div class="sp-vis" aria-hidden="true"><div class="etiq"><span class="mot">Spécial · IGA</span><span class="prix">8,99 $</span><span class="reg">13,49 $ · jusqu'au 19 nov.</span></div></div></div>
+
+  <div class="step-panel" id="step3" hidden><div><h3><span>4</span>La liste</h3><p>Une liste commune pour toute la maison, ou plusieurs : Épicerie, Costco, Pharmacie. Ce que l'un ajoute apparaît aussitôt chez l'autre. Un produit sous son minimum s'y ajoute tout seul.</p><a href="#comment">Voir la section →</a></div>
+    <div class="sp-vis" aria-hidden="true"><div class="e-puces"><span class="on">Épicerie 6</span><span>Costco 3</span><span>Pharmacie 1</span></div></div></div>
+
+  <div class="step-panel" id="step4" hidden><div><h3><span>5</span>À l'épicerie</h3><p>Le Commis estime le coût de la liste dans chaque épicerie, d'après les prix connus. À l'épicerie, cochez ce qui entre dans le panier : l'autre le voit en direct.</p><a href="#comment">Voir la section →</a></div>
+    <div class="sp-vis" aria-hidden="true"><div class="e-compare" style="margin:0"><span>Maxi</span><span class="m best">41,18 $</span><span>Super C</span><span class="m">42,07 $</span><span>Metro</span><span class="m">47,35 $</span></div></div></div>
+
+  <div class="step-panel" id="step5" hidden><div><h3><span>6</span>La facture</h3><p>De retour à la maison, photographiez le reçu. Chaque article arrive dans un panier : vérifiez le nom, la quantité et la date de péremption, puis approuvez. Les prix sont notés au passage.</p><a href="#onglets">Voir l'app →</a></div>
+    <div class="sp-vis" aria-hidden="true"><div class="e-liste"><div><div><div class="e-nom">LAIT 2% 2L → Lait 2 %</div><div class="e-meta">2 · Frigo · exp. 24 nov.</div></div><span class="e-btn">Approuver</span></div></div></div></div>
+
+  <div class="step-panel" id="step6" hidden><div><h3><span>7</span>Rangé au bon endroit</h3><p>Chaque produit va dans son espace : garde-manger, frigo, congélateur. À la Maison ou au Chalet. Cherchez « Où est le riz? » et le Commis vous le dit.</p><a href="#onglets">Voir l'app →</a></div>
+    <div class="sp-vis" aria-hidden="true"><div class="e-section">Frigo</div><div class="e-liste"><div><div><div class="e-nom">Lait 2 %</div><div class="e-meta">exp. 24 nov.</div></div><span class="e-qte">2</span></div><div><div><div class="e-nom">Yogourt grec</div><div class="e-meta"><span class="e-rouge">Expire demain</span></div></div><span class="e-qte">1</span></div></div></div></div>
+
+  <div class="step-panel" id="step7" hidden><div><h3><span>8</span>Le bilan du soir</h3><p>À 21 h, une notification demande ce qui a été consommé : −1, −25 %, −50 % ou tout. Trente secondes, et l'inventaire reste juste sans y penser.</p><a href="#comment">Voir la section →</a></div>
+    <div class="sp-vis" aria-hidden="true"><div class="e-bilan" style="margin:0"><b>Bilan du soir</b><div class="e-meta">Qu'avez-vous utilisé aujourd'hui?</div><div style="margin-top:8px"><span class="e-nom">Lait 2 %</span><div class="e-ctl"><span>−1</span><span>−25 %</span><span class="on">−50 %</span><span>Tout</span></div></div></div></div></div>
+</div></div>
+
+<section id="comment" class="how">
+  <div class="wrap">
+    <div>
+      <h2>Moins d'oublis, moins de gaspillage</h2>
+      <p class="intro">Le Commis fait le travail d'un bon commis d'épicerie : il sait ce qui manque, ce qui est en rabais et ce qui va passer date.</p>
+      <ol class="steps">
+        <li><div><h3>Fini le « on a-tu du lait? »</h3><p>Toute la maison voit la même liste, en direct. Celui qui passe à l'épicerie sait exactement quoi prendre, photo du produit à l'appui.</p></div></li>
+        <li><div><h3>Les spéciaux viennent à vous</h3><p>Plus besoin de feuilleter cinq circulaires le jeudi. Le Commis guette les produits que vous achetez vraiment et vous montre seulement ceux-là.</p></div></li>
+        <li><div><h3>On sait ce qu'il reste</h3><p>Le garde-manger, le frigo et le congélateur, rangés par espace. Avant de partir, un coup d'œil suffit : pas de troisième pot de moutarde.</p></div></li>
+        <li><div><h3>Moins de nourriture jetée</h3><p>Les produits qui expirent dans les trois jours montent en haut de la liste. On les mange avant qu'ils passent date.</p></div></li>
+        <li><div><h3>Le bon prix, à la bonne épicerie</h3><p>Le Commis compare le coût de votre liste chez chaque épicier, d'après les prix de vos factures et des circulaires.</p></div></li>
+      </ol>
+    </div>
+    <div class="phone full" role="img" aria-label="L'onglet Maison du Commis : le bilan du soir en haut, puis les produits du frigo avec leur date de péremption.">
+      <div class="ecran" aria-hidden="true">
+        <div class="e-titre"><img src="img/marque.svg" alt="">Le Commis<span class="cloche">Rappel activé</span></div>
+        <p class="e-qui">Marie-Eve · Membres · Aide</p>
+        <div class="e-tabs"><span>Catalogue</span><span class="on">Maison</span><span>Liste épicerie</span><span>Spéciaux</span></div>
+        <div class="e-puces"><span class="on">Maison</span><span>Chalet</span></div>
+        <div class="e-bilan"><b>Bilan du soir</b><div class="e-meta">Qu'avez-vous utilisé aujourd'hui?</div>
+          <div style="margin-top:6px"><span class="e-nom">Lait 2 %</span><div class="e-ctl"><span>−1</span><span>−25 %</span><span class="on">−50 %</span><span>Tout</span></div></div>
+        </div>
+        <div class="e-section">Expire bientôt</div>
+        <div class="e-liste">
+          <div><div><div class="e-nom">Yogourt grec</div><div class="e-meta"><span class="e-rouge">Expire demain</span> · Frigo</div></div><span class="e-qte">1</span></div>
+          <div><div><div class="e-nom">Épinards</div><div class="e-meta"><span class="e-rouge">Dans 3 jours</span> · Frigo</div></div><span class="e-qte">1</span></div>
+        </div>
+        <div class="e-section">Garde-manger</div>
+        <div class="e-liste">
+          <div><div><div class="e-nom">Riz basmati</div><div class="e-meta">Minimum 1</div></div><span class="e-qte">2</span></div>
+          <div><div><div class="e-nom">Café moulu</div><div class="e-meta">Minimum 1</div></div><span class="e-qte">1</span></div>
+          <div><div><div class="e-nom">Pâtes penne</div><div class="e-meta">Minimum 2</div></div><span class="e-qte">4</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="onglets" class="tour">
+  <div class="wrap">
+    <h2>Toute la maison sur un écran</h2>
+    <p class="intro">Quatre onglets, dans l'ordre où on fait l'épicerie. Rien à configurer pour commencer : le Commis vous accueille et vous guide une étape à la fois.</p>
+    <div class="onglets">
+      <div class="onglet"><span class="num">Onglet 1</span><h3>Catalogue</h3><p>Vos produits, leurs photos et leurs prix dans chaque épicerie. L'étoile pour surveiller les spéciaux.</p></div>
+      <div class="onglet"><span class="num">Onglet 2</span><h3>Maison</h3><p>Ce que vous avez, rangé par espace, avec les quantités, les minimums et les dates de péremption.</p></div>
+      <div class="onglet"><span class="num">Onglet 3</span><h3>Liste épicerie</h3><p>La liste commune, en direct. Plusieurs listes au besoin, et le coût estimé chez chaque épicier.</p></div>
+      <div class="onglet"><span class="num">Onglet 4</span><h3>Spéciaux</h3><p>Les rabais de la semaine sur vos produits surveillés, à ajouter à la liste d'un toucher.</p></div>
+    </div>
+    <div class="lieux">
+      <div><b>Plusieurs lieux</b>La Maison, le Chalet, l'appartement de l'étudiant : chaque lieu a ses espaces et ses réserves. Le catalogue, lui, est commun.</div>
+      <div><b>Plusieurs listes</b>Épicerie, Costco, Pharmacie, Party du 24 juin. Chaque produit peut avoir sa liste habituelle.</div>
+    </div>
+  </div>
+</section>
+
+<section id="speciaux" class="spec">
+  <div class="wrap">
+    <div>
+      <h2>Les circulaires, lues pour vous</h2>
+      <p class="intro" style="margin-bottom:24px">Chaque jeudi matin, le Commis parcourt les circulaires de la semaine. Il ne vous montre que les rabais sur les produits que vous surveillez, sous votre prix cible.</p>
+      <ul class="magasins" aria-label="Épiceries vérifiées">
+        <li>IGA</li><li>Metro</li><li>Maxi</li><li>Super C</li><li>Provigo</li>
+      </ul>
+      <p class="note">Vous choisissez les épiceries à vérifier. Le Commis compare, il ne vend rien et n'est payé par aucune chaîne.</p>
+    </div>
+    <div class="tag-mur" aria-label="Exemples de spéciaux">
+      <div class="item"><div class="etiq"><span class="mot">Maxi</span><span class="prix">3,49 $</span><span class="reg">5,29 $</span></div><span>Lait 2 %, 2 L</span><small>du 13 au 19 nov.</small></div>
+      <div class="item"><div class="etiq"><span class="mot">IGA</span><span class="prix">8,99 $</span><span class="reg">13,49 $</span></div><span>Café moulu, 925 g</span><small>du 13 au 19 nov.</small></div>
+      <div class="item"><div class="etiq"><span class="mot">Metro</span><span class="prix">4,44 $</span><span class="reg">6,99 $</span></div><span>Beurre salé, 454 g</span><small>du 13 au 19 nov.</small></div>
+      <div class="item"><div class="etiq"><span class="mot">Super C</span><span class="prix">1,88 $</span><span class="reg">2,99 $</span></div><span>Pâtes penne, 900 g</span><small>du 13 au 19 nov.</small></div>
+    </div>
+  </div>
+</section>
+
+<section class="extras">
+  <div class="wrap">
+    <h2>Et le reste du travail</h2>
+    <p class="intro">Les petites choses qu'un commis fait sans qu'on lui demande.</p>
+    <div class="extra-grid">
+      <div class="extra"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg><h3>Ajout par photo</h3><p>Photographiez un produit : le Commis reconnaît la marque, le format et la catégorie. La photo suit l'article dans la liste.</p></div>
+      <div class="extra"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><h3>Lecture des factures</h3><p>Un reçu en photo devient un panier à approuver, article par article. Inventaire et prix à jour en deux minutes.</p></div>
+      <div class="extra"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM10 19a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><h3>Bilan du soir</h3><p>À 21 h, une notification pour noter ce qui a été mangé. L'inventaire reste juste, sans effort.</p></div>
+      <div class="extra"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2 .8 3 3 3 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><h3>Jusqu'à 4 personnes</h3><p>Invitez votre conjoint, les ados ou le coloc. Chacun a son compte, lié à son cellulaire.</p></div>
+      <div class="extra"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><h3>Minimums</h3><p>Indiquez combien garder de chaque produit. Sous le minimum, il s'ajoute tout seul à la liste.</p></div>
+      <div class="extra"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><h3>Rien à télécharger</h3><p>Le Commis s'installe sur l'écran d'accueil depuis le navigateur, sur iPhone comme sur Android.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="aide">
+  <div class="wrap">
+    <div>
+      <h2>Un commis qui répond</h2>
+      <p class="intro" style="margin-bottom:24px">Une question sur l'app? Touchez « Aide » : le Commis répond en français, à toute heure, et vous amène directement au bon écran.</p>
+      <ul class="checks">
+        <li>Un accueil pour chaque nouveau membre, qui explique l'app en trois étapes.</li>
+        <li>La carte « Bien démarrer » montre la prochaine chose à faire, une à la fois.</li>
+        <li>Pas de mode d'emploi à lire : on demande, le Commis montre.</li>
+      </ul>
+    </div>
+    <div class="phone full" role="img" aria-label="Une conversation avec le Commis : comment ajouter le chalet comme deuxième lieu.">
+      <div class="ecran" aria-hidden="true" style="height:auto;padding-bottom:16px">
+        <div class="e-titre"><img src="img/marque.svg" alt="">Le Commis</div>
+        <p class="e-qui">Votre aide pour l'app. Posez votre question.</p>
+        <p class="bulle moi">Comment j'ajoute le chalet?</p>
+        <p class="bulle">Dans l'onglet Maison, touchez « ＋ Lieu » et nommez-le Chalet. Il aura ses propres espaces et ses réserves. Le catalogue reste commun.</p>
+        <span class="e-btn">Aller à Maison</span>
+        <p class="bulle moi" style="margin-top:12px">Et pour inviter Marie-Eve?</p>
+        <p class="bulle">Touchez « Membres » en haut, puis entrez son prénom et son cellulaire. Elle recevra un code par texto.</p>
+        <span class="e-btn doux">Ouvrir Membres</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="prix">
+  <div class="wrap">
+    <h2>Un prix pour tout le foyer</h2>
+    <p class="intro">Pas d'abonnement par personne : un seul paiement par année, et toute la maison en profite.</p>
+    <div class="plans">
+      <div class="plan">
+        <h3>Essai</h3>
+        <div class="price">0 $ <small>pendant 30 jours</small></div>
+        <p class="for">Pour voir si le Commis fait l'affaire chez vous.</p>
+        <ul>
+          <li>Toutes les fonctions, sans limite</li>
+          <li>Jusqu'à 4 personnes dans le foyer</li>
+          <li>Aucune carte de crédit demandée</li>
+          <li>Après 30 jours, vos données restent consultables</li>
+        </ul>
+        <a class="btn line app-link" href="https://app.lecommis.ai/">Commencer l'essai</a>
+      </div>
+      <div class="plan pro">
+        <h3>Foyer</h3>
+        <div class="tag-coin"><div class="etiq"><span class="mot">Par année</span><span class="prix">7,99 $</span><span class="reg" style="text-decoration:none">+ taxes</span></div></div>
+        <p class="for">Moins qu'un pot de café, pour toute l'année.</p>
+        <ul>
+          <li>Catalogue, Maison, listes et spéciaux</li>
+          <li>Plusieurs lieux et plusieurs listes</li>
+          <li>Lecture des factures et bilan du soir</li>
+          <li>Jusqu'à 4 personnes</li>
+          <li>Paiement unique pour 12 mois, sans renouvellement automatique</li>
+        </ul>
+        <a class="btn main" href="achat.html">Acheter pour mon foyer</a>
+      </div>
+    </div>
+    <p class="plans-note">Le paiement se fait depuis l'app, par le propriétaire du foyer, sur une page sécurisée par Stripe.</p>
+  </div>
+</section>
+
+<section id="questions" class="faq">
+  <div class="wrap">
+    <h2>Questions</h2>
+    <div class="list">
+      <details><summary>Je suis déjà client : où est l'app?</summary><p>Touchez « Se connecter » en haut de cette page, ou ouvrez <a class="app-link" href="https://app.lecommis.ai/">app.lecommis.ai</a>. Entrez votre cellulaire et votre mot de passe. Ajoutez-la ensuite à votre écran d'accueil pour la retrouver en un geste.</p></details>
+      <details><summary>Faut-il télécharger une app?</summary><p>Non. Ouvrez le lien sur votre téléphone, puis ajoutez le Commis à votre écran d'accueil. Sur iPhone : dans Safari, bouton Partager, puis « Sur l'écran d'accueil ». Sur Android : dans Chrome, menu ⋮, puis « Installer l'application ». Il s'ouvre ensuite comme une app.</p></details>
+      <details><summary>Comment se passe l'essai?</summary><p>Créez votre compte avec votre cellulaire : vous recevez un code par texto, puis vous choisissez un mot de passe. Vous avez 30 jours avec toutes les fonctions, sans carte de crédit. Après 30 jours, l'app passe en lecture seule jusqu'à l'achat : rien n'est effacé.</p></details>
+      <details><summary>Combien de personnes peuvent partager le foyer?</summary><p>Jusqu'à 4. Le propriétaire invite les autres dans « Membres » avec leur prénom et leur cellulaire. Chacun se connecte avec son propre compte.</p></details>
+      <details><summary>Quelles épiceries sont couvertes?</summary><p>IGA, Metro, Maxi, Super C et Provigo, au Québec. Vous choisissez celles à vérifier. Pour comparer le coût de votre liste, le Commis utilise les prix de vos factures et des circulaires.</p></details>
+      <details><summary>Comment marche la lecture des factures?</summary><p>Photographiez le reçu (plusieurs photos pour un long reçu). Chaque article apparaît dans un panier : vous vérifiez le nom, la quantité, l'espace et la date de péremption, puis vous approuvez. Rien n'entre dans l'inventaire sans votre accord.</p></details>
+      <details><summary>Est-ce un abonnement qui se renouvelle tout seul?</summary><p>Non. Vous payez 7,99 $ plus taxes pour 12 mois, une seule fois. Aucun montant n'est prélevé sans votre accord.</p></details>
+      <details><summary>C'est quoi, le Commis dans l'app?</summary><p>Un assistant qui répond à vos questions sur l'app, en français, et vous amène au bon écran. Il sait comment l'app fonctionne. Il voit seulement quelques compteurs, comme le nombre de produits ou d'articles sur la liste, pour savoir où vous en êtes. Il ne lit pas le contenu de vos listes ni de votre inventaire.</p></details>
+      <details><summary>Où sont gardées nos données?</summary><p>Votre liste, votre inventaire et vos photos ne sont visibles que par les membres de votre foyer. Ils sont hébergés au Canada. Consultez notre <a href="confidentialite.html">politique de confidentialité</a>.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="fin">
+  <div class="wrap">
+    <h2>Le Commis est prêt à prendre son quart.</h2>
+    <a class="btn main app-link" href="https://app.lecommis.ai/">Essayer 30 jours gratuits</a>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <div>© 2026 Le Commis · Fait au Québec</div>
+    <div class="links">
+      <a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a>
+      <a href="conditions.html">Conditions d'utilisation</a>
+      <a href="confidentialite.html">Politique de confidentialité</a>
+      <a href="achat.html">Acheter</a>
+      <a class="app-link" href="https://app.lecommis.ai/">Se connecter à l'app</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var c = window.COMMIS || {};
+  if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl; });
+  var btns = document.querySelectorAll('.strip [data-step]');
+  btns.forEach(function (b) { b.addEventListener('click', function () {
+    var i = b.getAttribute('data-step'), open = b.getAttribute('aria-expanded') === 'true';
+    btns.forEach(function (x) { x.setAttribute('aria-expanded', 'false'); });
+    document.querySelectorAll('.step-panel').forEach(function (p) { p.hidden = true; });
+    if (!open) { b.setAttribute('aria-expanded', 'true'); document.getElementById('step' + i).hidden = false; }
+    document.getElementById('stepHint').hidden = !open;
+  }); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Merci · Le Commis</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#173F2A">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="pages.css">
+<script src="config.js"></script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="mark" href="./"><img src="img/marque.svg" alt="">Le Commis</a>
+  <nav><a class="app-link" href="https://app.lecommis.ai/">Se connecter</a><a href="./#questions">Questions</a></nav>
+</div></header>
+
+<main><div class="wrap"><div class="centre">
+  <img src="img/icon.svg" alt="">
+  <h1>Merci!</h1>
+  <p class="lead" style="margin:0">Votre paiement est reçu. Votre foyer est activé pour 12 mois : retournez dans l'app, tout y est.</p>
+  <a class="btn app-link" href="https://app.lecommis.ai/">Retourner au Commis</a>
+  <p class="hint">Le reçu vous arrive par courriel. Une question? Écrivez à <a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a>.</p>
+</div></div></main>
+<footer class="foot"><div class="wrap">
+  <div>© 2026 Le Commis · Fait au Québec</div>
+  <div class="links"><a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a><a href="conditions.html">Conditions d'utilisation</a><a href="confidentialite.html">Politique de confidentialité</a></div>
+</div></footer>
+<script>
+(function () { var c = window.COMMIS || {};
+  if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl; });
+  if (c.email) document.querySelectorAll('.mail-link').forEach(function (a) { a.href = 'mailto:' + c.email; a.textContent = c.email; });
+})();
+</script>
+</body>
+</html>

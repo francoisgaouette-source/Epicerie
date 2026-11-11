@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conditions d'utilisation · Le Commis</title>
+<meta name="description" content="Conditions d'utilisation du service Le Commis.">
+<meta name="theme-color" content="#173F2A">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="pages.css">
+<script src="config.js"></script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="mark" href="./"><img src="img/marque.svg" alt="">Le Commis</a>
+  <nav><a class="app-link" href="https://app.lecommis.ai/">Se connecter</a><a href="./#questions">Questions</a></nav>
+</div></header>
+
+<main><div class="wrap texte">
+  <h1>Conditions d'utilisation</h1>
+  <p class="todo">Brouillon à compléter et à faire valider par un avocat avant d'ouvrir les ventes. Les éléments entre [crochets] sont à remplir.</p>
+  <h2>1. Le service</h2>
+  <p>Le Commis est offert par [nom de l'entreprise], [adresse]. Le service permet à un foyer de jusqu'à 4 personnes de partager listes d'épicerie, inventaire, dates de péremption et spéciaux.</p>
+  <h2>2. Essai et forfait</h2>
+  <p>Chaque nouveau foyer profite d'un essai gratuit de 30 jours, sans carte de crédit. Ensuite, le forfait Foyer coûte 7,99 $ par année, taxes en sus, payé en une fois pour 12 mois, sans renouvellement automatique. À la fin de l'essai ou du forfait, les données restent consultables mais ne peuvent plus être modifiées.</p>
+  <h2>3. Remboursement</h2>
+  <p>[Politique de remboursement, par exemple : remboursement complet sur demande dans les 30 jours suivant l'achat, en écrivant à bonjour@lecommis.ai.]</p>
+  <h2>4. Propriétaire du foyer</h2>
+  <p>La personne qui crée le foyer en est le propriétaire. Elle détient le forfait et peut inviter ou retirer des membres.</p>
+  <h2>5. Fonctions automatisées</h2>
+  <p>Certaines fonctions utilisent l'intelligence artificielle : lecture de factures, reconnaissance de produits, assistant et recherche de spéciaux. Les résultats, dont les dates de péremption estimées, les prix et les spéciaux, peuvent contenir des erreurs : vérifiez-les avant de vous y fier. Le Commis n'est affilié à aucune chaîne d'épicerie.</p>
+  <h2>6. Données personnelles</h2>
+  <p>Voir la <a href="confidentialite.html">politique de confidentialité</a>.</p>
+  <h2>7. Contact</h2>
+  <p><a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a></p>
+</div></main>
+<footer class="foot"><div class="wrap">
+  <div>© 2026 Le Commis · Fait au Québec</div>
+  <div class="links"><a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a><a href="conditions.html">Conditions d'utilisation</a><a href="confidentialite.html">Politique de confidentialité</a></div>
+</div></footer>
+<script>
+(function () { var c = window.COMMIS || {};
+  if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl; });
+  if (c.email) document.querySelectorAll('.mail-link').forEach(function (a) { a.href = 'mailto:' + c.email; a.textContent = c.email; });
+})();
+</script>
+</body>
+</html>
