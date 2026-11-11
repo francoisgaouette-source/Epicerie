@@ -11,3 +11,23 @@
   [headers.values]
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Une seule mise en ligne, deux adresses :
+# - app.lecommis.ai (et lecommis.netlify.app) : l'app, dossier web/
+# - lecommis.ai : le site de vente, dossier web/site/
+[[redirects]]
+  from = "https://www.lecommis.ai/*"
+  to = "https://lecommis.ai/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://lecommis.ai/*"
+  to = "/site/:splat"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/site/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
