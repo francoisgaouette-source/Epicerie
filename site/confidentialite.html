@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Politique de confidentialité · Le Commis</title>
+<meta name="description" content="Comment Le Commis traite les données de votre foyer.">
+<meta name="theme-color" content="#173F2A">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="pages.css">
+<script src="config.js"></script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="mark" href="./"><img src="img/marque.svg" alt="">Le Commis</a>
+  <nav><a class="app-link" href="https://app.lecommis.ai/">Se connecter</a><a href="./#questions">Questions</a></nav>
+</div></header>
+
+<main><div class="wrap texte">
+  <h1>Politique de confidentialité</h1>
+  <p class="todo">Brouillon à compléter et à faire valider par un avocat avant d'ouvrir les ventes, en particulier pour la Loi 25 (Québec). Les éléments entre [crochets] sont à remplir.</p>
+  <h2>1. Responsable</h2>
+  <p>[Nom de l'entreprise], [adresse]. Personne responsable de la protection des renseignements personnels : [nom], <a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a>.</p>
+  <h2>2. Ce que nous recueillons</h2>
+  <ul>
+    <li>Pour chaque membre : prénom, numéro de cellulaire et, au besoin, courriel.</li>
+    <li>Pour le foyer : listes, produits, inventaire, espaces, lieux, prix, dates de péremption, photos de produits et de factures.</li>
+    <li>Pour l'achat : le paiement est traité par Stripe. Nous ne voyons ni ne gardons votre numéro de carte.</li>
+  </ul>
+  <h2>3. Qui y a accès</h2>
+  <p>Les données d'un foyer ne sont visibles que par ses membres. Nous ne vendons ni ne louons aucune donnée.</p>
+  <h2>4. Où elles sont gardées</h2>
+  <p>Les données et les photos sont hébergées au Canada (Supabase, région Canada centre).</p>
+  <h2>5. Fonctions d'intelligence artificielle</h2>
+  <p>Pour reconnaître un produit, lire une facture ou répondre à une question, la photo ou la question est transmise à Anthropic (Claude), aux États-Unis, le temps du traitement. [Préciser la durée de conservation chez le fournisseur et l'absence d'entraînement sur ces données, selon les conditions en vigueur.] L'assistant reçoit seulement quelques compteurs (par exemple le nombre de produits), pas le contenu de vos listes.</p>
+  <h2>6. Notifications</h2>
+  <p>Si vous activez le rappel du bilan du soir, votre navigateur nous fournit une adresse de notification. Vous pouvez la retirer en tout temps dans les réglages du téléphone.</p>
+  <h2>7. Conservation et suppression</h2>
+  <p>[Durée de conservation après la fin du forfait.] Vous pouvez demander la suppression complète de votre foyer en écrivant à <a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a>.</p>
+</div></main>
+<footer class="foot"><div class="wrap">
+  <div>© 2026 Le Commis · Fait au Québec</div>
+  <div class="links"><a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a><a href="conditions.html">Conditions d'utilisation</a><a href="confidentialite.html">Politique de confidentialité</a></div>
+</div></footer>
+<script>
+(function () { var c = window.COMMIS || {};
+  if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl; });
+  if (c.email) document.querySelectorAll('.mail-link').forEach(function (a) { a.href = 'mailto:' + c.email; a.textContent = c.email; });
+})();
+</script>
+</body>
+</html>
