@@ -4,7 +4,7 @@ window.COMMIS = {
   // Laisser vide tant que les ventes ne sont pas ouvertes : le bouton Payer reste désactivé.
   stripeLink: '',
   // Prix avant taxes, par année, pour tout le foyer
-  prix: '7,99 $',
+  prix: '19,99 $',
   // Adresse de l'app
   appUrl: 'https://app.lecommis.ai/',
   // Courriel de contact
