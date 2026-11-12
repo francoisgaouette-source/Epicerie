@@ -139,12 +139,17 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .strip button[aria-expanded="true"] b { background: var(--etiquette); border-color: var(--etiquette); color: var(--sur-etiquette); transform: translateY(-3px) scale(1.06); }
 .strip button:focus-visible b { outline: 3px solid var(--etiquette); outline-offset: 3px; }
 .step-panels { background: var(--creme); padding-bottom: 30px; }
-.step-panel { background: var(--vert-nuit); color: #E3ECE6; border-radius: 22px; padding: 28px 32px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 32px; align-items: center; }
+.step-panel { background: var(--vert-nuit); color: #E3ECE6; border-radius: 22px; padding: 28px 32px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 32px; align-items: start; }
 .step-panel[hidden] { display: none; }
 .step-panel h3 { font-family: var(--display); font-size: 28px; margin: 0 0 6px; color: var(--blanc); display: flex; align-items: baseline; gap: 12px; letter-spacing: -.01em; }
 .step-panel h3 span { color: var(--etiquette); font-size: 34px; font-weight: 800; }
 .step-panel p { margin: 0 0 10px; font-size: 18px; }
 .step-panel a { color: var(--etiquette); font-weight: 600; }
+.sp-how { margin: 6px 0 14px; padding: 0; list-style: none; counter-reset: h; display: grid; gap: 8px; }
+.sp-how li { counter-increment: h; position: relative; padding-left: 34px; font-size: 17px; line-height: 1.45; }
+.sp-how li::before { content: counter(h); position: absolute; left: 0; top: 1px; width: 22px; height: 22px; border-radius: 50%; background: var(--etiquette); color: var(--sur-etiquette); font: 600 12px/22px var(--mono); text-align: center; }
+.step-panel .sp-bon { margin: 0; padding: 10px 14px; border-left: 3px solid var(--etiquette); background: var(--vert-nuit-2); border-radius: 0 8px 8px 0; font-size: 16px; color: #CFDCD3; }
+.step-panel .sp-bon b { color: var(--blanc); }
 .sp-vis { background: var(--creme); color: var(--ink); border-radius: 16px; padding: 14px; font-size: 14px; }
 .step-hint { margin: 0; padding: 4px 0 0; font-size: 15px; color: var(--muted); text-align: center; }
 @media (max-width: 760px) {
@@ -308,7 +313,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   <div class="wrap">
     <div>
       <h1>Votre commis d'épicerie, <em>à la maison.</em></h1>
-      <p class="lead">Le Commis tient la liste de toute la maison, sait ce qu'il reste dans le garde-manger et trouve les spéciaux de la semaine. Fini le « on a-tu encore du lait? » texté de l'allée 4.</p>
+      <p class="lead">Le Commis tient la liste de toute la maison, sait ce qu'il reste dans le garde-manger et trouve les spéciaux de la semaine. Fini le « on a-tu encore du lait? » texté de l'allée 4.</p>
       <div class="ctas">
         <a class="btn main app-link" href="https://app.lecommis.ai/">Essayer 30 jours gratuits</a>
         <a class="btn ghost" href="#prix">19,99 $ par année</a>
@@ -347,28 +352,28 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 <div class="step-panels"><div class="wrap">
   <p class="step-hint" id="stepHint">Touchez un rayon pour voir comment ça marche.</p>
 
-  <div class="step-panel" id="step0" hidden><div><h3><span>1</span>Le catalogue</h3><p>Tous vos produits, avec leur photo et leur prix dans chaque épicerie. Il se remplit tout seul : photographiez un produit et l'app reconnaît la marque, le format et la catégorie.</p><a href="#onglets">Voir l'app →</a></div>
+  <div class="step-panel" id="step0" hidden><div><h3><span>1</span>Le catalogue</h3><p>Tous vos produits, au même endroit. Le catalogue, c'est la liste de tout ce que vous achetez d'habitude : chaque produit a sa fiche, avec sa photo, sa marque, son format et son prix dans chaque épicerie.</p><ol class="sp-how"><li>Touchez l'appareil photo et photographiez le produit : le Commis reconnaît la marque, le format et la catégorie.</li><li>Ou tapez simplement son nom.</li><li>Touchez un produit pour ouvrir sa fiche : son espace, sa liste habituelle, le minimum à garder et le prix cible.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Commencez par 5 produits que vous achetez souvent. Les prix se remplissent au fil de vos factures et des circulaires.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-liste"><div><div><div class="e-nom">Café moulu Maxwell House</div><div class="e-meta">925 g · Épicerie sèche</div></div><span class="e-qte">★</span></div><div><div><div class="e-nom">Beurre salé Lactantia</div><div class="e-meta">454 g · Produits laitiers</div></div><span class="e-qte">☆</span></div></div></div></div>
 
-  <div class="step-panel" id="step1" hidden><div><h3><span>2</span>Surveiller</h3><p>Touchez l'étoile d'un produit pour que le Commis guette ses spéciaux. Ajoutez un prix cible si vous voulez n'être averti que sous ce prix.</p><a href="#speciaux">Voir les spéciaux →</a></div>
+  <div class="step-panel" id="step1" hidden><div><h3><span>2</span>Surveiller</h3><p>Vous ne voulez pas lire toutes les circulaires, seulement voir les rabais sur ce que vous achetez vraiment. C'est le rôle de l'étoile.</p><ol class="sp-how"><li>Dans le Catalogue, touchez l'étoile ☆ d'un produit : elle devient ★ et le Commis guette ses spéciaux.</li><li>Pour être plus exigeant, ouvrez la fiche et entrez un prix cible : vous n'êtes averti que sous ce prix.</li><li>Laissez le prix cible vide pour voir tous les rabais sur ce produit.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Surveillez d'abord les produits chers que vous achetez souvent : c'est là qu'un rabais compte le plus.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-section">Prix cible</div><div class="e-liste"><div><div><div class="e-nom">Café moulu</div><div class="e-meta">M'avertir sous</div></div><span class="e-qte">10,00 $</span></div></div></div></div>
 
-  <div class="step-panel" id="step2" hidden><div><h3><span>3</span>Les spéciaux</h3><p>Chaque jeudi matin, le Commis parcourt les circulaires d'IGA, Metro, Maxi, Super C et Provigo. Vos produits surveillés en rabais apparaissent avec le magasin, le prix et les dates.</p><a href="#speciaux">Voir la section →</a></div>
+  <div class="step-panel" id="step2" hidden><div><h3><span>3</span>Les spéciaux</h3><p>Chaque jeudi matin, le Commis parcourt les circulaires de la semaine d'IGA, Metro, Maxi, Super C et Provigo, et les compare à vos produits surveillés.</p><ol class="sp-how"><li>Ouvrez l'onglet Spéciaux : seuls vos produits surveillés en rabais y apparaissent.</li><li>Chaque spécial montre le magasin, le prix, le prix régulier et la date de fin.</li><li>Touchez-le pour l'ajouter à la liste d'épicerie.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Vous choisissez les épiceries à vérifier. Le Commis compare, il ne vend rien et n'est payé par aucune chaîne.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="etiq"><span class="mot">Spécial · IGA</span><span class="prix">8,99 $</span><span class="reg">13,49 $ · jusqu'au 19 nov.</span></div></div></div>
 
-  <div class="step-panel" id="step3" hidden><div><h3><span>4</span>La liste</h3><p>Une liste commune pour toute la maison, ou plusieurs : Épicerie, Costco, Pharmacie. Ce que l'un ajoute apparaît aussitôt chez l'autre. Un produit sous son minimum s'y ajoute tout seul.</p><a href="#comment">Voir la section →</a></div>
+  <div class="step-panel" id="step3" hidden><div><h3><span>4</span>La liste</h3><p>Une liste commune pour toute la maison, à jour en direct sur chaque téléphone. Ce que l'un ajoute apparaît aussitôt chez l'autre.</p><ol class="sp-how"><li>Tapez ce qui manque, ou touchez « Ajouter à la liste » dans la fiche d'un produit.</li><li>Créez d'autres listes au besoin : Costco, Pharmacie, Party du 24 juin. Chaque produit peut avoir sa liste habituelle.</li><li>Donnez un minimum à garder : quand la réserve descend sous ce minimum, le produit s'ajoute tout seul à sa liste.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Chaque article montre qui l'a ajouté, et une étiquette Spécial s'il est en rabais cette semaine.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-puces"><span class="on">Épicerie 6</span><span>Costco 3</span><span>Pharmacie 1</span></div></div></div>
 
-  <div class="step-panel" id="step4" hidden><div><h3><span>5</span>À l'épicerie</h3><p>Le Commis estime le coût de la liste dans chaque épicerie, d'après les prix connus. À l'épicerie, cochez ce qui entre dans le panier : l'autre le voit en direct.</p><a href="#comment">Voir la section →</a></div>
+  <div class="step-panel" id="step4" hidden><div><h3><span>5</span>À l'épicerie</h3><p>Avant de partir, le Commis estime le coût de votre liste dans chaque épicerie, d'après les prix de vos factures et des circulaires.</p><ol class="sp-how"><li>Regardez la comparaison sous la liste : l'épicerie la moins chère est en vert.</li><li>Sur place, cochez chaque article en le mettant dans le panier.</li><li>Si quelqu'un d'autre fait l'épicerie, vous voyez ses coches en direct, et il voit ce que vous ajoutez en route.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> La photo du produit suit l'article dans la liste : on prend la bonne marque et le bon format du premier coup.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-compare" style="margin:0"><span>Maxi</span><span class="m best">41,18 $</span><span>Super C</span><span class="m">42,07 $</span><span>Metro</span><span class="m">47,35 $</span></div></div></div>
 
-  <div class="step-panel" id="step5" hidden><div><h3><span>6</span>La facture</h3><p>De retour à la maison, photographiez le reçu. Chaque article arrive dans un panier : vérifiez le nom, la quantité et la date de péremption, puis approuvez. Les prix sont notés au passage.</p><a href="#onglets">Voir l'app →</a></div>
+  <div class="step-panel" id="step5" hidden><div><h3><span>6</span>La facture</h3><p>De retour à la maison, une photo du reçu suffit pour mettre l'inventaire et les prix à jour. Fini de tout taper.</p><ol class="sp-how"><li>Photographiez le reçu, en plusieurs photos s'il est long.</li><li>Chaque article arrive dans un panier à approuver : le Commis traduit « LAIT 2% 2L » en « Lait 2 % » et le relie à votre produit.</li><li>Vérifiez la quantité, l'espace et la date de péremption, puis approuvez un article à la fois ou tout d'un coup.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Rien n'entre dans l'inventaire sans votre accord. Un article approuvé est rangé dans son espace et coché dans la liste, et son prix est noté pour les prochaines comparaisons.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-liste"><div><div><div class="e-nom">LAIT 2% 2L → Lait 2 %</div><div class="e-meta">2 · Frigo · exp. 24 nov.</div></div><span class="e-btn">Approuver</span></div></div></div></div>
 
-  <div class="step-panel" id="step6" hidden><div><h3><span>7</span>Rangé au bon endroit</h3><p>Chaque produit va dans son espace : garde-manger, frigo, congélateur. À la Maison ou au Chalet. Cherchez « Où est le riz? » et le Commis vous le dit.</p><a href="#onglets">Voir l'app →</a></div>
+  <div class="step-panel" id="step6" hidden><div><h3><span>7</span>Rangé au bon endroit</h3><p>L'onglet Maison montre ce que vous avez, rangé par espace : garde-manger, frigo, congélateur. Un coup d'œil avant de partir, et pas de troisième pot de moutarde.</p><ol class="sp-how"><li>Chaque produit a son espace, sa réserve (+ et −) et sa date de péremption.</li><li>Les produits qui expirent dans les trois jours montent en haut, en rouge, pour qu'on les mange à temps.</li><li>Ajoutez un deuxième lieu, comme le Chalet : il a ses propres espaces et ses réserves, et le catalogue reste commun.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Vous cherchez quelque chose? Tapez « riz » et le Commis vous dit où il est rangé.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-section">Frigo</div><div class="e-liste"><div><div><div class="e-nom">Lait 2 %</div><div class="e-meta">exp. 24 nov.</div></div><span class="e-qte">2</span></div><div><div><div class="e-nom">Yogourt grec</div><div class="e-meta"><span class="e-rouge">Expire demain</span></div></div><span class="e-qte">1</span></div></div></div></div>
 
-  <div class="step-panel" id="step7" hidden><div><h3><span>8</span>Le bilan du soir</h3><p>À 21 h, une notification demande ce qui a été consommé : −1, −25 %, −50 % ou tout. Trente secondes, et l'inventaire reste juste sans y penser.</p><a href="#comment">Voir la section →</a></div>
+  <div class="step-panel" id="step7" hidden><div><h3><span>8</span>Le bilan du soir</h3><p>Pour que l'inventaire reste juste sans rien noter pendant la journée, le Commis pose une seule question, le soir.</p><ol class="sp-how"><li>Activez le rappel de 21 h en touchant la cloche, en haut de l'app.</li><li>À 21 h, une notification demande ce qui a été utilisé aujourd'hui.</li><li>Pour chaque produit, touchez −1, −25 %, −50 % ou Tout. Trente secondes et c'est fait.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Sur iPhone, ajoutez d'abord l'app à l'écran d'accueil et ouvrez-la depuis son icône pour recevoir la notification.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-bilan" style="margin:0"><b>Bilan du soir</b><div class="e-meta">Qu'avez-vous utilisé aujourd'hui?</div><div style="margin-top:8px"><span class="e-nom">Lait 2 %</span><div class="e-ctl"><span>−1</span><span>−25 %</span><span class="on">−50 %</span><span>Tout</span></div></div></div></div></div>
 </div></div>
 
@@ -378,7 +383,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       <h2>Moins d'oublis, moins de gaspillage</h2>
       <p class="intro">Le Commis fait le travail d'un bon commis d'épicerie : il sait ce qui manque, ce qui est en rabais et ce qui va passer date.</p>
       <ol class="steps">
-        <li><div><h3>Fini le « on a-tu du lait? »</h3><p>Toute la maison voit la même liste, en direct. Celui qui passe à l'épicerie sait exactement quoi prendre, photo du produit à l'appui.</p></div></li>
+        <li><div><h3>Fini le « on a-tu du lait? »</h3><p>Toute la maison voit la même liste, en direct. Celui qui passe à l'épicerie sait exactement quoi prendre, photo du produit à l'appui.</p></div></li>
         <li><div><h3>Les spéciaux viennent à vous</h3><p>Plus besoin de feuilleter cinq circulaires le jeudi. Le Commis guette les produits que vous achetez vraiment et vous montre seulement ceux-là.</p></div></li>
         <li><div><h3>On sait ce qu'il reste</h3><p>Le garde-manger, le frigo et le congélateur, rangés par espace. Avant de partir, un coup d'œil suffit : pas de troisième pot de moutarde.</p></div></li>
         <li><div><h3>Moins de nourriture jetée</h3><p>Les produits qui expirent dans les trois jours montent en haut de la liste. On les mange avant qu'ils passent date.</p></div></li>
@@ -465,10 +470,10 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   <div class="wrap">
     <div>
       <h2>Un commis qui répond</h2>
-      <p class="intro" style="margin-bottom:24px">Une question sur l'app? Touchez « Aide » : le Commis répond en français, à toute heure, et vous amène directement au bon écran.</p>
+      <p class="intro" style="margin-bottom:24px">Une question sur l'app? Touchez « Aide » : le Commis répond en français, à toute heure, et vous amène directement au bon écran.</p>
       <ul class="checks">
         <li>Un accueil pour chaque nouveau membre, qui explique l'app en trois étapes.</li>
-        <li>La carte « Bien démarrer » montre la prochaine chose à faire, une à la fois.</li>
+        <li>La carte « Bien démarrer » montre la prochaine chose à faire, une à la fois.</li>
         <li>Pas de mode d'emploi à lire : on demande, le Commis montre.</li>
       </ul>
     </div>
@@ -477,10 +482,10 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
         <div class="e-titre"><img src="img/marque.svg" alt="">Le Commis</div>
         <p class="e-qui">Votre aide pour l'app. Posez votre question.</p>
         <p class="bulle moi">Comment j'ajoute le chalet?</p>
-        <p class="bulle">Dans l'onglet Maison, touchez « ＋ Lieu » et nommez-le Chalet. Il aura ses propres espaces et ses réserves. Le catalogue reste commun.</p>
+        <p class="bulle">Dans l'onglet Maison, touchez « ＋ Lieu » et nommez-le Chalet. Il aura ses propres espaces et ses réserves. Le catalogue reste commun.</p>
         <span class="e-btn">Aller à Maison</span>
         <p class="bulle moi" style="margin-top:12px">Et pour inviter Marie-Eve?</p>
-        <p class="bulle">Touchez « Membres » en haut, puis entrez son prénom et son cellulaire. Elle recevra un code par texto.</p>
+        <p class="bulle">Touchez « Membres » en haut, puis entrez son prénom et son cellulaire. Elle recevra un code par texto.</p>
         <span class="e-btn doux">Ouvrir Membres</span>
       </div>
     </div>
@@ -555,10 +560,10 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   <div class="wrap">
     <h2>Questions</h2>
     <div class="list">
-      <details><summary>Je suis déjà client : où est l'app?</summary><p>Touchez « Se connecter » en haut de cette page, ou ouvrez <a class="app-link" href="https://app.lecommis.ai/">app.lecommis.ai</a>. Entrez votre cellulaire et votre mot de passe. Ajoutez-la ensuite à votre écran d'accueil pour la retrouver en un geste.</p></details>
-      <details><summary>Faut-il télécharger une app?</summary><p>Non. Ouvrez le lien sur votre téléphone, puis ajoutez le Commis à votre écran d'accueil. Sur iPhone : dans Safari, bouton Partager, puis « Sur l'écran d'accueil ». Sur Android : dans Chrome, menu ⋮, puis « Installer l'application ». Il s'ouvre ensuite comme une app.</p></details>
+      <details><summary>Je suis déjà client : où est l'app?</summary><p>Touchez « Se connecter » en haut de cette page, ou ouvrez <a class="app-link" href="https://app.lecommis.ai/">app.lecommis.ai</a>. Entrez votre cellulaire et votre mot de passe. Ajoutez-la ensuite à votre écran d'accueil pour la retrouver en un geste.</p></details>
+      <details><summary>Faut-il télécharger une app?</summary><p>Non. Ouvrez le lien sur votre téléphone, puis ajoutez le Commis à votre écran d'accueil. Sur iPhone : dans Safari, bouton Partager, puis « Sur l'écran d'accueil ». Sur Android : dans Chrome, menu ⋮, puis « Installer l'application ». Il s'ouvre ensuite comme une app.</p></details>
       <details><summary>Comment se passe l'essai?</summary><p>Créez votre compte avec votre cellulaire : vous recevez un code par texto, puis vous choisissez un mot de passe. Vous avez 30 jours avec toutes les fonctions, sans carte de crédit. Après 30 jours, l'app passe en lecture seule jusqu'à l'achat : rien n'est effacé.</p></details>
-      <details><summary>Combien de personnes peuvent partager le foyer?</summary><p>Jusqu'à 4. Le propriétaire invite les autres dans « Membres » avec leur prénom et leur cellulaire. Chacun se connecte avec son propre compte.</p></details>
+      <details><summary>Combien de personnes peuvent partager le foyer?</summary><p>Jusqu'à 4. Le propriétaire invite les autres dans « Membres » avec leur prénom et leur cellulaire. Chacun se connecte avec son propre compte.</p></details>
       <details><summary>Quelles épiceries sont couvertes?</summary><p>IGA, Metro, Maxi, Super C et Provigo, au Québec. Vous choisissez celles à vérifier. Pour comparer le coût de votre liste, le Commis utilise les prix de vos factures et des circulaires.</p></details>
       <details><summary>Comment marche la lecture des factures?</summary><p>Photographiez le reçu (plusieurs photos pour un long reçu). Chaque article apparaît dans un panier : vous vérifiez le nom, la quantité, l'espace et la date de péremption, puis vous approuvez. Rien n'entre dans l'inventaire sans votre accord.</p></details>
       <details><summary>D'où vient l'estimation de 510 $?</summary><p>Pour une famille qui dépense 200 $ par semaine : 3 % d'économies en choisissant la bonne épicerie et les spéciaux (moins du cinquième de l'écart de 16 % mesuré entre Maxi et Metro en 2025), plus le quart du gaspillage évitable d'un foyer canadien moyen. C'est une estimation, pas une garantie. Voyez le détail dans la section <a href="#economies">Économies</a>.</p></details>
