@@ -258,6 +258,32 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 .foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; }
 .foot a { color: #E3ECE6; }
 .foot .links { display: flex; gap: 24px; flex-wrap: wrap; }
+/* Économies */
+.econ { background: var(--vert-pale); }
+.econ .wrap { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 56px; align-items: start; }
+.econ .intro { margin-bottom: 32px; }
+.econ-gros { font-family: var(--display); font-weight: 800; font-size: clamp(64px, 9vw, 112px); line-height: .9; letter-spacing: -.03em; color: var(--epicerie); margin: 0 0 6px; font-variant-numeric: tabular-nums; }
+.econ-sous { font-size: 20px; font-weight: 600; margin: 0 0 28px; }
+.calcul { list-style: none; margin: 0; padding: 0; }
+.calcul li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 24px; padding: 18px 0; border-top: 1px solid #B9D3BF; }
+.calcul li:last-child { border-bottom: 1px solid #B9D3BF; }
+.calcul h3 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; letter-spacing: -.01em; }
+.calcul .m { font: 500 22px var(--mono); color: var(--epicerie); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.calcul p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 16px; max-width: 40em; }
+.calc-box { background: var(--blanc); border-radius: 16px; padding: 28px; border: 1.5px solid #B9D3BF; position: sticky; top: 24px; }
+.calc-box h3 { font-family: var(--display); font-weight: 800; font-size: 26px; margin: 0 0 4px; letter-spacing: -.01em; }
+.calc-box label { display: block; color: var(--muted); font-size: 16px; margin: 0 0 14px; }
+.calc-dep { font: 500 30px var(--mono); font-variant-numeric: tabular-nums; margin: 0 0 6px; }
+.calc-box input[type=range] { width: 100%; accent-color: var(--epicerie); margin: 0 0 20px; }
+.calc-res { border-top: 1px dashed var(--ligne); padding-top: 18px; display: grid; gap: 6px; font-size: 16px; }
+.calc-res div { display: flex; justify-content: space-between; gap: 12px; }
+.calc-res .m { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.calc-res .total { font-weight: 700; font-size: 18px; padding-top: 8px; border-top: 1px solid var(--ligne); margin-top: 4px; }
+.calc-res .total .m { color: var(--epicerie); font-size: 24px; }
+.calc-roi { margin: 16px 0 0; background: var(--etiquette); color: var(--sur-etiquette); border-radius: 10px; padding: 10px 14px; font-weight: 600; font-size: 16px; }
+.econ .sources { font-size: 14px; color: var(--muted); margin: 24px 0 0; max-width: 46em; }
+.econ .sources a { color: var(--epicerie); }
+@media (max-width: 900px) { .econ .wrap { grid-template-columns: 1fr; gap: 36px; } .calc-box { position: static; } }
 </style>
 </head>
 <body>
@@ -269,6 +295,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       <a href="#comment">Comment ça marche</a>
       <a href="#onglets">L'app</a>
       <a href="#speciaux">Spéciaux</a>
+      <a href="#economies">Économies</a>
       <a href="#prix">Prix</a>
       <a href="#questions">Questions</a>
       <a class="login app-link" href="https://app.lecommis.ai/">Se connecter</a>
@@ -286,7 +313,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
         <a class="btn main app-link" href="https://app.lecommis.ai/">Essayer 30 jours gratuits</a>
         <a class="btn ghost" href="#prix">7,99 $ par année</a>
       </div>
-      <p class="small">30 jours complets, sans carte de crédit. Jusqu'à 4 personnes par foyer. Sur iPhone, Android et ordinateur. Fait au Québec, en français.</p>
+      <p class="small"><a href="#economies" style="color:var(--etiquette);font-weight:600">Environ 690 $ d'économies par année</a> pour une famille, selon notre estimation. 30 jours complets, sans carte de crédit. Jusqu'à 4 personnes par foyer. Sur iPhone, Android et ordinateur. Fait au Québec, en français.</p>
     </div>
     <div class="phone-zone">
       <div class="etiq tag-flottant" aria-hidden="true"><span class="mot">Spécial · Maxi</span><span class="prix">3,49 $</span><span class="reg">5,29 $</span></div>
@@ -460,6 +487,35 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   </div>
 </section>
 
+<section id="economies" class="econ">
+  <div class="wrap">
+    <div>
+      <h2>Combien ça fait économiser?</h2>
+      <p class="intro">Notre estimation pour une famille qui dépense 200 $ par semaine à l'épicerie. Vos économies dépendent de vos habitudes : c'est une estimation, pas une promesse.</p>
+      <p class="econ-gros">≈ 690 $</p>
+      <p class="econ-sous">par année, pour 7,99 $.</p>
+      <ol class="calcul">
+        <li><h3>Le bon prix, à la bonne épicerie</h3><span class="m">≈ 420 $</span><p>Sur 26 semaines en 2025, le même panier de 30 produits coûtait 16 % moins cher chez Maxi que chez Metro. On suppose que le Commis vous fait récupérer le quart de cet écart, soit 4 % de votre épicerie, en choisissant le bon magasin et en achetant les spéciaux.</p></li>
+        <li><h3>Moins de nourriture jetée</h3><span class="m">≈ 270 $</span><p>Un foyer canadien jette en moyenne plus de 1 300 $ de nourriture par année, dont 63 % aurait pu être mangée. On suppose que l'inventaire et les dates de péremption vous en font éviter le tiers.</p></li>
+        <li><h3>Les achats en double</h3><span class="m">non compté</span><p>Le troisième pot de moutarde, le lait acheté deux fois. On ne l'ajoute pas au calcul, mais c'est un bonus.</p></li>
+      </ol>
+      <p class="sources">Sources : écart de prix entre épiceries, compilation des Coops de l'information parue dans Le Soleil, relevés d'avril à octobre 2025 à Québec et Gatineau, résumée par <a href="https://milesopedia.com/guides/strategies/epicerie-coute-vraiment-moins-cher/" target="_blank" rel="noopener">Milesopedia</a>. Gaspillage alimentaire des foyers : <a href="https://lovefoodhatewaste.ca/about/food-waste/" target="_blank" rel="noopener">Love Food Hate Waste Canada</a>. Les hypothèses (le quart de l'écart, le tiers du gaspillage) sont les nôtres.</p>
+    </div>
+    <div class="calc-box">
+      <h3>Votre estimation</h3>
+      <label for="depense">Combien dépensez-vous par semaine à l'épicerie?</label>
+      <p class="calc-dep" aria-hidden="true"><span id="depVal">200</span> $ par semaine</p>
+      <input type="range" id="depense" min="50" max="500" step="10" value="200" aria-describedby="calcTotal">
+      <div class="calc-res">
+        <div><span>Meilleur prix (4 %)</span><span class="m" id="calcPrix">420 $</span></div>
+        <div><span>Moins de gaspillage</span><span class="m" id="calcGasp">270 $</span></div>
+        <div class="total"><span>Par année</span><span class="m" id="calcTotal">690 $</span></div>
+      </div>
+      <p class="calc-roi" id="calcRoi">Le Commis se paie en moins d'une semaine.</p>
+    </div>
+  </div>
+</section>
+
 <section id="prix">
   <div class="wrap">
     <h2>Un prix pour tout le foyer</h2>
@@ -480,7 +536,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       <div class="plan pro">
         <h3>Foyer</h3>
         <div class="tag-coin"><div class="etiq"><span class="mot">Par année</span><span class="prix">7,99 $</span><span class="reg" style="text-decoration:none">+ taxes</span></div></div>
-        <p class="for">Moins qu'un pot de café, pour toute l'année.</p>
+        <p class="for">Moins qu'un pot de café, pour près de 690 $ d'économies estimées.</p>
         <ul>
           <li>Catalogue, Maison, listes et spéciaux</li>
           <li>Plusieurs lieux et plusieurs listes</li>
@@ -505,6 +561,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       <details><summary>Combien de personnes peuvent partager le foyer?</summary><p>Jusqu'à 4. Le propriétaire invite les autres dans « Membres » avec leur prénom et leur cellulaire. Chacun se connecte avec son propre compte.</p></details>
       <details><summary>Quelles épiceries sont couvertes?</summary><p>IGA, Metro, Maxi, Super C et Provigo, au Québec. Vous choisissez celles à vérifier. Pour comparer le coût de votre liste, le Commis utilise les prix de vos factures et des circulaires.</p></details>
       <details><summary>Comment marche la lecture des factures?</summary><p>Photographiez le reçu (plusieurs photos pour un long reçu). Chaque article apparaît dans un panier : vous vérifiez le nom, la quantité, l'espace et la date de péremption, puis vous approuvez. Rien n'entre dans l'inventaire sans votre accord.</p></details>
+      <details><summary>D'où vient l'estimation de 690 $?</summary><p>Pour une famille qui dépense 200 $ par semaine : 4 % d'économies en choisissant la bonne épicerie et les spéciaux (le quart de l'écart de 16 % mesuré entre Maxi et Metro en 2025), plus le tiers du gaspillage évitable d'un foyer canadien moyen. C'est une estimation, pas une garantie. Voyez le détail dans la section <a href="#economies">Économies</a>.</p></details>
       <details><summary>Est-ce un abonnement qui se renouvelle tout seul?</summary><p>Non. Vous payez 7,99 $ plus taxes pour 12 mois, une seule fois. Aucun montant n'est prélevé sans votre accord.</p></details>
       <details><summary>C'est quoi, le Commis dans l'app?</summary><p>Un assistant qui répond à vos questions sur l'app, en français, et vous amène au bon écran. Il sait comment l'app fonctionne. Il voit seulement quelques compteurs, comme le nombre de produits ou d'articles sur la liste, pour savoir où vous en êtes. Il ne lit pas le contenu de vos listes ni de votre inventaire.</p></details>
       <details><summary>Où sont gardées nos données?</summary><p>Votre liste, votre inventaire et vos photos ne sont visibles que par les membres de votre foyer. Ils sont hébergés au Canada. Consultez notre <a href="confidentialite.html">politique de confidentialité</a>.</p></details>
@@ -544,6 +601,20 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
     if (!open) { b.setAttribute('aria-expanded', 'true'); document.getElementById('step' + i).hidden = false; }
     document.getElementById('stepHint').hidden = !open;
   }); });
+  var r = document.getElementById('depense');
+  if (r) {
+    var fmt = function (n) { return (Math.round(n / 10) * 10).toLocaleString('fr-CA') + ' $'; };
+    var maj = function () {
+      var sem = Number(r.value), prix = sem * 52 * 0.04, gasp = 270, tot = prix + gasp;
+      document.getElementById('depVal').textContent = sem;
+      document.getElementById('calcPrix').textContent = fmt(prix);
+      document.getElementById('calcGasp').textContent = fmt(gasp);
+      document.getElementById('calcTotal').textContent = fmt(tot);
+      var jours = Math.max(1, Math.ceil(7.99 / (tot / 365)));
+      document.getElementById('calcRoi').textContent = 'Le Commis se paie en ' + jours + ' jour' + (jours > 1 ? 's' : '') + ' d\u2019économies.';
+    };
+    r.addEventListener('input', maj); maj();
+  }
 })();
 </script>
 </body>
