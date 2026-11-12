@@ -6,7 +6,7 @@ window.COMMIS = {
   // Prix avant taxes, par année, pour tout le foyer
   prix: '7,99 $',
   // Adresse de l'app
-  appUrl: 'https://lecommis.netlify.app/', // temporaire : revenir à https://app.lecommis.ai/ quand son certificat HTTPS est actif
+  appUrl: 'https://app.lecommis.ai/',
   // Courriel de contact
   email: 'bonjour@lecommis.ai'
 };
