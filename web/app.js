@@ -1598,7 +1598,7 @@
   $("#foyer-annuler").addEventListener("click", () => sb.auth.signOut());
 
   // ---------- forfait : essai, payé, terminé
-  const PRIX = "7,99 $ par année";
+  const PRIX = "19,99 $ par année";
   const estProprio = () => !!(state.foyer && state.userId && state.foyer.proprio === state.userId);
   function etatForfait() {
     const f = state.foyer; if (!f) return { actif: true, type: "inconnu" };
