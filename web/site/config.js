@@ -8,5 +8,8 @@ window.COMMIS = {
   // Adresse de l'app
   appUrl: 'https://app.lecommis.ai/',
   // Courriel de contact
-  email: 'bonjour@lecommis.ai'
+  email: 'bonjour@lecommis.ai',
+  // Vrais témoignages seulement, avec l'accord écrit de la personne (case cochée dans l'app ou courriel).
+  // Exemple : { texte: "…", prenom: "Marie-Eve", ville: "Montréal" }
+  temoignages: []
 };

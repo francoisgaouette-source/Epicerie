@@ -968,6 +968,58 @@
     if (e.target.closest("[data-onb-masquer]")) { lsSet("demarrer.masque." + state.userId, "1"); renderDemarrer(); status("Vous pouvez toujours demander de l'aide au Commis avec « Aide », en haut."); }
   });
 
+  // ---------- avis : après deux semaines, on demande un mot pour les autres (une fois)
+  const JOUR = 86400000;
+  function avisAMontrer() {
+    if (!state.userId || !state.userCreated || !$("#bienvenue").hidden) return false;
+    const etat = lsGet("avis.etat." + state.userId) || "";
+    if (etat === "envoye" || etat === "non") return false;
+    if (etat.startsWith("plus-tard:") && Date.now() < Number(etat.slice(10)) + 7 * JOUR) return false;
+    return Date.now() - new Date(state.userCreated).getTime() >= 14 * JOUR;
+  }
+  function renderAvis() {
+    const box = $("#avis");
+    if (!box) return;
+    if (!avisAMontrer()) { box.innerHTML = ""; return; }
+    const me = (state.membres || []).find(estMoi);
+    box.innerHTML = `<section class="avis">
+      <h2>Le Commis vous rend service?</h2>
+      <p class="hint">Un mot pour les autres familles qui hésitent. Ce qui a changé chez vous, ce que vous aimez, ou ce qui manque.</p>
+      <form id="f-avis">
+        <label class="sr-only" for="avis-texte">Votre commentaire</label>
+        <textarea id="avis-texte" rows="3" maxlength="1000" required placeholder="Depuis qu'on utilise Le Commis…"></textarea>
+        <div class="avis-qui">
+          <input id="avis-prenom" maxlength="40" placeholder="Prénom" autocomplete="given-name" value="${esc(me && me.nom ? prenom(me.nom) : "")}">
+          <input id="avis-ville" maxlength="60" placeholder="Ville" autocomplete="address-level2">
+        </div>
+        <label class="avis-ok"><input type="checkbox" id="avis-ok"> J'accepte que ce commentaire, mon prénom et ma ville soient affichés sur lecommis.ai.</label>
+        <div class="avis-actions"><button class="btn" type="submit">Envoyer</button><button class="link" type="button" data-avis="plus-tard">Plus tard</button><button class="link muted" type="button" data-avis="non">Non merci</button></div>
+      </form>
+    </section>`;
+  }
+  $("#avis").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-avis]");
+    if (!b) return;
+    lsSet("avis.etat." + state.userId, b.dataset.avis === "non" ? "non" : "plus-tard:" + Date.now());
+    renderAvis();
+  });
+  $("#avis").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const texte = $("#avis-texte").value.trim();
+    if (texte.length < 3) return;
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true;
+    const { error } = await sb.from("temoignages").insert({
+      texte, prenom: $("#avis-prenom").value.trim() || null, ville: $("#avis-ville").value.trim() || null,
+      affichage_ok: $("#avis-ok").checked,
+    });
+    btn.disabled = false;
+    if (error) { status("Le commentaire n'a pas pu être envoyé. Réessayez dans un moment."); return; }
+    lsSet("avis.etat." + state.userId, "envoye");
+    renderAvis();
+    status("Merci! Votre commentaire est bien reçu.");
+  });
+
   // ---------- le Commis : l'agent qui répond aux questions
   const ECRANS = { produits: "Catalogue", maison: "Maison", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet" };
   const commis = { msgs: [], busy: false };
@@ -1651,10 +1703,11 @@
     $("#who").textContent = (me && me.nom) || (state.userPhone ? fmtTel(state.userPhone) : state.userEmail);
     $("#login").hidden = true; $("#app").hidden = false;
     state.userId = session.user.id;
+    state.userCreated = session.user.created_at || null;
     renderForfait();
     await loadAll();
     await etatRappel().catch(() => {});
-    maybeBienvenue(); renderDemarrer();
+    maybeBienvenue(); renderDemarrer(); renderAvis();
     if (location.hash === "#bilan") ouvrirBilan();
     subscribe();
   }

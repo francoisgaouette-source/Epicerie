@@ -289,6 +289,22 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 .econ .sources { font-size: 14px; color: var(--muted); margin: 24px 0 0; max-width: 46em; }
 .econ .sources a { color: var(--epicerie); }
 @media (max-width: 900px) { .econ .wrap { grid-template-columns: 1fr; gap: 36px; } .calc-box { position: static; } }
+
+/* Fait pour… (exemples) et vrais témoignages */
+.pour { background: var(--kraft-pale); }
+.pour-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.cas { background: var(--blanc); border: 1.5px solid #D9C9A8; border-radius: 16px; padding: 24px; }
+.cas .qui { font: 600 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--epicerie); }
+.cas h3 { font-family: var(--display); font-weight: 700; font-size: 24px; margin: 6px 0 8px; line-height: 1.15; letter-spacing: -.01em; }
+.cas p { margin: 0 0 10px; color: var(--muted); }
+.cas ul { margin: 0; padding-left: 20px; }
+.cas li { margin: 4px 0; }
+.pour .note { font-size: 15px; color: var(--muted); margin: 18px 0 0; }
+.avis-site { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 40px; }
+.avis-site figure { margin: 0; background: var(--vert-nuit); color: #E3ECE6; border-radius: 16px; padding: 24px; }
+.avis-site blockquote { margin: 0 0 14px; font-size: 19px; line-height: 1.45; }
+.avis-site figcaption { font: 600 13px var(--mono); letter-spacing: .08em; color: var(--etiquette); text-transform: uppercase; }
+@media (max-width: 760px) { .pour-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -492,6 +508,21 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   </div>
 </section>
 
+<section id="pour" class="pour">
+  <div class="wrap">
+    <h2>Fait pour votre maison</h2>
+    <p class="intro">Quelques façons d'utiliser Le Commis, selon la maisonnée.</p>
+    <div class="pour-grid">
+      <div class="cas"><span class="qui">La famille</span><h3>Une grosse épicerie par semaine, quatre bouches à nourrir</h3><p>Tout le monde ajoute à la même liste, même les ados. Le parent qui fait l'épicerie sait quoi prendre, photo à l'appui.</p><ul><li>Les minimums remettent le lait et les céréales sur la liste tout seuls.</li><li>Les spéciaux sur les produits chers, comme la viande et le café, sont repérés le jeudi.</li></ul></div>
+      <div class="cas"><span class="qui">Le couple avec un chalet</span><h3>Deux garde-mangers, une seule tête pour s'en souvenir</h3><p>Chaque lieu a ses espaces et ses réserves. Avant de monter au chalet, on voit ce qui y manque déjà.</p><ul><li>Une liste « Chalet » à part, qu'on remplit pendant la semaine.</li><li>Le catalogue et les prix restent communs aux deux lieux.</li></ul></div>
+      <div class="cas"><span class="qui">Les colocs</span><h3>Fini le « c'est qui qui a fini le beurre? »</h3><p>Chacun voit qui a ajouté quoi. Ce qui est acheté est coché en direct, pour ne pas acheter deux fois.</p><ul><li>Jusqu'à 4 personnes, chacune avec son compte.</li><li>Un seul paiement pour tout l'appartement.</li></ul></div>
+      <div class="cas"><span class="qui">Ceux qui détestent jeter</span><h3>Manger le yogourt avant qu'il passe date</h3><p>La facture en photo note les dates de péremption. Ce qui expire bientôt monte en haut, en rouge.</p><ul><li>Le bilan du soir garde l'inventaire juste en 30 secondes.</li><li>On achète ce qui manque vraiment, pas un troisième pot de moutarde.</li></ul></div>
+    </div>
+    <p class="note">Ces situations sont des exemples d'utilisation, pas des témoignages de clients.</p>
+    <div class="avis-site" id="avis-site" hidden></div>
+  </div>
+</section>
+
 <section id="economies" class="econ">
   <div class="wrap">
     <div>
@@ -597,6 +628,17 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 <script>
 (function () {
   var c = window.COMMIS || {};
+  var av = (c.temoignages || []).filter(function (t) { return t && t.texte; });
+  if (av.length) {
+    var box = document.getElementById('avis-site');
+    av.forEach(function (t) {
+      var f = document.createElement('figure'), q = document.createElement('blockquote'), cap = document.createElement('figcaption');
+      q.textContent = '« ' + t.texte + ' »';
+      cap.textContent = [t.prenom, t.ville].filter(Boolean).join(', ');
+      f.appendChild(q); f.appendChild(cap); box.appendChild(f);
+    });
+    box.hidden = false;
+  }
   if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl; });
   var btns = document.querySelectorAll('.strip [data-step]');
   btns.forEach(function (b) { b.addEventListener('click', function () {
