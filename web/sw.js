@@ -1,6 +1,6 @@
 // Service worker : garde l'interface en cache pour qu'elle s'ouvre vite.
 // Les données viennent toujours de Supabase, jamais du cache.
-const CACHE = "commis-v27";
+const CACHE = "commis-v28";
 const SHELL = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon.svg", "icons/marque.svg", "icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
@@ -11,7 +11,7 @@ self.addEventListener("activate", (e) => {
 });
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== "GET" || url.origin !== self.location.origin) return;
+  if (e.request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/console/")) return;
   // Réseau d'abord (pour recevoir les mises à jour), cache si hors ligne.
   e.respondWith(
     fetch(e.request)

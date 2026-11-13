@@ -1,0 +1,142 @@
+/* Console HoldingAI. Une seule famille (Archivo) : large pour les titres, étroite pour les données.
+   Le tampon d'approbation est le seul élément décoratif. */
+:root {
+  --papier: #EDF0F4; --feuille: #FFFFFF; --encre: #18212E; --gris: #5A6675; --ligne: #D5DBE3;
+  --tampon: #2447C8; --tampon-pale: #E4EAFB; --refus: #B5332A; --refus-pale: #F8E5E3; --attente: #8A6200; --attente-pale: #FBF0D2;
+  --commis: #1F5B3A; --fanion: #C98A00;
+  --f: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --papier: #10161F; --feuille: #18212E; --encre: #E8EDF4; --gris: #9AA7B8; --ligne: #2B3747;
+    --tampon: #8FADFF; --tampon-pale: #1D2B52; --refus: #FF8E84; --refus-pale: #3E1E1B; --attente: #F0C155; --attente-pale: #3A2E10;
+    --commis: #6CC495; --fanion: #F0BB2A; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--papier); color: var(--encre); font: 400 16px/1.5 var(--f); font-stretch: 96%; }
+h1, h2, h3, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--tampon); outline-offset: 2px; border-radius: 4px; }
+[hidden] { display: none !important; }
+
+.marque { white-space: nowrap; font-weight: 800; font-stretch: 118%; font-size: 17px; letter-spacing: -.01em; }
+.marque span { font-weight: 500; font-stretch: 100%; color: var(--gris); margin-left: 6px; }
+
+/* Boutons */
+.btn { appearance: none; border: 1.5px solid var(--encre); background: var(--encre); color: var(--feuille); border-radius: 8px; padding: 9px 14px; font-weight: 650; font-size: 15px; cursor: pointer; min-height: 42px; }
+.btn:hover { filter: brightness(1.15); }
+.btn.pale { background: transparent; color: var(--encre); border-color: var(--ligne); }
+.btn.pale:hover { border-color: var(--encre); filter: none; }
+.btn.plein { width: 100%; }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.lien { appearance: none; border: 0; background: none; padding: 6px 2px; color: var(--gris); font-weight: 600; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.lien:hover { color: var(--encre); }
+
+/* Connexion */
+.porte { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.porte-carte { width: min(430px, 100%); background: var(--feuille); border: 1px solid var(--ligne); border-radius: 14px; padding: 30px 28px 26px; }
+.porte h1 { font-size: 27px; line-height: 1.12; font-weight: 750; font-stretch: 112%; letter-spacing: -.02em; margin: 26px 0 26px; text-wrap: balance; }
+.porte form { display: grid; gap: 10px; }
+.porte label { font-weight: 600; font-size: 14px; }
+.porte input { border: 1.5px solid var(--ligne); background: var(--papier); border-radius: 8px; padding: 12px; font-size: 17px; width: 100%; }
+#in-code { font-size: 26px; letter-spacing: .3em; font-variant-numeric: tabular-nums; text-align: center; }
+.msg { min-height: 1.5em; margin-top: 14px; font-size: 14.5px; color: var(--gris); }
+.msg.err { color: var(--refus); }
+
+/* Barre et onglets */
+.barre { background: var(--feuille); border-bottom: 1px solid var(--ligne); position: sticky; top: 0; z-index: 5; padding-top: env(safe-area-inset-top, 0px); }
+.barre-in, .onglets, .page, .pied { max-width: 980px; margin: 0 auto; padding-inline: max(18px, env(safe-area-inset-left, 0px)); }
+.barre-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px 4px; }
+.barre-actions { display: flex; gap: 14px; white-space: nowrap; }
+.onglets { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.onglets::-webkit-scrollbar { display: none; }
+.onglet { appearance: none; border: 0; background: none; padding: 11px 12px 12px; font-weight: 650; font-size: 15.5px; color: var(--gris); border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.onglet[aria-current="page"] { color: var(--encre); border-bottom-color: var(--encre); }
+.pastille { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.pastille.commis { background: var(--commis); }
+.pastille.fanion { background: var(--fanion); }
+.compte { background: var(--tampon); color: var(--feuille); border-radius: 99px; font-size: 12.5px; font-weight: 750; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+
+.page { padding-block: 26px 40px; display: grid; gap: 34px; }
+.pied { color: var(--gris); font-size: 13.5px; padding-bottom: 40px; }
+
+/* Sections */
+.section > h2 { font-size: 21px; font-weight: 750; font-stretch: 112%; letter-spacing: -.015em; }
+.section > .sous { color: var(--gris); font-size: 14.5px; margin-top: 2px; max-width: 70ch; }
+.section > .liste, .section > .table-boite, .section > .vide { margin-top: 14px; }
+.vide { border: 1.5px dashed var(--ligne); border-radius: 12px; padding: 18px; color: var(--gris); font-size: 15px; }
+.bandeau { background: var(--attente-pale); border-radius: 12px; padding: 16px 18px; font-size: 15px; }
+.bandeau b { font-weight: 700; }
+.bandeau ol { margin: 8px 0 0; padding-left: 20px; }
+
+.chiffres { display: flex; flex-wrap: wrap; gap: 10px 34px; }
+.chiffre b { display: block; font-size: 34px; line-height: 1; font-weight: 750; font-stretch: 112%; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.chiffre span { color: var(--gris); font-size: 14px; }
+
+/* Fiches (avis, demandes, questions) */
+.liste { display: grid; gap: 10px; }
+.fiche { background: var(--feuille); border: 1px solid var(--ligne); border-radius: 12px; padding: 16px 18px; display: grid; gap: 10px; position: relative; }
+.fiche .tete { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 14px; color: var(--gris); padding-right: 96px; }
+.fiche .tete b { color: var(--encre); font-weight: 650; }
+.fiche .app { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; color: var(--encre); }
+.fiche blockquote { margin: 0; font-size: 17.5px; line-height: 1.45; max-width: 68ch; overflow-wrap: anywhere; }
+.fiche .etoiles { color: var(--fanion); letter-spacing: 1px; }
+.fiche .note { font-size: 14px; color: var(--gris); }
+.fiche .note.alerte { color: var(--attente); font-weight: 600; }
+.fiche .gestes { display: flex; flex-wrap: wrap; gap: 8px; }
+.fiche .reponse { font-size: 15px; color: var(--gris); border-left: 3px solid var(--ligne); padding-left: 12px; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 72ch; }
+.fiche a { color: var(--tampon); overflow-wrap: anywhere; }
+details > summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--gris); }
+
+/* Le tampon : l'état d'un avis ou d'un forfait */
+.tampon { display: inline-block; border: 2px solid currentColor; border-radius: 5px; padding: 1px 8px 2px; font-weight: 800; font-stretch: 84%; font-size: 13.5px; letter-spacing: .03em; transform: rotate(-3deg); color: var(--tampon); background: var(--tampon-pale); white-space: nowrap; }
+.tampon.refus { color: var(--refus); background: var(--refus-pale); }
+.tampon.attente { color: var(--attente); background: var(--attente-pale); border-style: dashed; }
+.tampon.neutre { color: var(--gris); background: transparent; }
+.fiche > .tampon { position: absolute; top: 14px; right: 16px; }
+
+/* Tableaux (foyers, groupes, paiements, journal) */
+.table-boite { background: var(--feuille); border: 1px solid var(--ligne); border-radius: 12px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-stretch: 90%; font-size: 15px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--ligne); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 650; font-size: 13.5px; color: var(--gris); white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .nom { font-weight: 700; font-stretch: 100%; }
+td small { display: block; color: var(--gris); font-size: 13.5px; overflow-wrap: anywhere; }
+td .gestes { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+td .gestes .lien { padding: 2px 0; text-align: left; white-space: nowrap; }
+@media (max-width: 720px) {
+  .table-boite { border: 0; background: none; overflow: visible; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  tr { background: var(--feuille); border: 1px solid var(--ligne); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; }
+  td { border: 0; padding: 4px 0; display: flex; justify-content: space-between; gap: 16px; text-align: right; }
+  td::before { content: attr(data-t); color: var(--gris); font-size: 13.5px; text-align: left; flex: none; }
+  td.principal { display: block; text-align: left; padding-bottom: 8px; }
+  td.principal::before { content: none; }
+  td.n { text-align: right; }
+  td .gestes { align-items: flex-end; }
+  .fiche .tete { padding-right: 0; }
+  .fiche > .tampon { position: static; justify-self: start; }
+}
+
+/* Confirmation */
+dialog { border: 0; border-radius: 14px; padding: 0; width: min(440px, calc(100vw - 32px)); background: var(--feuille); color: var(--encre); }
+dialog::backdrop { background: rgb(10 15 25 / .55); }
+#dlg-form { padding: 24px; display: grid; gap: 12px; }
+#dlg-titre { font-size: 20px; font-weight: 750; font-stretch: 110%; letter-spacing: -.01em; }
+#dlg-texte { color: var(--gris); font-size: 15.5px; }
+#dlg-raison-l { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+#dlg-raison { border: 1.5px solid var(--ligne); background: var(--papier); border-radius: 8px; padding: 10px; font-weight: 400; }
+.dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--encre); color: var(--feuille); padding: 11px 18px; border-radius: 10px; font-weight: 600; font-size: 15px; max-width: calc(100vw - 32px); z-index: 20; }
+.toast.err { background: var(--refus); color: #fff; }
+.charge { color: var(--gris); padding: 30px 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .tampon.frais { animation: tamponner .28s cubic-bezier(.2, 1.4, .4, 1); }
+  @keyframes tamponner { from { transform: rotate(-3deg) scale(1.7); opacity: 0; } to { transform: rotate(-3deg) scale(1); opacity: 1; } }
+}

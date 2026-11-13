@@ -1062,6 +1062,8 @@
     try {
       const { data, error } = await sb.functions.invoke("commis", { body: { messages: commis.msgs.slice(1), contexte } });
       commis.msgs.push({ role: "assistant", content: !error && data && data.text ? data.text : "Je n'ai pas pu répondre pour l'instant. Réessayez dans un moment, ou consultez le guide complet. [[ecran:guide]]" });
+      const posee = [...commis.msgs].reverse().find((m) => m.role === "user");
+      if (!error && data && data.text && posee) sb.from("console_questions").insert({ app: "commis", question: String(posee.content).slice(0, 2000), reponse: String(data.text).slice(0, 4000), contexte: String(contexte.onglet || "").slice(0, 200) }).then(() => {}, () => {});
     } catch (e) { commis.msgs.push({ role: "assistant", content: "Pas de réseau pour l'instant. Réessayez dans un moment." }); }
     commis.busy = false; renderCommis();
     if (!desktop) $("#in-commis").blur();

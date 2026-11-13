@@ -15,6 +15,7 @@
 # Une seule mise en ligne, deux adresses :
 # - app.lecommis.ai (et lecommis.netlify.app) : l'app, dossier web/
 # - lecommis.ai : le site de vente, dossier web/site/
+# - console.holdingai.app : la console HoldingAI, dossier web/console/
 [[redirects]]
   from = "https://www.lecommis.ai/*"
   to = "https://lecommis.ai/:splat"
@@ -26,6 +27,21 @@
   to = "/site/:splat"
   status = 200
   force = true
+
+[[redirects]]
+  from = "https://console.holdingai.app/*"
+  to = "/console/:splat"
+  status = 200
+  force = true
+
+# Console HoldingAI : privée, jamais indexée, jamais affichée dans une autre page
+[[headers]]
+  for = "/console/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "DENY"
+    Cache-Control = "no-cache"
+    Content-Security-Policy = "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src https://gandliltstmtfsmsjaew.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 
 [[headers]]
   for = "/site/sw.js"

@@ -628,8 +628,10 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 <script>
 (function () {
   var c = window.COMMIS || {};
-  var av = (c.temoignages || []).filter(function (t) { return t && t.texte; });
-  if (av.length) {
+  // Avis : ceux approuvés dans la console HoldingAI (avec l'accord de la personne), plus ceux inscrits dans config.js
+  var montrerAvis = function (av) {
+    av = (av || []).filter(function (t) { return t && t.texte; });
+    if (!av.length) return;
     var box = document.getElementById('avis-site');
     av.forEach(function (t) {
       var f = document.createElement('figure'), q = document.createElement('blockquote'), cap = document.createElement('figcaption');
@@ -638,6 +640,11 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       f.appendChild(q); f.appendChild(cap); box.appendChild(f);
     });
     box.hidden = false;
+  };
+  montrerAvis(c.temoignages);
+  if (c.avisUrl && c.avisCle && window.fetch) {
+    fetch(c.avisUrl, { method: 'POST', headers: { apikey: c.avisCle, 'Content-Type': 'application/json' }, body: '{}' })
+      .then(function (r) { return r.ok ? r.json() : []; }).then(montrerAvis).catch(function () {});
   }
   if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl; });
   var btns = document.querySelectorAll('.strip [data-step]');
