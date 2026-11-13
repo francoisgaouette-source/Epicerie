@@ -9,7 +9,7 @@
   const DEFAULT_STORES = ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const CATS = ["Fruits et légumes", "Viandes et poissons", "Produits laitiers et œufs", "Boulangerie", "Épicerie sèche",
     "Surgelés", "Boissons", "Collations", "Hygiène et beauté", "Entretien ménager", "Autre"];
-  const state = { liste: [], listes: [], spec: [], prod: [], espaces: [], panier: [], config: null, membres: [], email: null };
+  const state = { liste: [], listes: [], lieux: [], inv: [], spec: [], prod: [], espaces: [], panier: [], config: null, membres: [], email: null };
   let openProd = null, search = "", channel = null, filtre = "tous";
   const surveilles = () => state.prod.filter((p) => p.surveiller);
 
@@ -75,7 +75,7 @@
     return { blob, b64 };
   }
   async function uploadPhoto(blob, dossier) {
-    const path = `${dossier ? dossier + "/" : ""}${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.jpg`;
+    const path = `${state.foyer ? state.foyer.id + "/" : ""}${dossier ? dossier + "/" : ""}${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.jpg`;
     const { error } = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
     if (error) throw error;
     return path;
@@ -240,7 +240,7 @@
     $("#c-produits").textContent = state.prod.length;
     const q = norm(search);
     const nSurv = state.prod.filter((p) => p.surveiller).length, nMaison = state.prod.filter((p) => Number(p.stock || 0) > 0).length;
-    $("#n-surv").textContent = nSurv; $("#n-maison").textContent = nMaison;
+    $("#n-surv").textContent = nSurv; $("#n-maison").textContent = nMaison; $("#f-lieu-nom").textContent = state.lieux.length > 1 ? nomLieu() : "À la maison";
     document.querySelectorAll("[data-filter]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filter === filtre)));
     const list = state.prod.filter((p) => (!q || norm([p.nom, p.marque, p.format, p.categorie].join(" ")).includes(q))
       && (filtre === "tous" || (filtre === "surv" && p.surveiller) || (filtre === "maison" && Number(p.stock || 0) > 0)));
@@ -261,7 +261,7 @@
         return `<li class="prod-row" data-prod="${p.id}">
           ${thumb(p.photo, p.nom)}
           <div class="main"><div class="name">${esc(p.nom)}${b && b.special ? '<span class="sale">spécial</span>' : ""}</div>
-          <div class="meta">${esc([p.marque, p.format, Number(p.stock || 0) > 0 ? fmtQ(p.stock) + " à la maison" : "", p.surveiller && p.prix_cible != null ? "cible " + money(Number(p.prix_cible)) : ""].filter(Boolean).join(" · ")) || "&nbsp;"}</div></div>
+          <div class="meta">${esc([p.marque, p.format, reservesAilleurs(p), p.surveiller && p.prix_cible != null ? "cible " + money(Number(p.prix_cible)) : ""].filter(Boolean).join(" · ")) || "&nbsp;"}</div></div>
           <div class="best-price">${b ? money(b.val) + `<small>${esc(b.store)}</small>` : "<small>aucun prix</small>"}</div>
           <button class="star${p.surveiller ? " on" : ""}" type="button" data-survtoggle="${p.id}" aria-pressed="${p.surveiller ? "true" : "false"}" aria-label="${p.surveiller ? "Ne plus surveiller" : "Surveiller les spéciaux de"} ${esc(p.nom)}">${p.surveiller ? "★" : "☆"}</button>
           ${openProd === p.id ? productDetail(p, b) : ""}
@@ -270,7 +270,49 @@
   }
 
   // ---------- maison : espaces et réserves
-  const espacesTries = () => [...state.espaces].sort((a, b) => (a.ordre - b.ordre) || norm(a.nom).localeCompare(norm(b.nom)));
+  // ---------- plusieurs lieux (Maison, Chalet…) : chaque lieu a ses espaces et ses réserves
+  let lieuActif = null;
+  try { lieuActif = localStorage.getItem("lieu-actif"); } catch (e) {}
+  const lieuxTries = () => [...state.lieux].sort((a, b) => (a.ordre - b.ordre) || String(a.cree).localeCompare(String(b.cree)));
+  const idLieu = () => { const l = state.lieux.find((x) => x.id === lieuActif) || lieuxTries()[0]; return l ? l.id : null; };
+  const nomLieu = (id) => (state.lieux.find((x) => x.id === (id || idLieu())) || {}).nom || "Maison";
+  // Les champs de réserve du lieu ouvert sont posés sur chaque produit (p.stock, p.espace_id, p.minimum, p.peremption)
+  function appliquerLieu() {
+    const lid = idLieu(), par = new Map(state.inv.filter((r) => r.lieu_id === lid).map((r) => [r.produit_id, r]));
+    state.prod.forEach((p) => { const r = par.get(p.id); p.stock = r ? Number(r.stock || 0) : 0; p.espace_id = r ? r.espace_id : null; p.minimum = r ? r.minimum : null; p.peremption = r ? r.peremption : null; });
+  }
+  async function majInv(pid, champs) {
+    const lid = idLieu(); if (!lid) return false;
+    let r = state.inv.find((x) => x.produit_id === pid && x.lieu_id === lid);
+    if (!r) { r = { produit_id: pid, lieu_id: lid, stock: 0, espace_id: null, minimum: null, peremption: null }; state.inv.push(r); }
+    Object.assign(r, champs);
+    const { error } = await sb.from("inventaire").upsert({ produit_id: pid, lieu_id: lid, ...champs, maj: new Date().toISOString() }, { onConflict: "produit_id,lieu_id" });
+    if (error) { status("La modification n'a pas été enregistrée. Vérifiez votre connexion et réessayez."); console.error(error); scheduleReload("inventaire"); return false; }
+    return true;
+  }
+  const reservesAilleurs = (p) => state.lieux.length > 1
+    ? state.inv.filter((r) => r.produit_id === p.id && Number(r.stock || 0) > 0).map((r) => `${fmtQ(r.stock)} ${nomLieu(r.lieu_id)}`).join(" · ")
+    : (Number(p.stock || 0) > 0 ? fmtQ(p.stock) + " à la maison" : "");
+  let lieuEnEdition = false, lieuASupprimer = null;
+  function choisirLieu(id) { lieuActif = id; try { localStorage.setItem("lieu-actif", id); } catch (e) {} appliquerLieu(); render(); }
+  function renderLieux() {
+    const act = idLieu(), ls = lieuxTries();
+    $("#tab-lieu-nom").textContent = ls.length > 1 ? nomLieu(act) : "Maison";
+    $("#lieux-bar").innerHTML = ls.map((l) => `<button class="fchip" type="button" data-lieu="${l.id}" aria-pressed="${l.id === act}">${esc(l.nom)}</button>`).join("")
+      + `<button class="fchip" type="button" data-lieu-new aria-label="Nouveau lieu">＋ Lieu</button>`;
+    $("#f-nouveau-lieu").hidden = !lieuEnEdition;
+    const a2 = document.activeElement;
+    if (a2 && a2.closest && a2.closest("#list-lieux")) return;
+    $("#list-lieux").innerHTML = ls.map((l, i) => `<li>
+        <input id="lieu-${l.id}" value="${esc(l.nom)}" aria-label="Nom du lieu" data-lieunom="${l.id}">
+        <button class="icon" type="button" data-lieumove="-1" data-id="${l.id}" aria-label="Monter" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="icon" type="button" data-lieumove="1" data-id="${l.id}" aria-label="Descendre" ${i === ls.length - 1 ? "disabled" : ""}>↓</button>
+        ${ls.length > 1 ? `<button class="icon" type="button" data-lieudel="${l.id}" aria-label="Supprimer ${esc(l.nom)}">✕</button>` : ""}
+        ${lieuASupprimer === l.id ? `<div class="move-row del-row"><span class="hint">Supprimer « ${esc(l.nom)} », ses espaces et ses réserves ? Les produits restent dans le Catalogue.</span>
+          <div class="move-choices"><button class="chip-btn danger" type="button" data-lieudel-ok="${l.id}">Supprimer</button><button class="chip-btn muted" type="button" data-lieudel-annuler>Annuler</button></div></div>` : ""}
+      </li>`).join("");
+  }
+  const espacesTries = () => [...state.espaces].filter((e) => !e.lieu_id || e.lieu_id === idLieu()).sort((a, b) => (a.ordre - b.ordre) || norm(a.nom).localeCompare(norm(b.nom)));
   const estBas = (p) => p.minimum != null && Number(p.stock || 0) <= Number(p.minimum);
   const fmtQ = (n) => { const v = Math.round(Number(n || 0) * 100) / 100; return Number.isInteger(v) ? String(v) : String(v).replace(".", ","); };
   const espaceSelect = (p, id) => `<select id="${id}" aria-label="Espace" data-pfield="espace_id" data-id="${p.id}">
@@ -330,18 +372,17 @@
     const qte = Number(r.quantite) > 0 ? Number(r.quantite) : 1;
     let p = (r.produit_id && state.prod.find((x) => x.id === r.produit_id)) || state.prod.find((x) => norm(x.nom) === norm(nom));
     if (!p) {
-      const row = { nom, marque: r.marque || "", format: r.format || "", categorie: r.categorie || "Autre", espace_id: r.espace_id || null, stock: 0 };
+      const row = { nom, marque: r.marque || "", format: r.format || "", categorie: r.categorie || "Autre" };
       const { data, error } = await sb.from("produits").insert(row).select("*").single();
       if (error) { status("L'article n'a pas pu être ajouté. Réessayez."); console.error(error); return false; }
-      p = data; state.prod.push(p);
+      p = data; p.stock = 0; p.espace_id = null; p.minimum = null; p.peremption = null; state.prod.push(p);
     }
     const avant = Number(p.stock || 0);
     const per = r.peremption || null;
     const peremption = per && avant > 0 && p.peremption && p.peremption < per ? p.peremption : (per || (avant > 0 ? p.peremption : null));
     const maj = { stock: avant + qte, peremption };
     if (r.espace_id) maj.espace_id = r.espace_id;
-    const { error } = await sb.from("produits").update(maj).eq("id", p.id);
-    if (error) { status("L'article n'a pas pu être rangé. Réessayez."); console.error(error); return false; }
+    if (!(await majInv(p.id, maj))) return false;
     Object.assign(p, maj);
     const pu = Number(r.prix_unitaire) > 0 ? Number(r.prix_unitaire) : (Number(r.prix_total) > 0 ? Number(r.prix_total) / qte : null);
     if (pu && r.magasin && stores().includes(r.magasin)) {
@@ -371,7 +412,7 @@
     try {
       const imgs = await Promise.all(files.map((f) => shrink(f, 1800)));
       const paths = await Promise.all(imgs.map((i) => uploadPhoto(i.blob, "factures")));
-      const { data, error } = await sb.functions.invoke("lire-facture", { body: { images: imgs.map((i) => i.b64) } });
+      const { data, error } = await sb.functions.invoke("lire-facture", { body: { images: imgs.map((i) => i.b64), lieu_id: idLieu() } });
       if (error || !data || data.erreur) throw new Error((data && data.erreur) || "lecture");
       const arts = data.articles || [];
       if (!arts.length) { status("Aucun article n'a pu être lu sur cette photo. Reprenez-la bien à plat, avec un bon éclairage."); return; }
@@ -420,7 +461,7 @@
         return head + `<li class="bilan-item${c > 0 ? " touched" : ""}">
           ${thumb(p.photo, p.nom)}
           <div class="main"><div class="name">${esc(p.nom)}</div>
-            <div class="meta">${c > 0 ? `<b>−${fmtQ(c)}</b> · il restera ${fmtQ(reste)}` : `${fmtQ(p.stock)} à la maison`}${expTag(p) ? " · " + expTag(p) : ""}</div></div>
+            <div class="meta">${c > 0 ? `<b>−${fmtQ(c)}</b> · il restera ${fmtQ(reste)}` : `${fmtQ(p.stock)} ${state.lieux.length > 1 ? "au lieu « " + esc(nomLieu()) + " »" : "à la maison"}`}${expTag(p) ? " · " + expTag(p) : ""}</div></div>
           <div class="bilan-ctl">
             <button class="chip-btn" type="button" data-conso="1" data-id="${p.id}">−1</button>
             <button class="chip-btn" type="button" data-conso="0.25" data-id="${p.id}">−25 %</button>
@@ -438,7 +479,7 @@
   async function marquerBilanFait() {
     const auj = today();
     if (state.config) state.config.dernier_bilan = auj;
-    await run(sb.from("config").update({ dernier_bilan: auj }).eq("id", 1));
+    await run(sb.from("config").update({ dernier_bilan: auj }).eq("foyer_id", state.foyer && state.foyer.id));
   }
   async function enregistrerBilan() {
     const ids = Object.keys(conso).filter((id) => conso[id] > 0);
@@ -537,6 +578,7 @@
   $("#close-rappel").addEventListener("click", () => showRappel(false));
 
   function renderMaison() {
+    renderLieux();
     renderBilan();
     renderPanier();
     const act = document.activeElement;
@@ -590,7 +632,7 @@
     $("#sans-espace-count").textContent = sans.length;
     $("#list-sans-espace").innerHTML = sans.length
       ? `<ul class="list" data-keep>${sans.map((p) => `<li class="sans-row">${thumb(p.photo, p.nom)}<div class="main"><div class="name">${esc(p.nom)}</div>
-          <div class="meta">${esc([p.format, Number(p.stock || 0) > 0 ? fmtQ(p.stock) + " à la maison" : ""].filter(Boolean).join(" · "))}</div></div>
+          <div class="meta">${esc([p.format, Number(p.stock || 0) > 0 ? fmtQ(p.stock) + " en réserve" : ""].filter(Boolean).join(" · "))}</div></div>
           <label class="mf sans-move">Déplacer vers ${espaceSelect(p, "se-" + p.id)}</label>
           <button class="icon del-icon" type="button" data-effacer="${p.id}" aria-label="Effacer ${esc(p.nom)}">🗑</button>
           ${delOpen === p.id ? `<div class="move-row del-row"><span class="hint">Effacer « ${esc(p.nom)} » ?</span>
@@ -611,7 +653,7 @@
     const avant = Number(p.stock || 0), apres = Math.max(0, avant + delta);
     if (apres === avant) return;
     p.stock = apres; if (apres === 0) p.peremption = null; render();
-    await run(sb.from("produits").update(apres === 0 ? { stock: 0, peremption: null } : { stock: apres }).eq("id", id));
+    await majInv(id, apres === 0 ? { stock: 0, peremption: null } : { stock: apres });
     if (delta < 0 && estBas(p) && !(avant <= Number(p.minimum))) {
       if (!dansListe(p.nom, listeDe(p))) {
         if (await run(sb.from("epicerie").insert({ nom: p.nom, liste_id: listeDe(p), ...(p.photo ? { photo: p.photo } : {}) }), `« ${p.nom} » est sous le minimum : ajouté à « ${nomListe(listeDe(p))} ».`)) scheduleReload("epicerie");
@@ -657,23 +699,33 @@
   }
 
   // ---------- data
-  const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier", listes: "listes" };
+  const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier", listes: "listes", lieux: "lieux", inventaire: "inv" };
   async function load(table) {
+    if (table === "foyers") {
+      const { data } = await sb.from("foyers").select("*").maybeSingle();
+      if (data) state.foyer = data; renderForfait(); return;
+    }
     if (table === "membres") {
-      const { data } = await sb.from("membres").select("id, email, telephone, nom, invite_par");
+      const { data } = await sb.from("membres").select("id, email, telephone, nom, invite_par, role");
       if (data) state.membres = data;
       renderMembres(); return;
     }
     if (table === "config") {
-      const { data } = await sb.from("config").select("*").eq("id", 1).maybeSingle();
+      const { data } = await sb.from("config").select("*").limit(1).maybeSingle();
       state.config = data; return;
+    }
+    if (table === "inventaire") {
+      const { data, error } = await sb.from("inventaire").select("*").limit(5000);
+      if (!error) state.inv = data || [];
+      appliquerLieu(); return;
     }
     const { data, error } = await sb.from(table).select("*").order("cree", { ascending: true, nullsFirst: true }).limit(2000);
     if (error && table === "speciaux") { const r = await sb.from(table).select("*").limit(2000); state[TABLES[table]] = r.data || []; return; }
     if (!error) state[TABLES[table]] = data || [];
+    if (table === "produits" || table === "lieux") appliquerLieu();
   }
   async function loadAll() {
-    await Promise.all(["epicerie", "produits", "espaces", "panier", "listes", "config"].map(load).concat(
+    await Promise.all(["epicerie", "produits", "espaces", "panier", "listes", "lieux", "inventaire", "config"].map(load).concat(
       sb.from("speciaux").select("*").limit(2000).then(({ data }) => { state.spec = data || []; })));
     render();
   }
@@ -683,13 +735,14 @@
     pending[table] = setTimeout(async () => {
       if (table === "speciaux") { const { data } = await sb.from("speciaux").select("*").limit(2000); state.spec = data || []; }
       else await load(table);
+      if (table === "produits") await load("inventaire");
       render();
     }, 250);
   }
   function subscribe() {
     if (channel) sb.removeChannel(channel);
     channel = sb.channel("epicerie-live");
-    ["epicerie", "speciaux", "produits", "espaces", "panier", "listes", "config", "membres"].forEach((t) =>
+    ["epicerie", "speciaux", "produits", "espaces", "panier", "listes", "lieux", "inventaire", "config", "membres", "foyers"].forEach((t) =>
       channel.on("postgres_changes", { event: "*", schema: "public", table: t }, () => scheduleReload(t)));
     channel.subscribe();
   }
@@ -738,7 +791,7 @@
       const moi = estMoi(x);
       const conf = retraitEnAttente === x.id;
       const contact = [x.telephone ? "☎ " + fmtTel(x.telephone) : "", x.email || ""].filter(Boolean).join(" · ");
-      return `<li class="membre-row"><div class="main"><div class="name">${esc(lib(x))}${moi ? ' <span class="meta">(vous)</span>' : ""}</div>
+      return `<li class="membre-row"><div class="main"><div class="name">${esc(lib(x))}${moi ? ' <span class="meta">(vous)</span>' : ""}${x.role === "proprio" ? ' <span class="role-tag">Propriétaire</span>' : ""}</div>
         <div class="meta">${esc(contact)}${!x.telephone && telEnEdition !== x.id ? ` · <button class="link move-link" type="button" data-settel="${x.id}">+ Ajouter le cellulaire</button>` : ""}</div></div>
         ${m.length > 1 ? (conf
           ? `<button class="link" type="button" data-retirer-ok="${x.id}" style="color:var(--danger)">${moi ? "Me retirer" : "Confirmer le retrait"}</button><button class="link muted" type="button" data-retirer-annuler>Annuler</button>`
@@ -953,7 +1006,7 @@
     const me = moiMembre() || {};
     const contexte = { prenom: prenom(me.nom), nouveau: !lsGet("demarrer.masque." + state.userId) && etapesDemarrer().filter((x) => x.done).length < 3,
       produits: state.prod.length, maison: state.prod.filter((p) => Number(p.stock || 0) > 0).length, liste: state.liste.filter((i) => !i.fait).length,
-      surveilles: state.prod.filter((p) => p.surveiller).length, rappel: rappelActif, installee: installee(), onglet: ECRANS[view] || view };
+      surveilles: state.prod.filter((p) => p.surveiller).length, rappel: rappelActif, forfait: etatForfait().type, proprio: estProprio(), installee: installee(), onglet: ECRANS[view] || view };
     try {
       const { data, error } = await sb.functions.invoke("commis", { body: { messages: commis.msgs.slice(1), contexte } });
       commis.msgs.push({ role: "assistant", content: !error && data && data.text ? data.text : "Je n'ai pas pu répondre pour l'instant. Réessayez dans un moment, ou consultez le guide complet. [[ecran:guide]]" });
@@ -1014,7 +1067,7 @@
     if (state.espaces.some((x) => norm(x.nom) === norm(nom))) { status(`L'espace « ${nom} » existe déjà.`); return; }
     $("#in-espace").value = "";
     const ordre = Math.max(0, ...state.espaces.map((x) => x.ordre || 0)) + 1;
-    if (await run(sb.from("espaces").insert({ nom, ordre }), `Espace « ${nom} » créé.`)) scheduleReload("espaces");
+    if (await run(sb.from("espaces").insert({ nom, ordre, lieu_id: idLieu() }), `Espace « ${nom} » créé à « ${nomLieu()} ».`)) scheduleReload("espaces");
   });
 
   // ---------- ajout par photo
@@ -1115,7 +1168,7 @@
     e.preventDefault(); const m = $("#in-store").value.trim(); if (!m) return;
     const cur = stores(); $("#in-store").value = "";
     if (cur.some((x) => norm(x) === norm(m))) return;
-    if (await run(sb.from("config").update({ magasins: [...cur, m] }).eq("id", 1))) scheduleReload("config");
+    if (await run(sb.from("config").update({ magasins: [...cur, m] }).eq("foyer_id", state.foyer && state.foyer.id))) scheduleReload("config");
   });
   // Catalogue : ajout avec la caméra
   let catPhoto = null; // {preview, path, ident, busy}
@@ -1205,8 +1258,8 @@
     const df = e.target.closest("[data-dfield]");
     if (df) {
       const v = df.value || null; const p = state.prod.find((x) => x.id === df.dataset.id); if (p) p.peremption = v;
-      await run(sb.from("produits").update({ peremption: v }).eq("id", df.dataset.id), v ? "Date de péremption enregistrée." : "");
-      scheduleReload("produits"); return;
+      if (await majInv(df.dataset.id, { peremption: v }) && v) status("Date de péremption enregistrée.");
+      render(); return;
     }
     const pn = e.target.closest("[data-pan]");
     if (pn) {
@@ -1221,6 +1274,7 @@
     if (nf) {
       const raw = nf.value.trim(), v = num(raw);
       if (raw !== "" && v == null) { status("Inscris un nombre, par exemple 2."); return; }
+      if (nf.dataset.nfield === "minimum") { const p = state.prod.find((x) => x.id === nf.dataset.id); if (p) p.minimum = raw === "" ? null : v; await majInv(nf.dataset.id, { minimum: raw === "" ? null : v }); render(); return; }
       await run(sb.from("produits").update({ [nf.dataset.nfield]: raw === "" ? null : v }).eq("id", nf.dataset.id));
       scheduleReload("produits"); return;
     }
@@ -1234,6 +1288,7 @@
     if (pf) {
       let v = pf.value.trim(); if (pf.dataset.pfield === "nom" && !v) return;
       if (pf.dataset.pfield === "espace_id" || pf.dataset.pfield === "liste_id") v = v || null;
+      if (pf.dataset.pfield === "espace_id") { const p = state.prod.find((x) => x.id === pf.dataset.id); if (p) p.espace_id = v; await majInv(pf.dataset.id, { espace_id: v }); render(); return; }
       await run(sb.from("produits").update({ [pf.dataset.pfield]: v }).eq("id", pf.dataset.id));
       scheduleReload("produits"); return;
     }
@@ -1254,7 +1309,7 @@
     if (dop) { dateOpen = dateOpen === dop.dataset.dateopen ? null : dop.dataset.dateopen; moveOpen = null; delOpen = null; renderMaison(); return; }
     const dcl = e.target.closest("[data-dateclear]");
     if (dcl) { const p = state.prod.find((x) => x.id === dcl.dataset.dateclear); if (p) p.peremption = null; dateOpen = null; render();
-      await run(sb.from("produits").update({ peremption: null }).eq("id", dcl.dataset.dateclear)); return; }
+      await majInv(dcl.dataset.dateclear, { peremption: null }); return; }
     const ap = e.target.closest("[data-approuver]");
     if (ap) { ap.disabled = true; const r = lirePanierRow(ap.dataset.approuver);
       if (await approuver(r)) { status(`« ${r.nom} » rangé${r.espace_id ? " dans " + ((state.espaces.find((x) => x.id === r.espace_id) || {}).nom || "son espace") : ""}.`); render(); scheduleReload("produits"); scheduleReload("epicerie"); }
@@ -1281,7 +1336,7 @@
     if (rm) {
       const p = state.prod.find((x) => x.id === rm.dataset.retirerMaison); delOpen = null; if (!p) return;
       p.stock = 0; p.peremption = null; render();
-      if (await run(sb.from("produits").update({ stock: 0, peremption: null }).eq("id", p.id), `« ${p.nom} » est épuisé; il reste dans le Catalogue.`)) scheduleReload("produits");
+      if (await majInv(p.id, { stock: 0, peremption: null })) status(`« ${p.nom} » est épuisé; il reste dans le Catalogue.`);
       return;
     }
     const eo = e.target.closest("[data-effacer-ok]");
@@ -1299,7 +1354,7 @@
       const dest = mt.dataset.moveto || null;
       const nomDest = dest ? (state.espaces.find((x) => x.id === dest) || {}).nom : "Sans espace";
       p.espace_id = dest; moveOpen = null; render();
-      if (await run(sb.from("produits").update({ espace_id: dest }).eq("id", p.id), `« ${p.nom} » déplacé vers ${nomDest}.`)) scheduleReload("produits");
+      if (await majInv(p.id, { espace_id: dest })) status(`« ${p.nom} » déplacé vers ${nomDest}.`);
       return;
     }
     const sbt = e.target.closest("[data-stock]");
@@ -1331,7 +1386,7 @@
     const st = e.target.closest("[data-store]");
     if (st) {
       const cur = [...stores()]; cur.splice(+st.dataset.store, 1);
-      if (await run(sb.from("config").update({ magasins: cur }).eq("id", 1))) scheduleReload("config"); return;
+      if (await run(sb.from("config").update({ magasins: cur }).eq("foyer_id", state.foyer && state.foyer.id))) scheduleReload("config"); return;
     }
     const a = e.target.closest("[data-addfrom]");
     if (a) { const s = state.spec.find((x) => x.id === a.dataset.addfrom); if (s) { const p = state.prod.find((x) => norm(x.nom) === norm(s.item)); const l = listeDe(p); if (await run(sb.from("epicerie").insert({ nom: s.item, liste_id: l }), `« ${s.item} » ajouté à « ${nomListe(l)} ».`)) scheduleReload("epicerie"); } return; }
@@ -1359,6 +1414,47 @@
     const row = e.target.closest("[data-prod]");
     if (row) { openProd = openProd === row.dataset.prod ? null : row.dataset.prod; renderProducts(); }
   });
+  $("#v-maison").addEventListener("click", async (e) => {
+    const c = e.target.closest("[data-lieu]"); if (c) return choisirLieu(c.dataset.lieu);
+    if (e.target.closest("[data-lieu-new]")) { lieuEnEdition = !lieuEnEdition; renderLieux(); if (lieuEnEdition) setTimeout(() => $("#in-nouveau-lieu").focus(), 30); return; }
+    const mv = e.target.closest("[data-lieumove]");
+    if (mv) {
+      const ls = lieuxTries(), i = ls.findIndex((x) => x.id === mv.dataset.id), j = i + Number(mv.dataset.lieumove);
+      if (i < 0 || j < 0 || j >= ls.length) return;
+      [ls[i], ls[j]] = [ls[j], ls[i]]; ls.forEach((x, k) => (x.ordre = k + 1)); render();
+      for (const [k, x] of ls.entries()) await run(sb.from("lieux").update({ ordre: k + 1 }).eq("id", x.id));
+      return;
+    }
+    const d = e.target.closest("[data-lieudel]"); if (d) { lieuASupprimer = d.dataset.lieudel; renderLieux(); return; }
+    if (e.target.closest("[data-lieudel-annuler]")) { lieuASupprimer = null; renderLieux(); return; }
+    const ok = e.target.closest("[data-lieudel-ok]");
+    if (ok) {
+      const id = ok.dataset.lieudelOk, nom = nomLieu(id); lieuASupprimer = null;
+      state.lieux = state.lieux.filter((x) => x.id !== id); state.inv = state.inv.filter((x) => x.lieu_id !== id); state.espaces = state.espaces.filter((x) => x.lieu_id !== id);
+      if (lieuActif === id) lieuActif = null; appliquerLieu(); render();
+      await run(sb.from("lieux").delete().eq("id", id), `Lieu « ${nom} » supprimé.`); return;
+    }
+  });
+  $("#v-maison").addEventListener("change", async (e) => {
+    const n = e.target.closest("[data-lieunom]"); if (!n) return;
+    const v = n.value.trim(); if (!v) return;
+    const l = state.lieux.find((x) => x.id === n.dataset.lieunom); if (l) l.nom = v;
+    await run(sb.from("lieux").update({ nom: v }).eq("id", n.dataset.lieunom), "Lieu renommé."); render();
+  });
+  $("#f-nouveau-lieu").addEventListener("submit", async (e) => {
+    e.preventDefault(); const nom = $("#in-nouveau-lieu").value.trim(); if (!nom) return;
+    if (state.lieux.some((x) => norm(x.nom) === norm(nom))) { status(`Le lieu « ${nom} » existe déjà.`); return; }
+    const ordre = Math.max(0, ...state.lieux.map((x) => x.ordre || 0)) + 1;
+    const { data, error } = await sb.from("lieux").insert({ nom, ordre }).select("*").single();
+    if (error) { status("Le lieu n'a pas pu être créé. Réessayez."); return; }
+    state.lieux.push(data);
+    const base = ["Garde-manger", "Réfrigérateur", "Congélateur"].map((n, i) => ({ nom: n, ordre: i + 1, lieu_id: data.id }));
+    const { data: esp } = await sb.from("espaces").insert(base).select("*");
+    if (esp) state.espaces.push(...esp);
+    $("#in-nouveau-lieu").value = ""; lieuEnEdition = false; choisirLieu(data.id);
+    status(`Lieu « ${nom} » créé avec un garde-manger, un réfrigérateur et un congélateur. Modifiez ses espaces dans « Gérer les espaces ».`);
+  });
+
   $("#v-liste").addEventListener("click", async (e) => {
     const c = e.target.closest("[data-liste]"); if (c) return choisirListe(c.dataset.liste);
     if (e.target.closest("[data-liste-new]")) { listeEnEdition = !listeEnEdition; renderListes(); if (listeEnEdition) setTimeout(() => $("#in-nouvelle-liste").focus(), 30); return; }
@@ -1407,13 +1503,13 @@
   // ---------- auth (comme Le 19e : cellulaire + code texto pour créer le compte, puis mot de passe)
   let pendingEmail = "", pendingTel = "";
   const loginStatus = (m) => { $("#login-status").textContent = m || ""; };
-  const loginForms = ["#f-login", "#f-sms", "#f-smscode"];
+  const loginForms = ["#f-login", "#f-sms", "#f-smscode", "#f-foyer"];
   function loginView(id) { loginForms.forEach((f) => ($(f).hidden = f !== id)); $("#alt-login").hidden = id !== "#f-login"; loginStatus(""); }
   function ouvrirSms(mode) {
     $("#sms-title").textContent = mode === "oubli" ? "Nouveau mot de passe" : "Créer mon compte";
     $("#sms-intro").textContent = mode === "oubli"
       ? "Entrez votre cellulaire. Vous recevrez un code par texto pour choisir un nouveau mot de passe."
-      : "Entrez votre cellulaire. Vous recevrez un code par texto, puis vous choisirez votre mot de passe.";
+      : "Entrez votre cellulaire. Vous recevrez un code par texto, puis vous choisirez votre mot de passe. Invité par quelqu'un ? Entrez le cellulaire qu'il a inscrit. Nouveau ? Vous créerez votre foyer : 30 jours d'essai gratuit.";
     if ($("#in-tel").value.trim()) $("#in-tel2").value = $("#in-tel").value.trim();
     loginView("#f-sms"); $("#in-tel2").focus();
   }
@@ -1438,10 +1534,6 @@
     e.preventDefault();
     pendingTel = e164($("#in-tel2").value);
     if (!pendingTel) { loginStatus("Entrez votre cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
-    loginStatus("Vérification du numéro…");
-    const { data: inscrit, error: e0 } = await sb.rpc("cellulaire_inscrit", { tel: pendingTel });
-    if (e0) { loginStatus("Le service est injoignable. Vérifiez votre connexion et réessayez."); return; }
-    if (!inscrit) { loginStatus(`Le ${fmtTel(pendingTel)} n'est pas inscrit. Demandez à un membre de l'ajouter dans « Membres ».`); return; }
     loginStatus("Envoi du code par texto…");
     const { error } = await sb.auth.signInWithOtp({ phone: pendingTel, options: { shouldCreateUser: true, channel: "sms" } });
     if (error) {
@@ -1490,9 +1582,51 @@
   $("#back-email").addEventListener("click", () => { $("#f-code").hidden = true; $("#f-email").hidden = false; $("#in-code").value = ""; loginStatus(""); });
   $("#logout").addEventListener("click", () => sb.auth.signOut());
 
+  // ---------- créer son foyer (essai de 30 jours)
+  $("#f-foyer").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nom = $("#in-foyer-nom").value.trim(), prenom = $("#in-foyer-prenom").value.trim();
+    if (!prenom) { loginStatus("Entrez votre prénom."); return; }
+    loginStatus("Création de votre foyer…");
+    const { error } = await sb.rpc("creer_foyer", { p_nom: nom || "Mon foyer", p_prenom: prenom });
+    if (error) { console.error(error); loginStatus(String(error.message || "").includes("deja_membre") ? "Vous faites déjà partie d'un foyer. Reconnectez-vous." : "Le foyer n'a pas pu être créé. Réessayez dans un moment."); return; }
+    loginStatus("");
+    const { data } = await sb.auth.getSession();
+    current = null; await onSession(data && data.session);
+    status("Votre foyer est créé. L'essai gratuit dure 30 jours : tout est ouvert.");
+  });
+  $("#foyer-annuler").addEventListener("click", () => sb.auth.signOut());
+
+  // ---------- forfait : essai, payé, terminé
+  const PRIX = "7,99 $ par année";
+  const estProprio = () => !!(state.foyer && state.userId && state.foyer.proprio === state.userId);
+  function etatForfait() {
+    const f = state.foyer; if (!f) return { actif: true, type: "inconnu" };
+    const now = Date.now(), essai = new Date(f.essai_fin).getTime(), paye = f.paye_jusqua ? new Date(f.paye_jusqua).getTime() : 0;
+    if (paye > now) return { actif: true, type: "paye", jusqua: f.paye_jusqua, fondateur: new Date(f.paye_jusqua).getFullYear() >= 2090 };
+    if (essai > now) return { actif: true, type: "essai", jours: Math.max(1, Math.ceil((essai - now) / 864e5)) };
+    return { actif: false, type: "termine" };
+  }
+  const lienAchat = () => `${(window.EPICERIE_CONFIG && window.EPICERIE_CONFIG.siteUrl) || "https://lecommis.ai/"}achat.html?foyer=${encodeURIComponent(state.foyer ? state.foyer.id : "")}&nom=${encodeURIComponent(state.foyer ? state.foyer.nom : "")}`;
+  function renderForfait() {
+    const box = $("#forfait"), et = etatForfait(), proprio = estProprio();
+    const nomProprio = (state.membres.find((m) => m.role === "proprio") || {}).nom || "le propriétaire";
+    document.body.classList.toggle("lecture-seule", !et.actif);
+    if (et.type === "paye" && et.fondateur) { box.innerHTML = ""; return; }
+    if (et.type === "paye") { box.innerHTML = `<p class="hint forfait-ok">Forfait actif jusqu'au ${fmtDate(String(et.jusqua).slice(0, 10))}.${proprio ? ` <a class="link" href="${lienAchat()}" target="_blank" rel="noopener">Renouveler</a>` : ""}</p>`; return; }
+    if (et.type === "essai") {
+      box.innerHTML = `<div class="forfait essai"><span><b>Essai gratuit</b> : ${et.jours} jour${et.jours > 1 ? "s" : ""} restant${et.jours > 1 ? "s" : ""}.</span>
+        ${proprio ? `<a class="btn small" href="${lienAchat()}" target="_blank" rel="noopener">Acheter · ${PRIX}</a>` : `<span class="hint">${esc(prenom(nomProprio))} pourra acheter l'app.</span>`}</div>`;
+      return;
+    }
+    box.innerHTML = `<div class="forfait fini"><div><b>L'essai gratuit est terminé.</b><br>Vos données sont gardées : vous pouvez les consulter, mais plus les modifier.</div>
+      ${proprio ? `<a class="btn" href="${lienAchat()}" target="_blank" rel="noopener">Acheter l'app · ${PRIX}</a><p class="hint">L'app se réactive toute seule après le paiement.</p>`
+        : `<p class="hint">Demandez à ${esc(prenom(nomProprio))}, propriétaire du foyer, d'acheter l'app.</p>`}</div>`;
+  }
+
   async function onSession(session) {
     if (!session) {
-      state.email = null; state.userEmail = null; state.userPhone = null; state.userId = null;
+      state.email = null; state.userEmail = null; state.userPhone = null; state.userId = null; state.foyer = null;
       $("#bienvenue").hidden = true; $("#demarrer").innerHTML = "";
       if (channel) { sb.removeChannel(channel); channel = null; }
       $("#app").hidden = true; $("#login").hidden = false;
@@ -1503,18 +1637,21 @@
     state.userEmail = session.user.email || null;
     state.userPhone = session.user.phone || null;
     state.email = state.userEmail || state.userPhone;
-    const { data: membres } = await sb.from("membres").select("id, email, telephone, nom, invite_par");
+    const { data: membres } = await sb.from("membres").select("id, email, telephone, nom, invite_par, role");
     if (!membres || !membres.length) {
-      $("#login").hidden = false; $("#app").hidden = true; loginView("#f-login");
-      loginStatus(`${state.userPhone ? "Le " + fmtTel(state.userPhone) : "L'adresse " + state.userEmail} n'a pas accès à cette liste. Demandez à un membre de l'ajouter dans « Membres ».`);
-      await sb.auth.signOut({ scope: "local" });
+      // Pas encore membre d'un foyer : on propose d'en créer un (essai gratuit de 30 jours)
+      $("#login").hidden = false; $("#app").hidden = true; loginView("#f-foyer");
+      $("#foyer-intro").textContent = `${state.userPhone ? "Le " + fmtTel(state.userPhone) : "L'adresse " + state.userEmail} n'appartient à aucun foyer. Créez le vôtre : l'essai est gratuit pendant 30 jours. Si quelqu'un vous a invité, demandez-lui de vérifier le cellulaire inscrit dans « Membres ».`;
       return;
     }
+    const { data: foyer } = await sb.from("foyers").select("*").maybeSingle();
+    state.foyer = foyer || null;
     state.membres = membres;
     const me = membres.find(estMoi);
     $("#who").textContent = (me && me.nom) || (state.userPhone ? fmtTel(state.userPhone) : state.userEmail);
     $("#login").hidden = true; $("#app").hidden = false;
     state.userId = session.user.id;
+    renderForfait();
     await loadAll();
     await etatRappel().catch(() => {});
     maybeBienvenue(); renderDemarrer();
