@@ -1725,4 +1725,47 @@
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
   }
+
+  /* Mise à jour automatique : l'app installée sur l'écran d'accueil reste ouverte en arrière-plan pendant des jours.
+     À chaque retour dans l'app (et aux 30 minutes), on regarde si une nouvelle version est en ligne ; si oui, on recharge.
+     On attend si la personne est en train d'écrire ou si une fenêtre est ouverte. */
+  (function () {
+    if (location.protocol === 'file:' || !window.fetch) return;
+    var ENTETES = ['index.html', 'app.js', 'style.css', 'config.js'], TEXTES = ['sw.js'], OUVERT = '[role="dialog"]:not([hidden]), dialog[open]';
+    var base = null, dernier = 0, attente = null;
+    function lire() {
+      var e = ENTETES.map(function (f) { return fetch(f, { method: 'HEAD', cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return (r.headers.get('etag') || r.headers.get('last-modified') || '').replace(/^W\//, ''); }); });
+      var t = TEXTES.map(function (f) { return fetch(f, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); }); });
+      return Promise.all(e.concat(t)).then(function (a) { return a.join('|'); });
+    }
+    function occupe() {
+      var a = document.activeElement;
+      if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return true;
+      return !!document.querySelector(OUVERT);
+    }
+    function recharger(sig) {
+      if (occupe()) { clearTimeout(attente); attente = setTimeout(function () { recharger(sig); }, 20000); return; }
+      try {
+        var d = JSON.parse(sessionStorage.getItem('maj.auto') || '{}');
+        // Jamais deux fois pour la même version, ni plus d'une fois aux 5 minutes : pas de boucle possible
+        if (d.sig === sig || Date.now() - (d.t || 0) < 300000) return;
+        sessionStorage.setItem('maj.auto', JSON.stringify({ sig: sig, t: Date.now() }));
+      } catch (x) { return; }
+      location.reload();
+    }
+    function verifier() {
+      if (document.visibilityState !== 'visible' || navigator.onLine === false || Date.now() - dernier < 60000) return;
+      dernier = Date.now();
+      lire().then(function (sig) {
+        if (!sig.replace(/\|/g, '')) return;
+        if (base === null) { base = sig; return; }
+        if (sig !== base) recharger(sig);
+      }).catch(function () { dernier = 0; });
+    }
+    window.addEventListener('load', verifier);
+    document.addEventListener('visibilitychange', verifier);
+    window.addEventListener('pageshow', function (e) { if (e.persisted) verifier(); });
+    window.addEventListener('online', verifier);
+    setInterval(verifier, 1800000);
+  })();
 })();
