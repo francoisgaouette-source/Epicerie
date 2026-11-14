@@ -1,3 +1,5 @@
+# ANCIEN HÉBERGEMENT (Netlify), gardé une semaine en secours après la bascule vers Cloudflare du 14 nov. 2026.
+# L'hébergement actif est le Worker Cloudflare : voir wrangler.jsonc et worker/index.js.
 [build]
   publish = "web"
 

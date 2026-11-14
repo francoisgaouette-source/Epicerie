@@ -8,6 +8,12 @@
   "main": "worker/index.js",
   "compatibility_date": "2026-10-23",
   "workers_dev": true,
+  "routes": [
+    { "pattern": "app.lecommis.ai", "custom_domain": true },
+    { "pattern": "lecommis.ai", "custom_domain": true },
+    { "pattern": "www.lecommis.ai", "custom_domain": true },
+    { "pattern": "console.holdingai.app", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./web",
     "binding": "ASSETS",
