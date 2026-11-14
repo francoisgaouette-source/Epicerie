@@ -1,5 +1,6 @@
 // Console HoldingAI : suivre et approuver les avis, les forfaits, les inscriptions et les questions
 // pour Le Commis (Supabase) et Fanion (Firebase). Réservée aux comptes inscrits dans console_admins.
+// Rôles : « proprio » (un seul) invite et retire les accès ; « gestion » peut publier et activer ; « lecture » consulte seulement.
 // Secret facultatif : FIREBASE_SERVICE_ACCOUNT (le fichier JSON du compte de service du projet Firebase « pelland »).
 // Sans lui, la partie Fanion reste en lecture seule (groupes et avis déjà publiés).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -140,8 +141,9 @@ Deno.serve(async (req: Request) => {
   const { data: u } = await admin.auth.getUser(jeton);
   const uid = u?.user?.id;
   if (!uid) return json({ erreur: "Connexion requise." }, 401);
-  const { data: ok } = await admin.from("console_admins").select("user_id").eq("user_id", uid).maybeSingle();
+  const { data: ok } = await admin.from("console_admins").select("user_id, role").eq("user_id", uid).maybeSingle();
   if (!ok) return json({ erreur: "Ce compte n'a pas accès à la console." }, 403);
+  const role = String(ok.role);
 
   let b: Record<string, unknown> = {};
   try { b = await req.json(); } catch { return json({ erreur: "Requête invalide" }, 400); }
@@ -155,7 +157,55 @@ Deno.serve(async (req: Request) => {
       if (error) throw new Refus(error.message, 500);
       let fanion: Record<string, unknown>;
       try { fanion = await donneesFanion(); } catch (e) { fanion = { pret: false, erreur: (e as Error).message, groupes: [], avis: [], demandes: [] }; }
-      return json({ commis, fanion, courriel: u.user.email });
+      let acces = null;
+      if (role === "proprio") acces = (await admin.rpc("console_acces")).data;
+      return json({ commis, fanion, courriel: u.user.email, role, acces });
+    }
+    if (role !== "proprio" && role !== "gestion") throw new Refus("Votre accès permet seulement de consulter.", 403);
+
+    // ---------- Accès à la console : le propriétaire seulement ----------
+    if (action.startsWith("acces.")) {
+      if (role !== "proprio") throw new Refus("Seul le propriétaire de la console gère les accès.", 403);
+      const nouveau = String(b.role || "");
+      if (action === "acces.inviter") {
+        const courriel = String(b.courriel || "").trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(courriel) || courriel.length > 200) throw new Refus("Courriel invalide.");
+        if (!["gestion", "lecture"].includes(nouveau)) throw new Refus("Rôle invalide.");
+        const { count } = await admin.from("console_admins").select("user_id", { count: "exact", head: true });
+        if ((count || 0) >= 20) throw new Refus("Maximum de 20 personnes atteint.");
+        let { data: id } = await admin.rpc("console_compte", { p_courriel: courriel });
+        if (!id) {
+          // Pas encore de compte : on le crée, pour que la personne puisse recevoir son code de connexion
+          const { data: cree, error } = await admin.auth.admin.createUser({ email: courriel, email_confirm: true });
+          if (error || !cree?.user) throw new Refus("Le compte n'a pas pu être créé.", 500);
+          id = cree.user.id;
+        }
+        const { data: deja } = await admin.from("console_admins").select("role").eq("user_id", id).maybeSingle();
+        if (deja) throw new Refus("Cette personne a déjà accès à la console.");
+        const { error } = await admin.from("console_admins").insert({ user_id: id, role: nouveau, invite_par: uid });
+        if (error) throw new Refus(error.message, 500);
+        await noter("console", courriel, { geste: "inviter", role: nouveau });
+        return json({ ok: true });
+      }
+      const id = String(b.id || ""); if (!UUID.test(id)) throw new Refus("Personne invalide.");
+      if (id === uid) throw new Refus("Vous ne pouvez pas modifier votre propre accès.");
+      const { data: cible } = await admin.rpc("console_acces");
+      const qui = ((cible || []) as { id: string; courriel: string; role: string }[]).find((x) => x.id === id);
+      if (!qui || qui.role === "proprio") throw new Refus("Personne introuvable.", 404);
+      if (action === "acces.role") {
+        if (!["gestion", "lecture"].includes(nouveau)) throw new Refus("Rôle invalide.");
+        const { error } = await admin.from("console_admins").update({ role: nouveau }).eq("user_id", id).neq("role", "proprio");
+        if (error) throw new Refus(error.message, 500);
+        await noter("console", qui.courriel, { geste: "role", role: nouveau });
+        return json({ ok: true });
+      }
+      if (action === "acces.retirer") {
+        const { error } = await admin.from("console_admins").delete().eq("user_id", id).neq("role", "proprio");
+        if (error) throw new Refus(error.message, 500);
+        await noter("console", qui.courriel, { geste: "retirer" });
+        return json({ ok: true });
+      }
+      throw new Refus("Action inconnue.");
     }
 
     // ---------- Le Commis ----------

@@ -6,7 +6,7 @@
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const JOUR = 864e5;
-  const etat = { vue: "traiter", d: null, courriel: "", frais: null };
+  const etat = { vue: "traiter", d: null, courriel: "", role: "lecture", frais: null };
 
   // ---------- dates et mots
   const fDate = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric" });
@@ -41,7 +41,7 @@
     const e = etatAvis(a), frais = etat.frais === cle ? " frais" : "";
     return e === "publie" ? `<span class="tampon${frais}">Publié</span>` : e === "ecarte" ? `<span class="tampon refus${frais}">Écarté</span>` : `<span class="tampon attente${frais}">En attente</span>`;
   };
-  const nomApp = { commis: "Le Commis", fanion: "Fanion" };
+  const nomApp = { commis: "Le Commis", fanion: "Fanion", console: "Console" };
   const puce = (app) => `<span class="app"><i class="pastille ${app}"></i>${nomApp[app]}</span>`;
 
   // ---------- serveur
@@ -168,13 +168,28 @@
       section("Questions posées au Caddie", "Ce que les joueurs demandent à l'assistant dans l'app.",
         liste(q.map(ficheQuestion), "Aucune question notée pour l'instant. Elles s'inscrivent ici à mesure que les joueurs en posent."));
   }
-  const MOTS = { "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu" };
+  const MOTS = { "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès" };
   const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée" };
+  const ROLES = { proprio: "Propriétaire", gestion: "Gestion", lecture: "Consultation" };
+  const gesteJournal = (j) => { const x = j.detail || {};
+    if (j.app === "console") return x.geste === "inviter" ? `accès donné (${ROLES[x.role] || ""})` : x.geste === "role" ? `rôle changé (${ROLES[x.role] || ""})` : "accès retiré";
+    return GESTES[x.etat || x.geste] || ""; };
+  function vueAcces(d) {
+    const gens = d.acces || [];
+    return section("Donner l'accès à quelqu'un", "La personne ouvre console.holdingai.app, entre son courriel et reçoit un code de connexion, comme vous. Aucun courriel d'invitation n'est envoyé : donnez-lui l'adresse vous-même.",
+      `<form class="invite" id="f-invite"><label>Courriel<input id="in-invite" type="email" required maxlength="200" autocomplete="off" placeholder="prenom@exemple.com"></label>
+        <label>Ce qu'elle peut faire<select id="in-role"><option value="lecture">Consulter seulement</option><option value="gestion">Consulter, publier les avis et gérer les forfaits</option></select></label>
+        <button class="btn" type="submit">Donner l'accès</button></form>`) +
+      section("Qui a accès", "Vous seul pouvez donner, changer ou retirer un accès.",
+        table([{ t: "Personne" }, { t: "Rôle" }, { t: "Depuis" }, { t: "Dernière connexion" }, { t: "Gestes" }], gens.map((g) => [
+          `<span class="nom">${esc(g.courriel)}</span>`, `<span class="tampon ${g.role === "lecture" ? "neutre" : ""}">${esc(ROLES[g.role] || g.role)}</span>`, esc(jour(g.ajoute)), esc(g.vu ? ilYA(g.vu) : "jamais"),
+          g.role === "proprio" ? "" : `<div class="gestes"><button class="lien" data-acces="${esc(g.id)}" data-role="${g.role === "lecture" ? "gestion" : "lecture"}">${g.role === "lecture" ? "Permettre de publier et d'activer" : "Limiter à la consultation"}</button><button class="lien" data-acces="${esc(g.id)}" data-role="">Retirer l'accès</button></div>`]), ""));
+  }
   function vueJournal(d) {
     return section("Journal", "Chaque geste fait dans la console, du plus récent au plus ancien.",
-      table([{ t: "Geste" }, { t: "App" }, { t: "Quand" }], d.commis.journal.map((j) => {
+      table([{ t: "Geste" }, { t: "Par" }, { t: "App" }, { t: "Quand" }], d.commis.journal.map((j) => {
         const x = j.detail || {};
-        return [`<span class="nom">${esc(MOTS[j.action] || j.action)} : ${esc(j.cible || "")}</span><small>${esc([GESTES[x.etat || x.geste] || "", x.raison || ""].filter(Boolean).join(", "))}</small>`, puce(j.app), esc(moment(j.cree))];
+        return [`<span class="nom">${esc(MOTS[j.action] || j.action)} : ${esc(j.cible || "")}</span><small>${esc([gesteJournal(j), x.raison || ""].filter(Boolean).join(", "))}</small>`, esc(j.qui || ""), j.app === "console" ? "Console" : puce(j.app), esc(moment(j.cree))];
       }), "Aucun geste pour l'instant."));
   }
 
@@ -182,9 +197,13 @@
   function rendre() {
     const d = etat.d; if (!d) return;
     const n = aTraiter(d).n;
-    $("#onglets").innerHTML = VUES.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${k === "commis" || k === "fanion" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "journal" ? vueJournal(d) : vueTraiter(d);
-    $("#pied").textContent = `Connecté : ${etat.courriel}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
+    const vues = etat.role === "proprio" ? [...VUES, ["acces", "Accès"]] : VUES;
+    if (!vues.some(([k]) => k === etat.vue)) etat.vue = "traiter";
+    $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${k === "commis" || k === "fanion" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "acces" ? vueAcces(d) : vueTraiter(d);
+    // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
+    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande]").forEach((b) => b.remove());
+    $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
     document.title = (n ? `(${n}) ` : "") + "Console HoldingAI";
     etat.frais = null;
   }
@@ -192,7 +211,7 @@
     if (!silence && !etat.d) $("#page").innerHTML = `<p class="charge">Lecture des données…</p>`;
     try {
       const d = await appel({ action: "tout" });
-      etat.d = d; etat.courriel = d.courriel || ""; rendre();
+      etat.d = d; etat.courriel = d.courriel || ""; etat.role = d.role || "lecture"; rendre();
     } catch (e) {
       if (e.code === 401) { await sb.auth.signOut(); montrerPorte("Votre session est terminée. Reconnectez-vous."); }
       else if (e.code === 403) { await sb.auth.signOut(); montrerPorte("Ce compte n'a pas accès à la console.", true); }
@@ -232,9 +251,23 @@
       const ok = await confirmer(g === "activer" ? { titre: `Activer le forfait Groupe de « ${gr.nom} » ?`, texte: "Le groupe pourra inscrire jusqu'à 16 joueurs pendant 12 mois. Si un forfait est déjà en cours, les 12 mois s'y ajoutent.", bouton: "Activer le forfait Groupe", raison: true }
         : { titre: `Retirer le forfait de « ${gr.nom} » ?`, texte: "Le groupe revient au forfait Gratuit, limité à 4 joueurs.", bouton: "Retirer le forfait" });
       if (ok) agir({ action: "fanion.groupe", id: gr.id, geste: g, raison: ok.raison }, g === "activer" ? "Forfait Groupe activé." : "Forfait retiré.");
+    } else if (b.dataset.acces) {
+      const g = (d.acces || []).find((x) => x.id === b.dataset.acces), r = b.dataset.role; if (!g) return;
+      const ok = await confirmer(!r ? { titre: `Retirer l'accès de ${g.courriel} ?`, texte: "Cette personne ne pourra plus ouvrir la console, dès maintenant.", bouton: "Retirer l'accès" }
+        : r === "gestion" ? { titre: `Donner plus de pouvoirs à ${g.courriel} ?`, texte: "Cette personne pourra publier ou écarter des avis, prolonger des essais et activer ou retirer des forfaits.", bouton: "Permettre de publier et d'activer" }
+        : { titre: `Limiter ${g.courriel} à la consultation ?`, texte: "Cette personne verra tout, mais ne pourra plus rien publier ni activer.", bouton: "Limiter à la consultation" });
+      if (ok) agir(r ? { action: "acces.role", id: g.id, role: r } : { action: "acces.retirer", id: g.id }, r ? "Rôle changé." : "Accès retiré.");
     } else if (b.dataset.demande) {
       agir({ action: "fanion.demande", id: b.dataset.demande }, "Demande marquée comme traitée.");
     }
+  });
+
+  $("#page").addEventListener("submit", async (e) => {
+    if (e.target.id !== "f-invite") return;
+    e.preventDefault();
+    const courriel = $("#in-invite").value.trim().toLowerCase(), role = $("#in-role").value;
+    const ok = await confirmer({ titre: `Donner l'accès à ${courriel} ?`, texte: role === "gestion" ? "Cette personne verra tous les foyers, groupes, avis et questions, et pourra publier des avis et gérer les forfaits." : "Cette personne verra tous les foyers, groupes, avis et questions, y compris les coordonnées des clients, sans pouvoir rien modifier.", bouton: "Donner l'accès" });
+    if (ok) agir({ action: "acces.inviter", courriel, role }, "Accès donné.");
   });
 
   // ---------- connexion par code reçu par courriel

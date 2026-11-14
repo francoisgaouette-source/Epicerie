@@ -11,3 +11,5 @@ grant insert (app, question, reponse, contexte) on public.console_questions to a
 drop policy if exists console_questions_ajout on public.console_questions;
 create policy console_questions_ajout on public.console_questions for insert to authenticated
   with check (app = 'commis' and qui = (select auth.uid())::text and foyer_id is not null and foyer_id = private.mon_foyer());
+
+-- Rôles (migration « console_acces ») : proprio (un seul), gestion, lecture. Les accès se gèrent dans l'onglet « Accès » de la console.

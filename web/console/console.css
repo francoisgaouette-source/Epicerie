@@ -140,3 +140,9 @@ dialog::backdrop { background: rgb(10 15 25 / .55); }
   .tampon.frais { animation: tamponner .28s cubic-bezier(.2, 1.4, .4, 1); }
   @keyframes tamponner { from { transform: rotate(-3deg) scale(1.7); opacity: 0; } to { transform: rotate(-3deg) scale(1); opacity: 1; } }
 }
+
+/* Accès */
+.invite { display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 12px; align-items: end; background: var(--feuille); border: 1px solid var(--ligne); border-radius: 12px; padding: 16px 18px; margin-top: 14px; }
+.invite label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; min-width: 0; }
+.invite input, .invite select { border: 1.5px solid var(--ligne); background: var(--papier); border-radius: 8px; padding: 10px; font-weight: 400; font-size: 16px; min-height: 42px; width: 100%; min-width: 0; }
+@media (max-width: 720px) { .invite { grid-template-columns: 1fr; } }
