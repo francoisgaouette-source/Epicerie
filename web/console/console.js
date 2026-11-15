@@ -6,7 +6,7 @@
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const JOUR = 864e5;
-  const etat = { vue: "traiter", d: null, courriel: "", role: "lecture", frais: null };
+  const etat = { vue: "traiter", d: null, courriel: "", role: "lecture", frais: null, filtre: "attente" };
 
   // ---------- dates et mots
   const fDate = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric" });
@@ -41,8 +41,8 @@
     const e = etatAvis(a), frais = etat.frais === cle ? " frais" : "";
     return e === "publie" ? `<span class="tampon${frais}">Publié</span>` : e === "ecarte" ? `<span class="tampon refus${frais}">Écarté</span>` : `<span class="tampon attente${frais}">En attente</span>`;
   };
-  const nomApp = { commis: "Le Commis", fanion: "Fanion", console: "Console" };
-  const puce = (app) => `<span class="app"><i class="pastille ${app}"></i>${nomApp[app]}</span>`;
+  const nomApp = { commis: "Le Commis", fanion: "Fanion", holdingai: "HoldingAI", console: "Console" };
+  const puce = (app) => `<span class="app"><i class="pastille ${esc(app)}"></i>${esc(nomApp[app] || app)}</span>`;
 
   // ---------- serveur
   async function appel(corps) {
@@ -78,7 +78,64 @@
     ].sort((a, b) => t(b.cree) - t(a.cree));
     const paiements = d.commis.paiements.filter((p) => !p.active);
     const essais = d.commis.foyers.map((f) => ({ f, e: forfaitCommis(f) })).filter((x) => x.e.cle === "essai" && x.e.jours <= 7);
-    return { avis, paiements, essais, demandes: d.fanion.demandes, n: avis.length + paiements.length + d.fanion.demandes.length };
+    const fils = filsCourriels(d).filter((f) => f.attente);
+    return { avis, paiements, essais, fils, demandes: d.fanion.demandes, n: avis.length + paiements.length + d.fanion.demandes.length + fils.length };
+  }
+
+  // ---------- courriels : les messages d'un même échange forment un fil
+  function filsCourriels(d) {
+    const parFil = new Map();
+    for (const c of d.courriels || []) { if (!parFil.has(c.fil)) parFil.set(c.fil, []); parFil.get(c.fil).push(c); }
+    return [...parFil.values()].map((ms) => {
+      ms.sort((a, b) => t(a.cree) - t(b.cree));
+      const recus = ms.filter((m) => m.sens === "recu");
+      const dernier = recus[recus.length - 1] || ms[ms.length - 1];
+      return { fil: dernier.fil, app: dernier.app, ms, dernier, peutRepondre: !!recus.length, attente: recus.some((m) => !m.traite), repondu: ms.some((m) => m.sens === "envoye"), auto: recus.length > 0 && recus.every((m) => m.auto), date: t(ms[ms.length - 1].cree) };
+    }).sort((a, b) => b.date - a.date);
+  }
+  const taille = (n) => (n == null ? "" : n < 1024 ? ` (${n} o)` : n < 1048576 ? ` (${Math.round(n / 1024)} Ko)` : ` (${(n / 1048576).toFixed(1).replace(".", ",")} Mo)`);
+  const LONG = 700;
+  function corpsCourriel(m) {
+    const x = m.texte || "";
+    if (!x) return `<p class="note">Ce message n'a pas de texte.</p>`;
+    if (x.length <= LONG) return `<p class="lettre">${esc(x)}</p>`;
+    return `<p class="lettre">${esc(x.slice(0, LONG).replace(/\s+\S*$/, ""))}…</p><details><summary>Lire le message au complet</summary><p class="lettre">${esc(x)}</p></details>`;
+  }
+  function messageCourriel(m) {
+    const qui = m.sens === "envoye" ? `Réponse envoyée de ${esc(m.de)}` : `${esc(m.de_nom || m.de)}`;
+    return `<div class="message${m.sens === "envoye" ? " envoye" : ""}">
+      <p class="note"><b>${qui}</b>, ${esc(moment(m.cree))}</p>
+      ${corpsCourriel(m)}
+      ${(m.pieces || []).length ? `<p class="note">${pl(m.pieces.length, "pièce jointe", "pièces jointes")}${m.copie ? ", à ouvrir dans la copie reçue dans votre boîte" : ""} : ${m.pieces.map((p) => esc(p.nom) + taille(p.taille)).join(", ")}</p>` : ""}
+      ${m.tronque ? `<p class="note alerte">Message très long : la fin se trouve dans la copie reçue dans votre boîte.</p>` : ""}
+    </div>`;
+  }
+  function ficheCourriel(f) {
+    const c = f.dernier, avant = f.ms.filter((m) => m !== c);
+    const tampon = f.attente ? `<span class="tampon attente">À traiter</span>` : f.repondu ? `<span class="tampon">Répondu</span>` : f.auto ? `<span class="tampon neutre">Automatique</span>` : `<span class="tampon neutre">Traité</span>`;
+    const gestes = [];
+    if (f.peutRepondre && !f.auto) gestes.push(`<button class="btn" data-courriel="${esc(c.id)}" data-geste="repondre">Répondre</button>`);
+    gestes.push(f.attente ? `<button class="btn pale" data-courriel="${esc(c.id)}" data-geste="traite">Marquer comme traité</button>` : `<button class="btn pale" data-courriel="${esc(c.id)}" data-geste="atraiter">Remettre à traiter</button>`);
+    if (f.peutRepondre && f.auto) gestes.push(`<button class="lien" data-courriel="${esc(c.id)}" data-geste="repondre">Répondre quand même</button>`);
+    return `<article class="fiche">
+      ${tampon}
+      <div class="tete">${puce(f.app)}<b>${esc(c.sens === "envoye" ? c.a : c.de_nom || c.de)}</b>${c.sens === "recu" && c.de_nom ? `<span>${esc(c.de)}</span>` : ""}<span>écrit à ${esc(c.sens === "envoye" ? c.de : c.a)}</span><span>${esc(moment(c.cree))}</span></div>
+      <h3 class="objet">${esc(c.sujet || "(sans objet)")}</h3>
+      ${avant.length ? `<details><summary>Voir le reste de l'échange (${pl(avant.length, "autre message", "autres messages")})</summary><div class="echange">${avant.map(messageCourriel).join("")}</div></details>` : ""}
+      ${messageCourriel(c)}
+      ${c.sens === "recu" && c.repondre_a ? `<p class="note">La réponse ira à ${esc(c.repondre_a)}, comme le demande ce message.</p>` : ""}
+      <div class="gestes">${gestes.join("")}</div>
+    </article>`;
+  }
+  function vueCourriels(d) {
+    const fils = filsCourriels(d), nAttente = fils.filter((f) => f.attente).length;
+    const FILTRES = [["attente", `À traiter${nAttente ? ` (${nAttente})` : ""}`], ["tous", "Tous"], ["holdingai", "HoldingAI"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["auto", "Automatiques"]];
+    const k = etat.filtre;
+    const vus = fils.filter((f) => (k === "attente" ? f.attente : k === "tous" ? true : k === "auto" ? f.auto : f.app === k && !f.auto));
+    const vide = !fils.length ? "Aucun courriel reçu pour l'instant. Tout ce qui est écrit à une adresse @holdingai.app, @lecommis.ai ou @fanion.ai arrivera ici."
+      : k === "attente" ? "Aucun courriel à traiter." : "Aucun courriel dans cette liste.";
+    return section("Courriels", "Tout ce qui est écrit à une adresse @holdingai.app, @lecommis.ai ou @fanion.ai. Une copie arrive aussi dans votre boîte personnelle. Les réponses partent de l'adresse à laquelle la personne a écrit.",
+      `<div class="filtres" role="group" aria-label="Filtrer les courriels">${FILTRES.map(([c, mot]) => `<button class="filtre" data-filtre="${c}" aria-pressed="${k === c}">${mot}</button>`).join("")}</div>` + liste(vus.slice(0, 100).map(ficheCourriel), vide));
   }
 
   // ---------- morceaux d'écran
@@ -120,6 +177,7 @@
   function vueTraiter(d) {
     const a = aTraiter(d);
     const blocs = [];
+    if (a.fils.length) blocs.push(section("Courriels à traiter", "Des personnes vous ont écrit. Répondez ici, ou marquez le courriel comme traité.", liste(a.fils.slice(0, 30).map(ficheCourriel), "")));
     blocs.push(section("Avis à approuver", "Un avis paraît sur le site seulement après votre approbation, et seulement si la personne a accepté l'affichage.",
       liste(a.avis.map((x) => ficheAvis(x, x.app)), "Aucun avis en attente. Les nouveaux avis du Commis et de Fanion arrivent ici.")));
     if (a.paiements.length) blocs.push(section("Paiements à relier", "Stripe a reçu ces paiements sans pouvoir activer un foyer. Activez le bon foyer dans l'onglet Le Commis.",
@@ -168,8 +226,8 @@
       section("Questions posées au Caddie", "Ce que les joueurs demandent à l'assistant dans l'app.",
         liste(q.map(ficheQuestion), "Aucune question notée pour l'instant. Elles s'inscrivent ici à mesure que les joueurs en posent."));
   }
-  const MOTS = { "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès" };
-  const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée" };
+  const MOTS = { "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
+  const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée", traite: "marqué comme traité", atraiter: "remis à traiter", repondu: "réponse envoyée" };
   const ROLES = { proprio: "Propriétaire", gestion: "Gestion", lecture: "Consultation" };
   const gesteJournal = (j) => { const x = j.detail || {};
     if (j.app === "console") return x.geste === "inviter" ? `accès donné (${ROLES[x.role] || ""})` : x.geste === "role" ? `rôle changé (${ROLES[x.role] || ""})` : "accès retiré";
@@ -193,16 +251,16 @@
       }), "Aucun geste pour l'instant."));
   }
 
-  const VUES = [["traiter", "À traiter"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["journal", "Journal"]];
+  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["journal", "Journal"]];
   function rendre() {
     const d = etat.d; if (!d) return;
     const n = aTraiter(d).n;
     const vues = etat.role === "proprio" ? [...VUES, ["acces", "Accès"]] : VUES;
     if (!vues.some(([k]) => k === etat.vue)) etat.vue = "traiter";
     $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${k === "commis" || k === "fanion" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "acces" ? vueAcces(d) : vueTraiter(d);
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
-    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande]").forEach((b) => b.remove());
+    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel]").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
     document.title = (n ? `(${n}) ` : "") + "Console HoldingAI";
     etat.frais = null;
@@ -231,6 +289,12 @@
   $("#page").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
     const d = etat.d;
+    if (b.dataset.filtre) { etat.filtre = b.dataset.filtre; rendre(); return; }
+    if (b.dataset.courriel) {
+      const c = (d.courriels || []).find((x) => x.id === b.dataset.courriel), g = b.dataset.geste; if (!c) return;
+      if (g === "repondre") return repondre(c);
+      return agir({ action: "courriel.etat", id: c.id, traite: g === "traite" }, g === "traite" ? "Courriel marqué comme traité." : "Courriel remis à traiter.");
+    }
     if (b.dataset.avis) {
       const [app, id] = b.dataset.avis.split(":"), cible = b.dataset.etat;
       const site = app === "commis" ? "lecommis.ai" : "fanion.ai";
@@ -259,6 +323,33 @@
       if (ok) agir(r ? { action: "acces.role", id: g.id, role: r } : { action: "acces.retirer", id: g.id }, r ? "Rôle changé." : "Accès retiré.");
     } else if (b.dataset.demande) {
       agir({ action: "fanion.demande", id: b.dataset.demande }, "Demande marquée comme traitée.");
+    }
+  });
+
+  // ---------- réponse à un courriel
+  let reponseA = null;
+  function repondre(c) {
+    // Le brouillon est gardé si on referme et rouvre la réponse au même courriel
+    if (!reponseA || reponseA.id !== c.id) $("#rep-texte").value = "";
+    reponseA = c;
+    $("#rep-titre").textContent = `Répondre à ${c.de_nom || c.de}`;
+    $("#rep-info").textContent = `De ${c.a} (${nomApp[c.app]}), à ${c.repondre_a || c.de}. Objet : ${/^\s*re\s*:/i.test(c.sujet) ? c.sujet : "Re: " + (c.sujet || "")}. Son message sera cité sous votre réponse.`;
+    $("#rep-msg").textContent = ""; $("#rep-ok").disabled = false;
+    $("#dlg-rep").showModal(); $("#rep-texte").focus();
+  }
+  $("#rep-annuler").addEventListener("click", () => $("#dlg-rep").close());
+  $("#rep-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const texte = $("#rep-texte").value.trim(); if (!texte || !reponseA) return;
+    $("#rep-ok").disabled = true; $("#rep-msg").className = "msg"; $("#rep-msg").textContent = "Envoi…";
+    try {
+      const r = await appel({ action: "courriel.repondre", id: reponseA.id, texte });
+      $("#dlg-rep").close(); $("#rep-texte").value = ""; reponseA = null;
+      toast(r.note === false ? "Réponse envoyée, mais elle n'a pas pu être notée dans la console." : "Réponse envoyée.", r.note === false);
+      await charger(true);
+    } catch (err) {
+      // La réponse reste à l'écran : rien n'est perdu si l'envoi échoue
+      $("#rep-msg").className = "msg err"; $("#rep-msg").textContent = `${err.message} Votre réponse n'est pas partie.`; $("#rep-ok").disabled = false;
     }
   });
 
@@ -299,5 +390,5 @@
   function ouvrir() { $("#porte").hidden = true; $("#console").hidden = false; msg(""); charger(); }
 
   sb.auth.getSession().then(({ data }) => (data.session ? ouvrir() : montrerPorte("")));
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && etat.d && !$("#dlg").open) charger(true); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && etat.d && !$("#dlg").open && !$("#dlg-rep").open) charger(true); });
 })();

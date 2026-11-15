@@ -15,7 +15,7 @@ const cors = (o: string) => ({
 });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const JOUR = 864e5;
-class Refus extends Error { constructor(m: string, public code = 400) { super(m); } }
+import { actionCourriel, listeCourriels, Refus } from "./courriels.ts";
 
 // ---------- Firebase (Fanion) ----------
 const PROJET = "pelland";
@@ -159,7 +159,8 @@ Deno.serve(async (req: Request) => {
       try { fanion = await donneesFanion(); } catch (e) { fanion = { pret: false, erreur: (e as Error).message, groupes: [], avis: [], demandes: [] }; }
       let acces = null;
       if (role === "proprio") acces = (await admin.rpc("console_acces")).data;
-      return json({ commis, fanion, courriel: u.user.email, role, acces });
+      const courriels = await listeCourriels(admin);
+      return json({ commis, fanion, courriels, courriel: u.user.email, role, acces });
     }
     if (role !== "proprio" && role !== "gestion") throw new Refus("Votre accès permet seulement de consulter.", 403);
 
@@ -207,6 +208,9 @@ Deno.serve(async (req: Request) => {
       }
       throw new Refus("Action inconnue.");
     }
+
+    // ---------- Courriels ----------
+    if (action.startsWith("courriel.")) return json(await actionCourriel(action, b, admin, uid, noter));
 
     // ---------- Le Commis ----------
     if (action === "commis.avis") {

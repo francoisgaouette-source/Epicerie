@@ -10,14 +10,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-<link rel="stylesheet" href="console.css?v=2">
+<link rel="stylesheet" href="console.css?v=3">
 </head>
 <body>
 
 <main class="porte" id="porte" hidden>
   <div class="porte-carte">
     <p class="marque">HoldingAI <span>Console</span></p>
-    <h1>Avis, forfaits et inscriptions du Commis et de Fanion</h1>
+    <h1>Courriels, avis, forfaits et inscriptions du Commis et de Fanion</h1>
     <form id="f-courriel">
       <label for="in-courriel">Votre courriel</label>
       <input id="in-courriel" type="email" autocomplete="email" inputmode="email" required>
@@ -59,9 +59,22 @@
     </div>
   </form>
 </dialog>
+<dialog id="dlg-rep">
+  <form id="rep-form">
+    <h2 id="rep-titre"></h2>
+    <p id="rep-info"></p>
+    <label for="rep-texte">Votre réponse</label>
+    <textarea id="rep-texte" rows="9" maxlength="20000" required></textarea>
+    <p class="msg" id="rep-msg" role="status"></p>
+    <div class="dlg-actions">
+      <button class="btn" type="submit" id="rep-ok">Envoyer la réponse</button>
+      <button class="btn pale" type="button" id="rep-annuler">Annuler</button>
+    </div>
+  </form>
+</dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="console.js?v=2"></script>
+<script src="console.js?v=3"></script>
 </body>
 </html>
