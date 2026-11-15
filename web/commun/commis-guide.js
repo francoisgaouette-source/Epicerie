@@ -1,4 +1,4 @@
-// Le Commis en personne : une commis dessinée qui fait visiter les concepts de l'app, étape par étape.
+// Le Commis en personne : une jeune assistante dessinée, très organisée, qui fait visiter les concepts de l'app, étape par étape.
 // Partagé par le site (lecommis.ai) et l'app (app.lecommis.ai) : servi à /commun/ sur les deux adresses.
 //   CommisGuide.ouvrir({ etapes: [{ titre, texte, puce?, icone? }], fin: { titre, texte, bouton, action }, onFermer })
 //   CommisGuide.avatar(taille) → le SVG du personnage
@@ -9,29 +9,33 @@
   <circle cx="100" cy="100" r="98" fill="#DCEBDF"/>
   <clipPath id="cg-clip"><circle cx="100" cy="100" r="98"/></clipPath>
   <g clip-path="url(#cg-clip)">
-    <path d="M60 86 C56 120 60 150 72 162 L128 162 C140 150 144 120 140 86 Z" fill="#4A2C1D"/>
-    <path d="M28 200 C30 158 58 140 100 140 C142 140 170 158 172 200 Z" fill="#F4EFE3"/>
-    <g class="cg-bras"><path d="M164 200 C166 176 170 160 176 146" stroke="#F4EFE3" stroke-width="22" stroke-linecap="round" fill="none"/><circle cx="178" cy="138" r="11" fill="#C98E6B"/></g>
-    <path d="M62 200 L66 150 C78 146 88 144 100 144 C112 144 122 146 134 150 L138 200 Z" fill="#1F5B3A"/>
-    <path d="M74 150 L80 143 M126 150 L120 143" stroke="#1F5B3A" stroke-width="5" stroke-linecap="round"/>
-    <rect x="86" y="166" width="28" height="18" rx="3" fill="#174A2F"/>
-    <g transform="translate(112 152) rotate(-8)"><path d="M0 7 L6 0 H22 V14 H6 Z" fill="#F2C230"/><circle cx="6.5" cy="7" r="1.8" fill="#1F5B3A"/></g>
-    <path d="M88 122 H112 V142 C106 147 94 147 88 142 Z" fill="#B97D5B"/>
+    <path d="M30 200 C32 160 60 142 100 142 C140 142 168 160 170 200 Z" fill="#1F5B3A"/>
+    <path d="M84 142 L100 172 L116 142 Z" fill="#F4EFE3"/>
+    <path d="M84 142 L94 166 L86 200 M116 142 L106 166 L114 200" stroke="#174A2F" stroke-width="3" fill="none" stroke-linejoin="round"/>
+    <g transform="translate(118 160) rotate(-8)"><path d="M0 6 L5 0 H18 V12 H5 Z" fill="#F2C230"/><circle cx="5.5" cy="6" r="1.6" fill="#1F5B3A"/></g>
+    <g class="cg-bras"><path d="M164 200 C166 178 170 162 176 148" stroke="#1F5B3A" stroke-width="22" stroke-linecap="round" fill="none"/><circle cx="178" cy="140" r="11" fill="#D7A07C"/></g>
+    <g transform="translate(36 150) rotate(-10)">
+      <rect x="0" y="0" width="40" height="52" rx="4" fill="#B98A5A"/>
+      <rect x="4" y="6" width="32" height="42" rx="2" fill="#fff"/>
+      <rect x="13" y="-3" width="14" height="7" rx="2" fill="#59635C"/>
+      <path d="M8 15 l2.5 2.5 l4.5 -5 M8 25 l2.5 2.5 l4.5 -5 M8 35 l2.5 2.5 l4.5 -5" stroke="#1F5B3A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M19 15 H31 M19 25 H31 M19 35 H28" stroke="#C9CFC6" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="40" cy="30" r="9" fill="#D7A07C"/>
+    </g>
+    <path d="M89 120 H111 V144 C105 149 95 149 89 144 Z" fill="#C88F6C"/>
     <g class="cg-tete">
-      <ellipse cx="100" cy="96" rx="34" ry="38" fill="#C98E6B"/>
-      <circle cx="66" cy="104" r="3" fill="#F2C230"/><circle cx="134" cy="104" r="3" fill="#F2C230"/>
-      <circle cx="80" cy="110" r="6" fill="#D9776A" opacity=".45"/><circle cx="120" cy="110" r="6" fill="#D9776A" opacity=".45"/>
-      <g class="cg-yeux"><ellipse cx="87" cy="98" rx="4" ry="5" fill="#1D2520"/><ellipse cx="113" cy="98" rx="4" ry="5" fill="#1D2520"/>
-        <circle cx="88.4" cy="96.3" r="1.3" fill="#fff"/><circle cx="114.4" cy="96.3" r="1.3" fill="#fff"/></g>
-      <path d="M81 93 L79 91 M119 93 L121 91" stroke="#1D2520" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M80 87 Q87 83 93 86 M107 86 Q113 83 120 87" stroke="#3A2116" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-      <path d="M100 101 Q103 108 99 110" stroke="#A86F4F" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-      <path class="cg-bouche" d="M91 118 Q100 126 109 118 Q100 121 91 118 Z" fill="#9C3B3B"/>
-      <path d="M66 86 C72 80 84 82 92 78 C100 84 116 80 134 86 L136 80 L64 80 Z" fill="#4A2C1D"/>
-      <path d="M63 80 C63 63 80 55 100 55 C120 55 137 63 137 80 Z" fill="#1F5B3A"/>
-      <rect x="63" y="74" width="74" height="6" fill="#F2C230"/>
-      <path d="M60 80 H140 C141 86 130 90 100 90 C72 90 59 87 60 80 Z" fill="#174A2F"/>
-      <g transform="translate(93 60)"><path d="M7 0 L14 5 V15 H0 V5 Z" fill="#F2C230"/><circle cx="7" cy="6" r="1.8" fill="#1F5B3A"/></g>
+      <circle cx="100" cy="42" r="15" fill="#3B2418"/>
+      <path d="M64 96 C60 62 78 50 100 50 C122 50 140 62 136 96 C134 84 128 74 120 70 C108 76 88 74 78 70 C70 76 66 86 64 96 Z" fill="#3B2418"/>
+      <ellipse cx="100" cy="94" rx="33" ry="37" fill="#D7A07C"/>
+      <path d="M67 84 C70 66 84 58 100 58 C116 58 130 66 133 84 C124 72 110 66 98 70 C88 66 76 72 67 84 Z" fill="#3B2418"/>
+      <circle cx="67" cy="103" r="3" fill="#F2C230"/><circle cx="133" cy="103" r="3" fill="#F2C230"/>
+      <circle cx="80" cy="108" r="6" fill="#E08A7A" opacity=".4"/><circle cx="120" cy="108" r="6" fill="#E08A7A" opacity=".4"/>
+      <g class="cg-yeux"><ellipse cx="87" cy="96" rx="4.4" ry="5.4" fill="#1D2520"/><ellipse cx="113" cy="96" rx="4.4" ry="5.4" fill="#1D2520"/>
+        <circle cx="88.6" cy="94" r="1.5" fill="#fff"/><circle cx="114.6" cy="94" r="1.5" fill="#fff"/></g>
+      <path d="M81.5 91.5 L79.5 89.5 M118.5 91.5 L120.5 89.5" stroke="#1D2520" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M81 85 Q87 82 93 84 M107 84 Q113 82 119 85" stroke="#3B2418" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M100 100 Q102.5 106 99 107.5" stroke="#B57B58" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path class="cg-bouche" d="M91 115 Q100 123 109 115 Q100 118 91 115 Z" fill="#B44A4A"/>
     </g>
   </g>
 </svg>`;
@@ -52,8 +56,8 @@
 .cg-fond{position:fixed;inset:0;z-index:1000;background:rgba(14,32,22,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px;animation:cg-in .2s ease-out}
 @media (min-width:700px){.cg-fond{align-items:center}}
 .cg-boite{width:100%;max-width:560px;background:#F6F5EF;color:#1D2520;border-radius:22px;padding:22px 22px 18px;box-shadow:0 20px 50px rgba(0,0,0,.3);font-family:'Familjen Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;max-height:calc(100vh - 32px);overflow:auto}
-.cg-haut{display:grid;grid-template-columns:112px 1fr;gap:16px;align-items:end}
-@media (max-width:420px){.cg-haut{grid-template-columns:88px 1fr;gap:12px}}
+.cg-haut{display:grid;grid-template-columns:136px 1fr;gap:16px;align-items:end}
+@media (max-width:420px){.cg-haut{grid-template-columns:108px 1fr;gap:10px}}
 .cg-av{width:100%;height:auto;display:block}
 .cg-bulle{position:relative;background:#fff;border:1.5px solid #DCDFD8;border-radius:16px 16px 16px 4px;padding:14px 16px;min-height:96px}
 .cg-bulle::before{content:"";position:absolute;left:-9px;bottom:10px;width:14px;height:14px;background:#fff;border-left:1.5px solid #DCDFD8;border-bottom:1.5px solid #DCDFD8;transform:rotate(45deg)}
@@ -70,8 +74,8 @@
 .cg-btn.cg-jaune{background:#F2C230;border-color:#F2C230;color:#2A2000}
 .cg-btn:focus-visible,.cg-lien:focus-visible{outline:3px solid #F2C230;outline-offset:2px}
 .cg-lien{background:none;border:0;color:#59635C;font:500 15px 'Familjen Grotesk',system-ui,sans-serif;text-decoration:underline;cursor:pointer;padding:6px 2px}
-.cg-yeux{transform-origin:100px 98px;animation:cg-cligne 4.5s infinite}
-.cg-parle .cg-bouche{transform-origin:100px 119px;animation:cg-parle .22s ease-in-out infinite alternate}
+.cg-yeux{transform-origin:100px 96px;animation:cg-cligne 4.5s infinite}
+.cg-parle .cg-bouche{transform-origin:100px 117px;animation:cg-parle .22s ease-in-out infinite alternate}
 .cg-salue .cg-bras{transform-origin:170px 175px;animation:cg-salue .5s ease-in-out 3 alternate}
 .cg-tete{transform-origin:100px 130px;animation:cg-hoche 3.2s ease-in-out infinite}
 @keyframes cg-cligne{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
