@@ -1563,10 +1563,22 @@
     $("#sms-title").textContent = mode === "oubli" ? "Nouveau mot de passe" : "Créer mon compte";
     $("#sms-intro").textContent = mode === "oubli"
       ? "Entrez votre cellulaire. Vous recevrez un code par texto pour choisir un nouveau mot de passe."
-      : "Entrez votre cellulaire. Vous recevrez un code par texto, puis vous choisirez votre mot de passe. Invité par quelqu'un ? Entrez le cellulaire qu'il a inscrit. Nouveau ? Vous créerez votre foyer : 30 jours d'essai gratuit.";
+      : "Vous recevrez un code par texto, puis vous choisirez votre mot de passe. Invité par quelqu'un? Entrez le cellulaire qu'il a inscrit.";
+    const creer = mode !== "oubli";
+    $("#in-sms-prenom").hidden = $("#lbl-sms-prenom").hidden = !creer;
+    $("#in-sms-prenom").required = creer;
+    $("#sms-retour").textContent = creer ? "J'ai déjà un compte" : "Retour";
     if ($("#in-tel").value.trim()) $("#in-tel2").value = $("#in-tel").value.trim();
-    loginView("#f-sms"); $("#in-tel2").focus();
+    loginView("#f-sms"); (creer ? $("#in-sms-prenom") : $("#in-tel2")).focus();
   }
+  // Mémoire de la visite (onglet seulement) : prénom saisi à l'inscription, achat demandé depuis le site
+  const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
+  const ssSet = (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} };
+  // Liens du site : ?essai ouvre « Créer mon compte » ; ?acheter mène au paiement après la connexion
+  const entree = new URLSearchParams(location.search);
+  if (entree.has("acheter")) ssSet("apres", "acheter");
+  const entreeEssai = entree.has("essai");
+  if (entree.has("essai") || entree.has("acheter")) history.replaceState(null, "", location.pathname + location.hash);
   $("#go-creer").addEventListener("click", () => ouvrirSms("creer"));
   $("#go-oubli").addEventListener("click", () => ouvrirSms("oubli"));
   document.querySelectorAll("[data-back-login]").forEach((b) => b.addEventListener("click", () => loginView("#f-login")));
@@ -1587,6 +1599,11 @@
   $("#f-sms").addEventListener("submit", async (e) => {
     e.preventDefault();
     pendingTel = e164($("#in-tel2").value);
+    if (!$("#in-sms-prenom").hidden) {
+      const p = $("#in-sms-prenom").value.trim();
+      if (!p) { loginStatus("Entrez votre prénom."); return; }
+      ssSet("prenom", p);
+    }
     if (!pendingTel) { loginStatus("Entrez votre cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
     loginStatus("Envoi du code par texto…");
     const { error } = await sb.auth.signInWithOtp({ phone: pendingTel, options: { shouldCreateUser: true, channel: "sms" } });
@@ -1686,6 +1703,7 @@
       $("#app").hidden = true; $("#login").hidden = false;
       $("#f-code").hidden = true; $("#f-email").hidden = false;
       if ($("#f-smscode").hidden && $("#f-sms").hidden) loginView("#f-login");
+      if (entreeEssai && $("#f-smscode").hidden) ouvrirSms("creer");
       return;
     }
     state.userEmail = session.user.email || null;
@@ -1693,7 +1711,15 @@
     state.email = state.userEmail || state.userPhone;
     const { data: membres } = await sb.from("membres").select("id, email, telephone, nom, invite_par, role");
     if (!membres || !membres.length) {
-      // Pas encore membre d'un foyer : on propose d'en créer un (essai gratuit de 30 jours)
+      // Nouveau compte avec un prénom saisi à l'inscription : on crée son foyer tout de suite (essai de 30 jours)
+      const p = ssGet("prenom");
+      if (p) {
+        ssSet("prenom", null);
+        const { error } = await sb.rpc("creer_foyer", { p_nom: "Foyer de " + p, p_prenom: p });
+        if (!error) { status("Bienvenue! Votre essai gratuit de 30 jours commence : tout est ouvert."); return onSession(session); }
+        console.error(error);
+      }
+      // Sinon : on propose de créer un foyer
       $("#login").hidden = false; $("#app").hidden = true; loginView("#f-foyer");
       $("#foyer-intro").textContent = `${state.userPhone ? "Le " + fmtTel(state.userPhone) : "L'adresse " + state.userEmail} n'appartient à aucun foyer. Créez le vôtre : l'essai est gratuit pendant 30 jours. Si quelqu'un vous a invité, demandez-lui de vérifier le cellulaire inscrit dans « Membres ».`;
       return;
@@ -1709,6 +1735,11 @@
     renderForfait();
     await loadAll();
     await etatRappel().catch(() => {});
+    if (ssGet("apres") === "acheter") {
+      ssSet("apres", null);
+      if (estProprio()) { location.href = lienAchat(); return; }
+      status(`Seul le propriétaire du foyer peut acheter l'app. Demandez à ${prenom(((state.membres || []).find((m) => m.role === "proprio") || {}).nom || "lui")}.`);
+    }
     maybeBienvenue(); renderDemarrer(); renderAvis();
     if (location.hash === "#bilan") ouvrirBilan();
     subscribe();

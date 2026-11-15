@@ -248,7 +248,7 @@ html,body{min-height:100%}
 /* Connexion par cellulaire */
 .login-form{display:flex;flex-direction:column;gap:8px}
 .login-form h2{font-size:1.15rem}
-.login-form .mf{font-size:.82rem;color:var(--muted);margin-top:4px}
+.login-form .mf{font-size:.82rem;color:var(--muted);margin-top:4px;flex:none;display:block}
 .login-form input{font:inherit;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
 .login-links{justify-content:space-between}
 .alt-login{margin-top:6px;background:transparent;border:1px dashed var(--line)}
@@ -344,3 +344,8 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 .avis-ok{display:flex;gap:8px;align-items:flex-start;font-size:.9rem;color:var(--muted)}
 .avis-ok input{margin-top:3px;accent-color:var(--accent)}
 .avis-actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+
+/* Connexion : le nouveau voit tout de suite comment créer son compte */
+.login-oubli{align-self:center;margin-top:2px}
+.login-nouveau{display:flex;flex-direction:column;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);text-align:center}
+.login-nouveau span{font-weight:600}

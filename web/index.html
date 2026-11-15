@@ -31,19 +31,22 @@
     <label class="mf" for="in-pw">Mot de passe</label>
     <input id="in-pw" type="password" autocomplete="current-password" required placeholder="Mot de passe">
     <button class="btn" type="submit">Se connecter</button>
-    <div class="row-actions login-links">
-      <button class="link" type="button" id="go-creer">Créer mon compte</button>
-      <button class="link" type="button" id="go-oubli">Mot de passe oublié ?</button>
+    <button class="link login-oubli" type="button" id="go-oubli">Mot de passe oublié ?</button>
+    <div class="login-nouveau">
+      <span>Nouveau ici?</span>
+      <button class="btn ghost" type="button" id="go-creer">Créer mon compte · 30 jours gratuits</button>
     </div>
   </form>
 
   <form id="f-sms" class="login-form" hidden>
     <h2 id="sms-title">Créer mon compte</h2>
     <p class="hint" id="sms-intro">Entrez votre cellulaire. Vous recevrez un code par texto, puis vous choisirez votre mot de passe.</p>
+    <label class="mf" for="in-sms-prenom" id="lbl-sms-prenom">Votre prénom</label>
+    <input id="in-sms-prenom" autocomplete="given-name" placeholder="Prénom">
     <label class="mf" for="in-tel2">Cellulaire</label>
     <input id="in-tel2" type="tel" inputmode="tel" autocomplete="tel" required placeholder="514 555-1234">
     <button class="btn" type="submit">Recevoir le code par texto</button>
-    <button class="link" type="button" data-back-login>Retour</button>
+    <button class="link" type="button" data-back-login id="sms-retour">J'ai déjà un compte</button>
   </form>
 
   <form id="f-smscode" class="login-form" hidden>

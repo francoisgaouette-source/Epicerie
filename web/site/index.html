@@ -50,15 +50,20 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 68px; }
 .mark { font-family: var(--display); font-weight: 800; font-size: 28px; letter-spacing: -.01em; color: var(--blanc); text-decoration: none; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .mark img { width: 26px; height: 29px; }
-.nav { display: flex; align-items: center; gap: 26px; }
+.nav { display: flex; align-items: center; gap: 22px; }
+.nav a { white-space: nowrap; }
+@media (max-width: 1340px) { .nav .n-plus { display: none; } }
 .nav a { color: #CFDCD3; text-decoration: none; font-weight: 500; font-size: 16px; }
 .nav a:hover { color: var(--blanc); }
 .nav .try { background: var(--etiquette); color: var(--sur-etiquette); padding: 8px 16px; border-radius: 8px; font-weight: 600; }
 .nav .try:hover { color: var(--sur-etiquette); background: #F6CF52; }
+.nav .buy { color: var(--etiquette); font-weight: 600; }
+.nav .buy:hover { color: #F6CF52; }
 .nav .login { border: 1.5px solid #4E7360; padding: 7px 14px; border-radius: 8px; color: var(--blanc); }
 .nav .login:hover { border-color: var(--blanc); }
-@media (max-width: 440px) { .nav .login { display: none !important; } }
-@media (max-width: 820px) { .nav a:not(.try):not(.login) { display: none; } .nav { gap: 10px; } .nav .login, .nav .try { font-size: 15px; padding: 7px 12px; white-space: nowrap; } .mark { font-size: 24px; } }
+@media (max-width: 440px) { .nav { gap: 12px; } .nav .login { border: 0; padding: 0; font-size: 15px; } .nav .try { padding: 7px 10px; } }
+@media (max-width: 400px) { .mark-nom { display: none; } }
+@media (max-width: 820px) { .nav a:not(.try):not(.login):not(.buy) { display: none; } .nav .buy { font-size: 15px; } .nav { gap: 10px; } .nav .login, .nav .try { font-size: 15px; padding: 7px 12px; white-space: nowrap; } .mark { font-size: 24px; } }
 
 /* Ouverture */
 .hero { background: var(--vert-nuit); color: var(--blanc); padding: 56px 0 0; overflow: hidden; }
@@ -311,16 +316,17 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 
 <header class="top">
   <div class="wrap">
-    <a class="mark" href="#"><img src="img/marque.svg" alt="">Le Commis</a>
+    <a class="mark" href="#" aria-label="Le Commis"><img src="img/marque.svg" alt=""><span class="mark-nom">Le Commis</span></a>
     <nav class="nav" aria-label="Sections">
-      <a href="#comment">Comment ça marche</a>
+      <a class="n-plus" href="#comment">Comment ça marche</a>
       <a href="#onglets">L'app</a>
-      <a href="#speciaux">Spéciaux</a>
+      <a class="n-plus" href="#speciaux">Spéciaux</a>
       <a href="#economies">Économies</a>
       <a href="#prix">Prix</a>
       <a href="#questions">Questions</a>
       <a class="login app-link" href="https://app.lecommis.ai/">Se connecter</a>
-      <a class="try app-link" href="https://app.lecommis.ai/">Essayer</a>
+      <a class="buy" href="achat.html">Acheter</a>
+      <a class="try app-link essai" href="https://app.lecommis.ai/?essai">Essayer</a>
     </nav>
   </div>
 </header>
@@ -331,8 +337,8 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       <h1>Votre commis d'épicerie, <em>à la maison.</em></h1>
       <p class="lead">Le Commis tient la liste de toute la maison, sait ce qu'il reste dans le garde-manger et trouve les spéciaux de la semaine. Fini le « on a-tu encore du lait? » texté de l'allée 4.</p>
       <div class="ctas">
-        <a class="btn main app-link" href="https://app.lecommis.ai/">Essayer 30 jours gratuits</a>
-        <a class="btn ghost" href="#prix">19,99 $ par année</a>
+        <a class="btn main app-link essai" href="https://app.lecommis.ai/?essai">Essayer 30 jours gratuits</a>
+        <a class="btn ghost" href="achat.html">Acheter · 19,99 $ par année</a>
       </div>
       <p class="small"><a href="#economies" style="color:var(--etiquette);font-weight:600">Environ 510 $ d'économies par année</a> pour une famille, selon notre estimation. 30 jours complets, sans carte de crédit. Jusqu'à 4 personnes par foyer. Sur iPhone, Android et ordinateur. Fait au Québec, en français.</p>
     </div>
@@ -567,7 +573,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
           <li>Aucune carte de crédit demandée</li>
           <li>Après 30 jours, vos données restent consultables</li>
         </ul>
-        <a class="btn line app-link" href="https://app.lecommis.ai/">Commencer l'essai</a>
+        <a class="btn line app-link essai" href="https://app.lecommis.ai/?essai">Commencer l'essai</a>
       </div>
       <div class="plan pro">
         <h3>Foyer</h3>
@@ -608,7 +614,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 <section class="fin">
   <div class="wrap">
     <h2>Le Commis est prêt à prendre son quart.</h2>
-    <a class="btn main app-link" href="https://app.lecommis.ai/">Essayer 30 jours gratuits</a>
+    <a class="btn main app-link essai" href="https://app.lecommis.ai/?essai">Essayer 30 jours gratuits</a>
   </div>
 </section>
 
@@ -646,7 +652,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
     fetch(c.avisUrl, { method: 'POST', headers: { apikey: c.avisCle, 'Content-Type': 'application/json' }, body: '{}' })
       .then(function (r) { return r.ok ? r.json() : []; }).then(montrerAvis).catch(function () {});
   }
-  if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl; });
+  if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl + (a.classList.contains('essai') ? '?essai' : ''); });
   var btns = document.querySelectorAll('.strip [data-step]');
   btns.forEach(function (b) { b.addEventListener('click', function () {
     var i = b.getAttribute('data-step'), open = b.getAttribute('aria-expanded') === 'true';

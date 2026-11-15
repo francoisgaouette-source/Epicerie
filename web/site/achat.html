@@ -76,7 +76,17 @@
   if (c.prix) document.getElementById('prix').textContent = c.prix;
   if (nom) { pour.textContent = 'Pour le foyer « ' + nom + ' ».'; pour.hidden = false; }
   if (!link) { document.getElementById('soon').hidden = false; agree.disabled = true; return; }
-  if (!foyer) { pour.innerHTML = 'Ouvrez cette page avec le bouton « Acheter » de l\u2019app, pour que le paiement active votre foyer. <a class="app-link" href="' + (c.appUrl || '#') + '">Ouvrir l\u2019app</a>'; pour.hidden = false; }
+  if (!foyer) {
+    // Venu du site : on passe par l'app (connexion ou création du compte), qui ramène ici avec le foyer
+    pour.innerHTML = 'Connectez-vous ou créez votre compte : on revient ensuite ici pour payer, au nom de votre foyer.';
+    pour.hidden = false;
+    agree.closest('label').hidden = true;
+    pay.textContent = 'Continuer';
+    pay.setAttribute('aria-disabled', 'false');
+    pay.removeAttribute('rel');
+    pay.href = (c.appUrl || 'https://app.lecommis.ai/') + '?acheter';
+    return;
+  }
   var url = link + (link.indexOf('?') >= 0 ? '&' : '?') + 'client_reference_id=' + encodeURIComponent(foyer);
   agree.addEventListener('change', function () {
     var ok = agree.checked && !!foyer;
