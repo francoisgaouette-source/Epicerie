@@ -192,9 +192,21 @@
     $("#c-speciaux").textContent = spec.length;
     $("#c-speciaux").classList.toggle("hot", spec.length > 0);
     const c = state.config;
-    $("#agent-info").innerHTML = c && c.derniere_verif
-      ? `Dernière vérification : <b>${fmtDate(c.derniere_verif)}</b>${c.semaine ? ` · circulaires ${esc(c.semaine)}` : ""}${c.resume ? `<br>${esc(c.resume)}` : ""}`
-      : `L'agent vérifie les circulaires <b>chaque jeudi matin</b>. Les spéciaux des produits surveillés (★ dans l'onglet Produits) apparaîtront ici.`;
+    // Comment ça marche : ce que Rosalie surveille, son jeudi, et où en est la dernière vérification
+    const surv = surveilles(), mags = stores();
+    const jeudi = (() => { const d = new Date(); d.setDate(d.getDate() + ((4 - d.getDay() + 7) % 7 || (d.getHours() >= 8 ? 7 : 0))); return d.toISOString().slice(0, 10); })();
+    $("#agent-info").innerHTML = `
+      <div class="surv-titre">Ce que Rosalie surveille <span class="meta">${surv.length} produit${surv.length > 1 ? "s" : ""} ★</span></div>
+      ${surv.length ? `<div class="surv-puces">${surv.map((p) => `<button class="fchip" type="button" data-survopen="${p.id}">★ ${esc(p.nom)}${p.prix_cible != null ? ` <span class="meta">sous ${money(num(p.prix_cible))}</span>` : ""}</button>`).join("")}</div>`
+        : `<p class="hint">Rien pour l'instant. Dans l'onglet Produits, touchez l'étoile ☆ d'un produit que vous achetez souvent : je guetterai ses rabais.</p>`}
+      <button class="link" type="button" data-survajout>${surv.length ? "Changer ce que je surveille" : "Choisir des produits à surveiller"}</button>
+      <ol class="surv-etapes">
+        <li><b>Chaque jeudi matin,</b> je lis les circulaires de ${esc(mags.join(", "))}.</li>
+        <li><b>Je mets à jour vos prix :</b> jusqu'à 30 produits par semaine. Vos produits ★ d'abord, puis ceux de la liste, puis ceux dont le prix est le plus ancien.</li>
+        <li><b>Je vous montre ici</b> les rabais sur vos produits ★${surv.some((p) => p.prix_cible != null) ? ", sous votre prix cible quand vous en avez mis un" : ""}.</li>
+      </ol>
+      <p class="surv-etat">${c && c.derniere_verif ? `Dernière vérification : <b>${fmtDate(c.derniere_verif)}</b>${c.semaine ? ` (circulaires ${esc(c.semaine)})` : ""}.${c.resume ? ` ${esc(c.resume.split(".")[0])}.` : ""}` : "Première vérification à venir."} Prochaine : <b>jeudi ${fmtDate(jeudi)}</b>, en matinée.</p>
+      <p class="hint">Vos prix changent aussi quand vous approuvez une facture (onglet Lieu) ou quand vous les tapez dans la fiche d'un produit.</p>`;
     $("#list-spec").innerHTML = spec.length ? `<div class="deals">${spec.map((s) => {
       const inList = state.liste.some((i) => !i.fait && norm(i.nom) === norm(s.item));
       const pr = num(s.prix), rg = num(s.prix_reg);
@@ -259,7 +271,7 @@
     const list = state.prod.filter((p) => (!q || norm([p.nom, p.marque, p.format, p.categorie].join(" ")).includes(q))
       && (filtre === "tous" || (filtre === "surv" && p.surveiller) || (filtre === "maison" && Number(p.stock || 0) > 0)));
     if (!state.prod.length) { $("#list-prod").innerHTML = emptyBox("Aucun produit pour l'instant", "Ajoutez vos produits habituels ci-dessus, ou ajoutez simplement des articles à la liste : ils s'inscriront ici."); return; }
-    if (!list.length) { $("#list-prod").innerHTML = filtre === "surv" && !q ? emptyBox("Aucun produit surveillé", "Touchez l'étoile ☆ à droite d'un produit pour que l'agent cherche ses spéciaux chaque jeudi.")
+    if (!list.length) { $("#list-prod").innerHTML = filtre === "surv" && !q ? emptyBox("Aucun produit surveillé", "Touchez l'étoile ☆ à droite d'un produit pour que Rosalie guette ses rabais chaque jeudi.")
       : filtre === "maison" && !q ? emptyBox("Rien à la maison", "Les produits rangés dans un espace avec une réserve apparaîtront ici.")
       : emptyBox("Aucun produit trouvé", `Rien ne correspond à « ${esc(search)} ».`); return; }
     // Don't rebuild while someone types in a product's fields.
@@ -744,16 +756,17 @@
         <label class="mf">Espace ${espaceSelect(p, "e-esp-" + pid)}</label>
         <label class="mf">Liste habituelle <select id="e-lst-${pid}" data-pfield="liste_id" data-id="${pid}"><option value="">Liste ouverte</option>${listesTriees().map((l) => `<option value="${l.id}" ${l.id === p.liste_id ? "selected" : ""}>${esc(l.nom)}</option>`).join("")}</select></label>
         <label class="mf">En réserve ${stockCtl(p)}</label>
-        <label class="mf">Prix cible (spéciaux) <input id="e-cible-${pid}" inputmode="decimal" placeholder="Tout rabais" value="${p.prix_cible != null ? esc(String(p.prix_cible).replace(".", ",")) : ""}" data-nfield="prix_cible" data-id="${pid}"></label>
+        <label class="mf">Prix cible : m'avertir seulement sous <input id="e-cible-${pid}" inputmode="decimal" placeholder="Tout rabais" value="${p.prix_cible != null ? esc(String(p.prix_cible).replace(".", ",")) : ""}" data-nfield="prix_cible" data-id="${pid}"></label>
         <label class="mf">Péremption <input type="date" id="e-per-${pid}" value="${esc(p.peremption || "")}" data-dfield="peremption" data-id="${pid}"></label>
         <label class="mf">Minimum à garder <input id="e-min-${pid}" inputmode="decimal" placeholder="Aucun" value="${p.minimum != null ? esc(fmtQ(p.minimum)) : ""}" data-nfield="minimum" data-id="${pid}"></label>
       </div>
+      <p class="hint prix-expl">${p.surveiller ? "★ Surveillé : Rosalie vérifie ses prix chaque jeudi et vous montre ses rabais dans Spéciaux." : "Prix réguliers par épicerie. Rosalie les met à jour le jeudi (les produits ★ en premier), et vos factures aussi. Vous pouvez les taper vous-même."}</p>
       <div class="price-grid">${stores().map((s, ix) => {
         const e = (p.prix && p.prix[s]) || {}; const pr = priceAt(p, s);
         return `<div class="pcell${b && b.store === s ? " best" : ""}"><label for="pr-${pid}-${ix}">${esc(s)}</label>
           <input id="pr-${pid}-${ix}" inputmode="decimal" placeholder="Prix régulier" value="${e.reg != null ? esc(String(e.reg)) : ""}" data-price="${esc(s)}" data-id="${pid}">
           ${pr && pr.special ? `<span class="sp">Spécial ${money(pr.val)}${pr.fin ? ` · ${fmtDate(pr.fin)}` : ""}</span>` : ""}
-          ${e.maj ? `<span class="when">maj ${fmtDate(e.maj)}${e.par === "agent" ? " · agent" : ""}</span>` : ""}
+          ${e.maj ? `<span class="when">${({ agent: "circulaire", facture: "votre facture", manuel: "tapé à la main" })[e.par] || "mis à jour"} · ${fmtDate(e.maj)}</span>` : `<span class="when">pas encore de prix</span>`}
         </div>`;
       }).join("")}</div>
       <div class="row-actions">
@@ -1599,6 +1612,12 @@
     render(); setTimeout(() => { const n = $("#el-nom"); if (n) { n.focus(); n.select(); } }, 30);
   }
   function fermerEditListe() { editListe = null; brouillonListe = null; render(); }
+  // Spéciaux : ouvrir un produit surveillé, ou aller choisir quoi surveiller
+  $("#v-speciaux").addEventListener("click", (e) => {
+    const o = e.target.closest("[data-survopen]");
+    if (o) { openProd = o.dataset.survopen; filtre = "surv"; showView("produits"); render(); setTimeout(() => { const el = document.querySelector(`[data-prod="${o.dataset.survopen}"]`) || $("#v-produits"); el.scrollIntoView({ block: "center" }); }, 60); return; }
+    if (e.target.closest("[data-survajout]")) { filtre = "tous"; showView("produits"); render(); status("Touchez l'étoile ☆ à droite d'un produit pour que Rosalie surveille ses rabais."); }
+  });
   $("#v-liste").addEventListener("input", (e) => { const f = e.target.dataset && e.target.dataset.el; if (f && brouillonListe) brouillonListe[f] = e.target.value; });
   $("#v-liste").addEventListener("keydown", (e) => {
     if (e.key === "Escape" && editListe) { fermerEditListe(); return; }

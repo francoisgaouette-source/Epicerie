@@ -379,3 +379,16 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 .f-edit-liste .el-ligne{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .f-edit-liste .el-ligne > div{display:flex;flex-direction:column;gap:4px;min-width:0}
 .f-edit-liste .mf{flex:none;display:block}
+
+/* Spéciaux : comment Rosalie surveille */
+.agent .surv-titre{font-family:var(--f-display);font-weight:800;font-size:1.05rem;display:flex;gap:8px;align-items:baseline}
+.agent .surv-puces{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.agent .surv-etapes{margin:12px 0 8px;padding-left:20px;display:grid;gap:6px;font-size:.92rem}
+.agent .surv-etat{margin:8px 0 4px;font-size:.92rem}
+.agent .hint{margin:4px 0 0}
+.prix-expl{margin:6px 0 2px}
+
+/* Fiche produit : les champs gardent leur hauteur normale (le .mf des formulaires en ligne étirait chaque case) */
+.edit-fields{align-items:start}
+.edit-fields .mf{flex:1 1 140px}
+.edit-fields .mf input,.edit-fields .mf select{flex:none;width:100%}
