@@ -955,7 +955,7 @@
       ? (parQui ? `${parQui} vous a invité à partager l'épicerie de la maison. ` : "") + "Je tiens l'épicerie avec vous : ce que vous achetez, ce que vous avez, ce qui manque et ce qui est en rabais. Voici comment je travaille, en six petites étapes."
       : "Voici comment je travaille, en six petites étapes.";
     CommisGuide.ouvrir({
-      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: `Bienvenue${nom ? ", " + nom : ""}! Moi, c'est votre commis.`, texte: intro }].concat(CommisGuide.CONCEPTS),
+      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: `Bienvenue${nom ? ", " + nom : ""}! Moi, c'est Rosalie, votre commis.`, texte: intro }].concat(CommisGuide.CONCEPTS),
       fin: { titre: "À vous de jouer!", texte: "Commencez par photographier trois ou quatre produits que vous achetez souvent. La carte « Bien démarrer » vous guide ensuite. Une question? Touchez « Aide » en haut : je réponds.", bouton: "Commencer" },
       onFermer: () => { lsSet(cleAccueil(), String(Date.now())); renderDemarrer(); window.scrollTo({ top: 0, behavior: "smooth" }); },
     });
@@ -977,7 +977,7 @@
         <li><b>Liste épicerie</b><span>Ce qu'il faut acheter. Cochez en magasin.</span></li>
         <li><b>Spéciaux</b><span>Chaque jeudi, les rabais sur vos produits ★.</span></li>
       </ol>
-      <p class="bv-commis"><span class="commis-av" aria-hidden="true">C</span> Une question ? Touchez <b>Aide</b> en haut : le Commis vous répond.</p>
+      <p class="bv-commis"><span class="commis-av" aria-hidden="true">C</span> Une question ? Touchez <b>Aide</b> en haut : Rosalie, votre commis, vous répond.</p>
       <button class="btn bv-go" type="button" id="bv-go">Commencer</button>
     </div>`;
     box.hidden = false;
@@ -1109,8 +1109,9 @@
     return `<div class="cad-msg ${m.role === "assistant" ? "bot" : "me"}">${html}${go && m.role === "assistant" ? `<button class="btn small cad-go" type="button" data-cadgo="${go}">Aller à : ${ECRANS[go]}</button>` : ""}</div>`;
   }
   function renderCommis() {
+    const av = $("#commis-av"); if (av && window.CommisGuide && !av.dataset.ok) { av.innerHTML = CommisGuide.avatar(); av.dataset.ok = "1"; }
     const nom = prenom((moiMembre() || {}).nom);
-    if (!commis.msgs.length) commis.msgs.push({ role: "assistant", content: `Bonjour${nom ? " " + nom : ""} ! Je suis le Commis. Posez-moi vos questions sur l'app : ajouter un produit, ranger la maison, la liste, les spéciaux…` });
+    if (!commis.msgs.length) commis.msgs.push({ role: "assistant", content: `Bonjour${nom ? " " + nom : ""} ! Moi, c'est Rosalie, votre commis. Posez-moi vos questions sur l'app : ajouter un produit, ranger la maison, la liste, les spéciaux…` });
     $("#commis-log").innerHTML = commis.msgs.map(msgHtml).join("") + (commis.busy ? '<div class="cad-msg bot busy">…</div>' : "");
     const sugg = ["Comment ajouter un produit avec la photo ?", "Comment ranger ce que j'ai acheté ?", "Comment marche le bilan du soir ?", "Comment inviter quelqu'un ?"];
     $("#commis-sugg").innerHTML = commis.msgs.length < 2 ? sugg.map((q) => `<button class="fchip" type="button" data-cadq="${esc(q)}">${esc(q)}</button>`).join("") : "";
@@ -1764,10 +1765,36 @@
         : `<p class="hint">Demandez à ${esc(prenom(nomProprio))}, propriétaire du foyer, d'acheter l'app.</p>`}</div>`;
   }
 
+  // ---------- Rosalie toujours présente : son visage dans le coin ouvre l'aide; elle salue à chaque arrivée
+  let rosalie = null;
+  function messageArrivee() {
+    const h = new Date().getHours(), salut = h < 12 ? "Bonjour" : h < 18 ? "Bon après-midi" : "Bonsoir";
+    const nom = prenom((moiMembre() || {}).nom);
+    const exp = bientot().length, spec = state.spec.filter((s) => !s.ignore).length;
+    const aAcheter = state.liste.filter((i) => !i.fait).length, panier = state.panier.length;
+    let texte, bouton = null, action = null;
+    if (panier) { texte = `${panier} article${panier > 1 ? "s" : ""} de votre facture attend${panier > 1 ? "ent" : ""} d'être approuvé${panier > 1 ? "s" : ""}.`; bouton = "Voir le panier"; action = () => showView("maison"); }
+    else if (exp) { texte = `${exp} produit${exp > 1 ? "s" : ""} va${exp > 1 ? "nt" : ""} passer date d'ici 3 jours. On les mange en premier?`; bouton = "Voir lesquels"; action = () => showView("maison"); }
+    else if (spec) { texte = `${spec} spécia${spec > 1 ? "ux" : "l"} sur vos produits cette semaine.`; bouton = "Voir les spéciaux"; action = () => showView("speciaux"); }
+    else if (aAcheter) { texte = `${aAcheter} article${aAcheter > 1 ? "s" : ""} sur la liste d'épicerie.`; bouton = "Voir la liste"; action = () => showView("liste"); }
+    else texte = "Tout est en ordre. Touchez mon visage si vous avez une question.";
+    return { titre: `${salut}${nom ? ", " + nom : ""}!`, texte, bouton, action, duree: 9000 };
+  }
+  function accueilRosalie() {
+    if (!window.CommisGuide) return;
+    if (!rosalie) rosalie = CommisGuide.presence({ surFace: () => ouvrirCommis(), label: "Parler à Rosalie, votre commis" });
+    rosalie.cacher(false);
+    // Une fois par ouverture de l'app, après la visite des nouveaux
+    if (ssGet("rosalie.salut") || !$("#bienvenue").hidden || document.querySelector(".cg-fond")) return;
+    ssSet("rosalie.salut", "1");
+    setTimeout(() => { if (!document.querySelector(".cg-fond")) rosalie.dire(messageArrivee()); }, 1200);
+  }
+
   async function onSession(session) {
     if (!session) {
       state.email = null; state.userEmail = null; state.userPhone = null; state.userId = null; state.foyer = null;
       $("#bienvenue").hidden = true; $("#demarrer").innerHTML = "";
+      if (rosalie) rosalie.cacher(true);
       if (channel) { sb.removeChannel(channel); channel = null; }
       $("#app").hidden = true; $("#login").hidden = false;
       $("#f-code").hidden = true; $("#f-email").hidden = false;
@@ -1810,6 +1837,7 @@
       status(`Seul le propriétaire du foyer peut acheter l'app. Demandez à ${prenom(((state.membres || []).find((m) => m.role === "proprio") || {}).nom || "lui")}.`);
     }
     maybeBienvenue(); renderDemarrer(); renderAvis();
+    accueilRosalie();
     if (location.hash === "#bilan") ouvrirBilan();
     subscribe();
   }

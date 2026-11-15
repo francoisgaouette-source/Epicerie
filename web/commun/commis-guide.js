@@ -91,6 +91,11 @@
 .cg-lanceur{position:fixed;right:16px;bottom:16px;z-index:900;display:flex;align-items:flex-end;gap:8px;max-width:calc(100vw - 32px)}
 .cg-lanceur .cg-mini{width:72px;height:72px;border-radius:50%;border:3px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.25);background:#DCEBDF;padding:0;cursor:pointer;flex:none;overflow:hidden}
 .cg-lanceur .cg-mini svg{width:100%;height:100%}
+.cg-lanceur[hidden],.cg-lanceur .cg-dit[hidden]{display:none}
+body:has(.cg-fond) .cg-lanceur{display:none}
+.cg-lanceur{padding-bottom:env(safe-area-inset-bottom)}
+@media (max-width:520px){.cg-lanceur .cg-mini{width:60px;height:60px}}
+@media print{.cg-lanceur{display:none}}
 .cg-lanceur .cg-dit{background:#fff;color:#1D2520;border-radius:14px 14px 4px 14px;padding:10px 12px;box-shadow:0 6px 18px rgba(0,0,0,.18);font:500 15px 'Familjen Grotesk',system-ui,sans-serif;max-width:240px;position:relative}
 .cg-lanceur .cg-dit b{display:block}
 .cg-lanceur .cg-dit button.cg-go{all:unset;cursor:pointer;color:#1F5B3A;font-weight:600;text-decoration:underline;margin-top:4px;display:inline-block}
@@ -171,20 +176,40 @@
     return { fermer };
   }
 
-  // Petit Commis dans le coin qui propose la visite (site)
-  function lanceur(opts) {
+  // Rosalie toujours présente : son visage reste dans le coin; elle peut dire un mot dans une bulle.
+  //   const r = CommisGuide.presence({ surFace: () => …, label: "Parler à Rosalie" });
+  //   r.dire({ titre, texte, bouton, action, duree })   r.taire()
+  let presenceActive = null;
+  function presence(opts) {
     style();
+    if (presenceActive) return presenceActive;
     const box = document.createElement("div");
     box.className = "cg-lanceur";
-    box.innerHTML = `<div class="cg-dit" role="status"><button type="button" class="cg-ferme" aria-label="Fermer">✕</button>
-      <b>${esc(opts.titre || "Bonjour!")}</b>${esc(opts.texte || "")}<br><button type="button" class="cg-go">${esc(opts.bouton || "Faire la visite")}</button></div>
-      <button type="button" class="cg-mini" aria-label="${esc(opts.bouton || "Faire la visite")} avec le Commis">${AVATAR}</button>`;
+    box.innerHTML = `<div class="cg-dit" role="status" hidden></div>
+      <button type="button" class="cg-mini" aria-label="${esc(opts.label || "Parler à Rosalie, votre commis")}">${AVATAR}</button>`;
     document.body.appendChild(box);
-    const go = () => { box.remove(); opts.ouvrir(); };
-    box.querySelector(".cg-go").onclick = go;
-    box.querySelector(".cg-mini").onclick = go;
-    box.querySelector(".cg-ferme").onclick = () => { box.remove(); if (opts.onFermer) opts.onFermer(); };
-    return box;
+    const dit = box.querySelector(".cg-dit"), mini = box.querySelector(".cg-mini");
+    let minuterie = null;
+    mini.onclick = () => { taire(); if (opts.surFace) opts.surFace(); };
+    function taire() { clearTimeout(minuterie); dit.hidden = true; dit.innerHTML = ""; mini.classList.remove("cg-parle"); }
+    function dire(m) {
+      clearTimeout(minuterie);
+      dit.innerHTML = `<button type="button" class="cg-ferme" aria-label="Fermer">✕</button><b>${esc(m.titre || "")}</b>${esc(m.texte || "")}` +
+        (m.bouton ? `<br><button type="button" class="cg-go">${esc(m.bouton)}</button>` : "");
+      dit.hidden = false;
+      mini.classList.add("cg-parle"); setTimeout(() => mini.classList.remove("cg-parle"), Math.min(3500, 600 + (m.texte || "").length * 22));
+      dit.querySelector(".cg-ferme").onclick = () => { taire(); if (m.onFermer) m.onFermer(); };
+      const go = dit.querySelector(".cg-go"); if (go) go.onclick = () => { taire(); if (m.action) m.action(); };
+      if (m.duree) minuterie = setTimeout(taire, m.duree);
+    }
+    presenceActive = { dire, taire, element: box, cacher: (oui) => { box.hidden = !!oui; } };
+    return presenceActive;
+  }
+  // Ancienne forme (site) : la face reste, la bulle propose la visite
+  function lanceur(opts) {
+    const r = presence({ surFace: opts.ouvrir, label: (opts.bouton || "Faire la visite") + " avec Rosalie, votre commis" });
+    r.dire({ titre: opts.titre, texte: opts.texte, bouton: opts.bouton || "Faire la visite", action: opts.ouvrir, onFermer: opts.onFermer });
+    return r;
   }
 
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
@@ -205,5 +230,5 @@
       texte: "Une seule question chaque soir : qu'avez-vous utilisé aujourd'hui? Un toucher par produit, et l'inventaire reste juste." },
   ];
 
-  window.CommisGuide = { ouvrir, lanceur, avatar: () => AVATAR, CONCEPTS };
+  window.CommisGuide = { ouvrir, lanceur, presence, avatar: () => AVATAR, CONCEPTS };
 })();

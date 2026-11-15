@@ -328,7 +328,8 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 .visite { display: inline-flex; align-items: center; gap: 10px; background: none; border: 0; color: #fff; font: 600 17px var(--body); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: rgba(255,255,255,.4); }
 .visite:hover { text-decoration-color: var(--etiquette); }
 .visite-av { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid var(--etiquette); flex: none; background: #DCEBDF; }
-.visite-av svg { width: 100%; height: 100%; display: block; }
+.visite-av svg, .demo-av svg { width: 100%; height: 100%; display: block; }
+.demo-av { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; flex: none; background: #DCEBDF; }
 </style>
 </head>
 <body>
@@ -359,7 +360,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
         <a class="btn main app-link essai" href="https://app.lecommis.ai/?essai">Essayer 30 jours gratuits</a>
         <a class="btn ghost" href="achat.html">Acheter · 19,99 $ par année</a>
       </div>
-      <div class="ctas visite-zone"><button type="button" class="visite" id="visite"><span class="visite-av" id="visite-av"></span>Visite guidée avec le Commis · 1 min</button>
+      <div class="ctas visite-zone"><button type="button" class="visite" id="visite"><span class="visite-av" id="visite-av"></span>Visite guidée avec Rosalie · 1 min</button>
       </div>
       <p class="small"><a href="#economies" style="color:var(--etiquette);font-weight:600">Environ 510 $ d'économies par année</a> pour une famille, selon notre estimation. 30 jours complets, sans carte de crédit. Jusqu'à 4 personnes par foyer. Sur iPhone, Android et ordinateur. Fait au Québec, en français.</p>
     </div>
@@ -513,7 +514,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   <div class="wrap">
     <div>
       <h2>Un commis qui répond</h2>
-      <p class="intro" style="margin-bottom:20px">Dans l'app, une question? Touchez « Aide » en haut de l'écran : le Commis répond en français, à toute heure, et vous amène directement au bon écran.</p>
+      <p class="intro" style="margin-bottom:20px">Dans l'app, une question? Touchez « Aide » en haut de l'écran : Rosalie, votre commis, répond en français, à toute heure, et vous amène directement au bon écran.</p>
       <p class="demo-titre">Essayez ici, avec des exemples de questions :</p>
       <div class="demo-q" role="group" aria-label="Exemples de questions au Commis">
         <button type="button" data-q="0" aria-pressed="true">Comment j'ajoute le chalet?</button>
@@ -524,13 +525,13 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       <ul class="checks">
         <li>Un accueil pour chaque nouveau membre, qui explique l'app en trois étapes.</li>
         <li>La carte « Bien démarrer » montre la prochaine chose à faire, une à la fois.</li>
-        <li>Pas de mode d'emploi à lire : on demande, le Commis montre.</li>
+        <li>Pas de mode d'emploi à lire : on demande, Rosalie montre.</li>
       </ul>
     </div>
     <div class="phone full">
       <div class="ecran" style="height:auto;min-height:380px;padding-bottom:16px">
-        <div class="e-titre"><img src="img/marque.svg" alt="">Le Commis</div>
-        <p class="e-qui">Votre aide pour l'app. Posez votre question.</p>
+        <div class="e-titre"><span class="demo-av" id="demo-av"></span>Rosalie</div>
+        <p class="e-qui">Votre commis. Posez votre question.</p>
         <div id="demo-chat" aria-live="polite"></div>
         <p class="demo-note">Exemple de conversation</p>
       </div>
@@ -629,7 +630,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       <details><summary>Comment marche la lecture des factures?</summary><p>Photographiez le reçu (plusieurs photos pour un long reçu). Chaque article apparaît dans un panier : vous vérifiez le nom, la quantité, l'espace et la date de péremption, puis vous approuvez. Rien n'entre dans l'inventaire sans votre accord.</p></details>
       <details><summary>D'où vient l'estimation de 510 $?</summary><p>Pour une famille qui dépense 200 $ par semaine : 3 % d'économies en choisissant la bonne épicerie et les spéciaux (moins du cinquième de l'écart de 16 % mesuré entre Maxi et Metro en 2025), plus le quart du gaspillage évitable d'un foyer canadien moyen. C'est une estimation, pas une garantie. Voyez le détail dans la section <a href="#economies">Économies</a>.</p></details>
       <details><summary>Est-ce un abonnement qui se renouvelle tout seul?</summary><p>Non. Vous payez 19,99 $ plus taxes pour 12 mois, une seule fois. Aucun montant n'est prélevé sans votre accord.</p></details>
-      <details><summary>C'est quoi, le Commis dans l'app?</summary><p>Un assistant qui répond à vos questions sur l'app, en français, et vous amène au bon écran. Il sait comment l'app fonctionne. Il voit seulement quelques compteurs, comme le nombre de produits ou d'articles sur la liste, pour savoir où vous en êtes. Il ne lit pas le contenu de vos listes ni de votre inventaire.</p></details>
+      <details><summary>Qui est Rosalie, dans l'app?</summary><p>Votre commis : une assistante qui répond à vos questions sur l'app, en français, et vous amène au bon écran. Elle sait comment l'app fonctionne. Elle voit seulement quelques compteurs, comme le nombre de produits ou d'articles sur la liste, pour savoir où vous en êtes. Elle ne lit pas le contenu de vos listes ni de votre inventaire.</p></details>
       <details><summary>Où sont gardées nos données?</summary><p>Votre liste, votre inventaire et vos photos ne sont visibles que par les membres de votre foyer. Ils sont hébergés au Canada. Consultez notre <a href="confidentialite.html">politique de confidentialité</a>.</p></details>
     </div>
   </div>
@@ -697,7 +698,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   function visite() {
     if (!window.CommisGuide) return;
     CommisGuide.ouvrir({
-      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: "Moi, c'est votre commis.", texte: "Je tiens l'épicerie de votre maison : ce que vous achetez, ce que vous avez, ce qui manque et ce qui est en rabais. Je vous montre comment je travaille, en six petites étapes." }].concat(CommisGuide.CONCEPTS),
+      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: "Moi, c'est Rosalie, votre commis.", texte: "Je tiens l'épicerie de votre maison : ce que vous achetez, ce que vous avez, ce qui manque et ce qui est en rabais. Je vous montre comment je travaille, en six petites étapes." }].concat(CommisGuide.CONCEPTS),
       fin: { titre: "Vous m'engagez?", texte: "30 jours gratuits, sans carte de crédit. Ensuite, " + (c.prix || "19,99 $") + " par année pour toute la maison, jusqu'à 4 personnes.", bouton: "Essayer 30 jours gratuits",
         action: function () { location.href = (c.appUrl || "https://app.lecommis.ai/") + "?essai"; } },
       onFermer: function () { try { localStorage.setItem("commis.visite", "1"); } catch (e) {} }
@@ -705,13 +706,17 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   }
   if (window.CommisGuide) {
     var va = document.getElementById('visite-av'); if (va) va.innerHTML = CommisGuide.avatar();
+    var da = document.getElementById('demo-av'); if (da) da.innerHTML = CommisGuide.avatar();
     var vb = document.getElementById('visite'); if (vb) vb.addEventListener('click', visite);
+    // Rosalie reste dans le coin; elle salue à l'arrivée
+    var rosalie = CommisGuide.presence({ surFace: visite, label: "Faire la visite avec Rosalie, votre commis" });
     var vu = null; try { vu = localStorage.getItem("commis.visite"); } catch (e) {}
-    if (!vu) setTimeout(function () {
+    setTimeout(function () {
       if (document.querySelector('.cg-fond')) return;
-      CommisGuide.lanceur({ titre: "Bonjour! Je suis votre commis.", texte: "Je vous fais visiter en une minute?", bouton: "Faire la visite", ouvrir: visite,
+      if (!vu) rosalie.dire({ titre: "Bonjour! Moi, c'est Rosalie, votre commis.", texte: "Je vous fais visiter en une minute?", bouton: "Faire la visite", action: visite,
         onFermer: function () { try { localStorage.setItem("commis.visite", "1"); } catch (e) {} } });
-    }, 2500);
+      else rosalie.dire({ titre: "Re-bonjour!", texte: "Touchez mon visage pour refaire la visite.", duree: 6000 });
+    }, 2000);
   }
   if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl + (a.classList.contains('essai') ? '?essai' : ''); });
   var btns = document.querySelectorAll('.strip [data-step]');

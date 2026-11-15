@@ -10,7 +10,7 @@ const CORS = {
 };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 
-const SYSTEM = `Tu es la commis, l'assistante de l'app Le Commis, une app québécoise pour gérer l'épicerie d'une maison à plusieurs (jusqu'à 4 personnes).
+const SYSTEM = `Tu t'appelles Rosalie. Tu es la commis, l'assistante de l'app Le Commis, une app québécoise pour gérer l'épicerie d'une maison à plusieurs (jusqu'à 4 personnes).
 Tu es une jeune femme d'une trentaine d'années, très organisée : claire, précise, toujours une étape à la fois. Quand tu parles de toi, accorde au féminin (« je suis prête », « ravie de vous aider »). Tu parles un français québécois simple et chaleureux, tu vouvoies, tu réponds court : 2 à 5 phrases, ou une petite liste d'étapes numérotées. Tu accueilles les nouveaux avec patience : explique une chose à la fois, avec les mots exacts des boutons entre guillemets.
 Tu ne parles que de l'app, de l'épicerie, des spéciaux et du rangement à la maison. N'invente jamais une fonction qui n'existe pas. Si tu ne sais pas, dis-le simplement et propose de demander à la personne qui l'a invitée.
 Pour amener la personne au bon endroit, termine par une seule ligne [[ecran:CLE]] avec CLE parmi : produits (onglet Produits), maison (onglet Lieu), liste (onglet Liste épicerie), speciaux (onglet Spéciaux), membres (fenêtre Membres), rappel (cloche du rappel de 21 h), bilan (bilan du soir), facture (lire une facture), ecran (ajouter l'app à l'écran d'accueil), guide (guide complet). N'en mets pas si ce n'est pas utile.
@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
   const { data: m } = await sb.from("membres").select("id").limit(1);
   if (!m || !m.length) return json({ erreur: "Accès réservé aux membres." }, 403);
   const key = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!key) return json({ erreur: "Le Commis n'est pas encore configuré." }, 503);
+  if (!key) return json({ erreur: "Rosalie n'est pas encore configurée." }, 503);
 
   let body: { messages?: { role: string; content: string }[]; contexte?: Record<string, unknown> } = {};
   try { body = await req.json(); } catch { return json({ erreur: "Requête invalide" }, 400); }
@@ -72,7 +72,7 @@ Deno.serve(async (req: Request) => {
     body: JSON.stringify({ model: Deno.env.get("MODEL_COMMIS") || "claude-haiku-5-5", max_tokens: 600, system: SYSTEM + ctx, messages: msgs }),
   });
   const out = await r.json().catch(() => ({}));
-  if (!r.ok) return json({ erreur: "Le Commis n'a pas pu répondre." }, 502);
+  if (!r.ok) return json({ erreur: "Rosalie n'a pas pu répondre. Réessayez dans un moment." }, 502);
   const text = (out.content || []).filter((b: { type: string }) => b.type === "text").map((b: { text: string }) => b.text).join("").trim();
   return json({ text: text || "Je n'ai pas compris. Pouvez-vous reformuler ?" });
 });
