@@ -23,20 +23,24 @@
       <circle cx="40" cy="30" r="9" fill="#D7A07C"/>
     </g>
     <path d="M89 120 H111 V144 C105 149 95 149 89 144 Z" fill="#C88F6C"/>
-    <g class="cg-tete">
+    <g transform="rotate(-4 100 130)"><g class="cg-tete">
       <circle cx="100" cy="42" r="15" fill="#3B2418"/>
       <path d="M64 96 C60 62 78 50 100 50 C122 50 140 62 136 96 C134 84 128 74 120 70 C108 76 88 74 78 70 C70 76 66 86 64 96 Z" fill="#3B2418"/>
+      <path d="M66 92 C62 110 66 124 72 130 L76 104 Z M134 92 C138 110 134 124 128 130 L124 104 Z" fill="#3B2418"/>
       <ellipse cx="100" cy="94" rx="33" ry="37" fill="#D7A07C"/>
       <path d="M67 84 C70 66 84 58 100 58 C116 58 130 66 133 84 C124 72 110 66 98 70 C88 66 76 72 67 84 Z" fill="#3B2418"/>
       <circle cx="67" cy="103" r="3" fill="#F2C230"/><circle cx="133" cy="103" r="3" fill="#F2C230"/>
-      <circle cx="80" cy="108" r="6" fill="#E08A7A" opacity=".4"/><circle cx="120" cy="108" r="6" fill="#E08A7A" opacity=".4"/>
-      <g class="cg-yeux"><ellipse cx="87" cy="96" rx="4.4" ry="5.4" fill="#1D2520"/><ellipse cx="113" cy="96" rx="4.4" ry="5.4" fill="#1D2520"/>
-        <circle cx="88.6" cy="94" r="1.5" fill="#fff"/><circle cx="114.6" cy="94" r="1.5" fill="#fff"/></g>
-      <path d="M81.5 91.5 L79.5 89.5 M118.5 91.5 L120.5 89.5" stroke="#1D2520" stroke-width="1.6" stroke-linecap="round"/>
-      <path d="M81 85 Q87 82 93 84 M107 84 Q113 82 119 85" stroke="#3B2418" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-      <path d="M100 100 Q102.5 106 99 107.5" stroke="#B57B58" stroke-width="2" fill="none" stroke-linecap="round"/>
-      <path class="cg-bouche" d="M91 115 Q100 123 109 115 Q100 118 91 115 Z" fill="#B44A4A"/>
-    </g>
+      <ellipse cx="79" cy="109" rx="7.5" ry="5.5" fill="#E9806F" opacity=".55"/><ellipse cx="121" cy="109" rx="7.5" ry="5.5" fill="#E9806F" opacity=".55"/>
+      <g class="cg-yeux"><ellipse cx="87" cy="96" rx="4.6" ry="5" fill="#1D2520"/><ellipse cx="113" cy="96" rx="4.6" ry="5" fill="#1D2520"/>
+        <circle cx="88.8" cy="94" r="1.6" fill="#fff"/><circle cx="114.8" cy="94" r="1.6" fill="#fff"/>
+        <path d="M81.5 100.5 Q87 104.5 92.5 100.5 M107.5 100.5 Q113 104.5 118.5 100.5" stroke="#D7A07C" stroke-width="3.2" fill="none" stroke-linecap="round"/></g>
+      <path d="M81.5 91 L79.6 89 M118.5 91 L120.4 89" stroke="#1D2520" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M80.5 83.5 Q87 79.5 93.5 82.5 M106.5 82.5 Q113 79.5 119.5 83.5" stroke="#3B2418" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M100 100 Q102.5 105.5 99 107" stroke="#B57B58" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <g class="cg-bouche"><path d="M88 113 Q100 129 112 113 Q100 117 88 113 Z" fill="#8E2F36"/>
+        <path d="M90.5 114 Q100 117.5 109.5 114 L108.6 117 Q100 119.4 91.4 117 Z" fill="#fff"/>
+        <path d="M95 123 Q100 125.2 105 123" stroke="#E9806F" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
+    </g></g>
   </g>
 </svg>`;
 
@@ -75,11 +79,11 @@
 .cg-btn:focus-visible,.cg-lien:focus-visible{outline:3px solid #F2C230;outline-offset:2px}
 .cg-lien{background:none;border:0;color:#59635C;font:500 15px 'Familjen Grotesk',system-ui,sans-serif;text-decoration:underline;cursor:pointer;padding:6px 2px}
 .cg-yeux{transform-origin:100px 96px;animation:cg-cligne 4.5s infinite}
-.cg-parle .cg-bouche{transform-origin:100px 117px;animation:cg-parle .22s ease-in-out infinite alternate}
+.cg-parle .cg-bouche{transform-origin:100px 116px;animation:cg-parle .22s ease-in-out infinite alternate}
 .cg-salue .cg-bras{transform-origin:170px 175px;animation:cg-salue .5s ease-in-out 3 alternate}
 .cg-tete{transform-origin:100px 130px;animation:cg-hoche 3.2s ease-in-out infinite}
 @keyframes cg-cligne{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
-@keyframes cg-parle{from{transform:scaleY(.6)}to{transform:scaleY(1.9)}}
+@keyframes cg-parle{from{transform:scaleY(.75)}to{transform:scaleY(1.2)}}
 @keyframes cg-salue{from{transform:rotate(0)}to{transform:rotate(-14deg)}}
 @keyframes cg-hoche{0%,100%{transform:rotate(0)}50%{transform:rotate(1.5deg)}}
 @keyframes cg-in{from{opacity:0}to{opacity:1}}
