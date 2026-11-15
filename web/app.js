@@ -955,7 +955,7 @@
       ? (parQui ? `${parQui} vous a invité à partager l'épicerie de la maison. ` : "") + "Je tiens l'épicerie avec vous : ce que vous achetez, ce que vous avez, ce qui manque et ce qui est en rabais. Voici comment je travaille, en six petites étapes."
       : "Voici comment je travaille, en six petites étapes.";
     CommisGuide.ouvrir({
-      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: `Bienvenue${nom ? ", " + nom : ""}! Moi, c'est le Commis.`, texte: intro }].concat(CommisGuide.CONCEPTS),
+      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: `Bienvenue${nom ? ", " + nom : ""}! Moi, c'est votre commis.`, texte: intro }].concat(CommisGuide.CONCEPTS),
       fin: { titre: "À vous de jouer!", texte: "Commencez par photographier trois ou quatre produits que vous achetez souvent. La carte « Bien démarrer » vous guide ensuite. Une question? Touchez « Aide » en haut : je réponds.", bouton: "Commencer" },
       onFermer: () => { lsSet(cleAccueil(), String(Date.now())); renderDemarrer(); window.scrollTo({ top: 0, behavior: "smooth" }); },
     });

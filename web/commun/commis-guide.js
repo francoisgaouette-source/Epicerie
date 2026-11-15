@@ -1,4 +1,4 @@
-// Le Commis en personne : un avatar dessiné qui fait visiter les concepts de l'app, étape par étape.
+// Le Commis en personne : une commis dessinée qui fait visiter les concepts de l'app, étape par étape.
 // Partagé par le site (lecommis.ai) et l'app (app.lecommis.ai) : servi à /commun/ sur les deux adresses.
 //   CommisGuide.ouvrir({ etapes: [{ titre, texte, puce?, icone? }], fin: { titre, texte, bouton, action }, onFermer })
 //   CommisGuide.avatar(taille) → le SVG du personnage
@@ -9,24 +9,25 @@
   <circle cx="100" cy="100" r="98" fill="#DCEBDF"/>
   <clipPath id="cg-clip"><circle cx="100" cy="100" r="98"/></clipPath>
   <g clip-path="url(#cg-clip)">
+    <path d="M60 86 C56 120 60 150 72 162 L128 162 C140 150 144 120 140 86 Z" fill="#4A2C1D"/>
     <path d="M28 200 C30 158 58 140 100 140 C142 140 170 158 172 200 Z" fill="#F4EFE3"/>
-    <g class="cg-bras"><path d="M164 200 C166 176 170 160 176 146" stroke="#F4EFE3" stroke-width="22" stroke-linecap="round" fill="none"/>
-      <circle cx="178" cy="138" r="11" fill="#E8B58C"/></g>
+    <g class="cg-bras"><path d="M164 200 C166 176 170 160 176 146" stroke="#F4EFE3" stroke-width="22" stroke-linecap="round" fill="none"/><circle cx="178" cy="138" r="11" fill="#C98E6B"/></g>
     <path d="M62 200 L66 150 C78 146 88 144 100 144 C112 144 122 146 134 150 L138 200 Z" fill="#1F5B3A"/>
     <path d="M74 150 L80 143 M126 150 L120 143" stroke="#1F5B3A" stroke-width="5" stroke-linecap="round"/>
     <rect x="86" y="166" width="28" height="18" rx="3" fill="#174A2F"/>
     <g transform="translate(112 152) rotate(-8)"><path d="M0 7 L6 0 H22 V14 H6 Z" fill="#F2C230"/><circle cx="6.5" cy="7" r="1.8" fill="#1F5B3A"/></g>
-    <path d="M88 122 H112 V142 C106 147 94 147 88 142 Z" fill="#D9A27A"/>
+    <path d="M88 122 H112 V142 C106 147 94 147 88 142 Z" fill="#B97D5B"/>
     <g class="cg-tete">
-      <ellipse cx="100" cy="94" rx="36" ry="39" fill="#E8B58C"/>
-      <ellipse cx="64" cy="98" rx="6" ry="9" fill="#E0A97F"/><ellipse cx="136" cy="98" rx="6" ry="9" fill="#E0A97F"/>
-      <circle cx="78" cy="108" r="6" fill="#E89A86" opacity=".55"/><circle cx="122" cy="108" r="6" fill="#E89A86" opacity=".55"/>
-      <g class="cg-yeux"><ellipse cx="86" cy="96" rx="4" ry="5" fill="#1D2520"/><ellipse cx="114" cy="96" rx="4" ry="5" fill="#1D2520"/>
-        <circle cx="87.4" cy="94.3" r="1.3" fill="#fff"/><circle cx="115.4" cy="94.3" r="1.3" fill="#fff"/></g>
-      <path d="M79 86 Q86 82 92 85 M108 85 Q114 82 121 86" stroke="#5A3A24" stroke-width="3" fill="none" stroke-linecap="round"/>
-      <path d="M100 99 Q104 107 99 109" stroke="#C98B63" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-      <ellipse class="cg-bouche" cx="100" cy="122" rx="8" ry="3.4" fill="#8A3B2E"/>
-      <path d="M100 113 C93 109 84 110 80 116 C86 118 94 118 100 115 C106 118 114 118 120 116 C116 110 107 109 100 113 Z" fill="#6B4429"/>
+      <ellipse cx="100" cy="96" rx="34" ry="38" fill="#C98E6B"/>
+      <circle cx="66" cy="104" r="3" fill="#F2C230"/><circle cx="134" cy="104" r="3" fill="#F2C230"/>
+      <circle cx="80" cy="110" r="6" fill="#D9776A" opacity=".45"/><circle cx="120" cy="110" r="6" fill="#D9776A" opacity=".45"/>
+      <g class="cg-yeux"><ellipse cx="87" cy="98" rx="4" ry="5" fill="#1D2520"/><ellipse cx="113" cy="98" rx="4" ry="5" fill="#1D2520"/>
+        <circle cx="88.4" cy="96.3" r="1.3" fill="#fff"/><circle cx="114.4" cy="96.3" r="1.3" fill="#fff"/></g>
+      <path d="M81 93 L79 91 M119 93 L121 91" stroke="#1D2520" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M80 87 Q87 83 93 86 M107 86 Q113 83 120 87" stroke="#3A2116" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M100 101 Q103 108 99 110" stroke="#A86F4F" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path class="cg-bouche" d="M91 118 Q100 126 109 118 Q100 121 91 118 Z" fill="#9C3B3B"/>
+      <path d="M66 86 C72 80 84 82 92 78 C100 84 116 80 134 86 L136 80 L64 80 Z" fill="#4A2C1D"/>
       <path d="M63 80 C63 63 80 55 100 55 C120 55 137 63 137 80 Z" fill="#1F5B3A"/>
       <rect x="63" y="74" width="74" height="6" fill="#F2C230"/>
       <path d="M60 80 H140 C141 86 130 90 100 90 C72 90 59 87 60 80 Z" fill="#174A2F"/>
@@ -69,8 +70,8 @@
 .cg-btn.cg-jaune{background:#F2C230;border-color:#F2C230;color:#2A2000}
 .cg-btn:focus-visible,.cg-lien:focus-visible{outline:3px solid #F2C230;outline-offset:2px}
 .cg-lien{background:none;border:0;color:#59635C;font:500 15px 'Familjen Grotesk',system-ui,sans-serif;text-decoration:underline;cursor:pointer;padding:6px 2px}
-.cg-yeux{transform-origin:100px 96px;animation:cg-cligne 4.5s infinite}
-.cg-parle .cg-bouche{transform-origin:100px 122px;animation:cg-parle .22s ease-in-out infinite alternate}
+.cg-yeux{transform-origin:100px 98px;animation:cg-cligne 4.5s infinite}
+.cg-parle .cg-bouche{transform-origin:100px 119px;animation:cg-parle .22s ease-in-out infinite alternate}
 .cg-salue .cg-bras{transform-origin:170px 175px;animation:cg-salue .5s ease-in-out 3 alternate}
 .cg-tete{transform-origin:100px 130px;animation:cg-hoche 3.2s ease-in-out infinite}
 @keyframes cg-cligne{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}

@@ -697,8 +697,8 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   function visite() {
     if (!window.CommisGuide) return;
     CommisGuide.ouvrir({
-      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: "Moi, c'est le Commis.", texte: "Je tiens l'épicerie de votre maison : ce que vous achetez, ce que vous avez, ce qui manque et ce qui est en rabais. Je vous montre comment je travaille, en six petites étapes." }].concat(CommisGuide.CONCEPTS),
-      fin: { titre: "Prêt à m'engager?", texte: "30 jours gratuits, sans carte de crédit. Ensuite, " + (c.prix || "19,99 $") + " par année pour toute la maison, jusqu'à 4 personnes.", bouton: "Essayer 30 jours gratuits",
+      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: "Moi, c'est votre commis.", texte: "Je tiens l'épicerie de votre maison : ce que vous achetez, ce que vous avez, ce qui manque et ce qui est en rabais. Je vous montre comment je travaille, en six petites étapes." }].concat(CommisGuide.CONCEPTS),
+      fin: { titre: "Vous m'engagez?", texte: "30 jours gratuits, sans carte de crédit. Ensuite, " + (c.prix || "19,99 $") + " par année pour toute la maison, jusqu'à 4 personnes.", bouton: "Essayer 30 jours gratuits",
         action: function () { location.href = (c.appUrl || "https://app.lecommis.ai/") + "?essai"; } },
       onFermer: function () { try { localStorage.setItem("commis.visite", "1"); } catch (e) {} }
     });
@@ -709,7 +709,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
     var vu = null; try { vu = localStorage.getItem("commis.visite"); } catch (e) {}
     if (!vu) setTimeout(function () {
       if (document.querySelector('.cg-fond')) return;
-      CommisGuide.lanceur({ titre: "Bonjour! Je suis le Commis.", texte: "Je vous fais visiter en une minute?", bouton: "Faire la visite", ouvrir: visite,
+      CommisGuide.lanceur({ titre: "Bonjour! Je suis votre commis.", texte: "Je vous fais visiter en une minute?", bouton: "Faire la visite", ouvrir: visite,
         onFermer: function () { try { localStorage.setItem("commis.visite", "1"); } catch (e) {} } });
     }, 2500);
   }
