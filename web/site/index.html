@@ -224,7 +224,7 @@ h2 { font-family: var(--display); font-weight: 800; font-size: clamp(36px, 5vw, 
 .aide .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .aide .checks li { padding-left: 32px; position: relative; }
 .aide .checks li::before { content: ''; position: absolute; left: 2px; top: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--epicerie); box-shadow: inset 0 0 0 5px var(--epicerie), inset 0 0 0 9px #fff; }
-@media (max-width: 860px) { .aide .wrap { grid-template-columns: 1fr; gap: 40px; } }
+@media (max-width: 860px) { .aide .wrap { grid-template-columns: 1fr; gap: 0; } .aide .wrap > div:first-child { display: contents; } .aide .phone { order: 1; justify-self: center; margin-bottom: 32px; } .aide .checks { order: 2; } }
 
 /* Prix */
 .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; }
@@ -310,6 +310,18 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 .avis-site blockquote { margin: 0 0 14px; font-size: 19px; line-height: 1.45; }
 .avis-site figcaption { font: 600 13px var(--mono); letter-spacing: .08em; color: var(--etiquette); text-transform: uppercase; }
 @media (max-width: 760px) { .pour-grid { grid-template-columns: 1fr; } }
+
+.demo-titre { font-weight: 600; margin: 0 0 10px; }
+.demo-q { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; }
+.demo-q button { font: 600 15px var(--body); border: 1.5px solid var(--epicerie); color: var(--epicerie); background: var(--blanc); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.demo-q button:hover { background: var(--vert-pale); }
+.demo-q button[aria-pressed="true"] { background: var(--epicerie); color: var(--blanc); }
+.demo-note { font: 600 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 14px 0 0; text-align: center; }
+#demo-chat .bulle { animation: apparait .25s ease-out both; }
+#demo-chat .bulle:nth-child(2) { animation-delay: .35s; }
+#demo-chat .e-btn { animation: apparait .25s ease-out .6s both; }
+@keyframes apparait { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #demo-chat .bulle, #demo-chat .e-btn { animation: none; } }
 </style>
 </head>
 <body>
@@ -374,7 +386,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 <div class="step-panels"><div class="wrap">
   <p class="step-hint" id="stepHint">Touchez un rayon pour voir comment ça marche.</p>
 
-  <div class="step-panel" id="step0" hidden><div><h3><span>1</span>Les produits</h3><p>Tous vos produits, au même endroit. Le catalogue, c'est la liste de tout ce que vous achetez d'habitude : chaque produit a sa fiche, avec sa photo, sa marque, son format et son prix dans chaque épicerie.</p><ol class="sp-how"><li>Touchez l'appareil photo et photographiez le produit : le Commis reconnaît la marque, le format et la catégorie.</li><li>Ou tapez simplement son nom.</li><li>Touchez un produit pour ouvrir sa fiche : son espace, sa liste habituelle, le minimum à garder et le prix cible.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Commencez par 5 produits que vous achetez souvent. Les prix se remplissent au fil de vos factures et des circulaires.</p></div>
+  <div class="step-panel" id="step0" hidden><div><h3><span>1</span>Les produits</h3><p>Tous vos produits, au même endroit. L'onglet Produits, c'est la liste de tout ce que vous achetez d'habitude : chaque produit a sa fiche, avec sa photo, sa marque, son format et son prix dans chaque épicerie.</p><ol class="sp-how"><li>Touchez l'appareil photo et photographiez le produit : le Commis reconnaît la marque, le format et la catégorie.</li><li>Ou tapez simplement son nom.</li><li>Touchez un produit pour ouvrir sa fiche : son espace, sa liste habituelle, le minimum à garder et le prix cible.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Commencez par 5 produits que vous achetez souvent. Les prix se remplissent au fil de vos factures et des circulaires.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-liste"><div><div><div class="e-nom">Café moulu Maxwell House</div><div class="e-meta">925 g · Épicerie sèche</div></div><span class="e-qte">★</span></div><div><div><div class="e-nom">Beurre salé Lactantia</div><div class="e-meta">454 g · Produits laitiers</div></div><span class="e-qte">☆</span></div></div></div></div>
 
   <div class="step-panel" id="step1" hidden><div><h3><span>2</span>Surveiller</h3><p>Vous ne voulez pas lire toutes les circulaires, seulement voir les rabais sur ce que vous achetez vraiment. C'est le rôle de l'étoile.</p><ol class="sp-how"><li>Dans l'onglet Produits, touchez l'étoile ☆ d'un produit : elle devient ★ et le Commis guette ses spéciaux.</li><li>Pour être plus exigeant, ouvrez la fiche et entrez un prix cible : vous n'êtes averti que sous ce prix.</li><li>Laissez le prix cible vide pour voir tous les rabais sur ce produit.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Surveillez d'abord les produits chers que vous achetez souvent : c'est là qu'un rabais compte le plus.</p></div>
@@ -392,7 +404,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   <div class="step-panel" id="step5" hidden><div><h3><span>6</span>La facture</h3><p>De retour à la maison, une photo du reçu suffit pour mettre l'inventaire et les prix à jour. Fini de tout taper.</p><ol class="sp-how"><li>Photographiez le reçu, en plusieurs photos s'il est long.</li><li>Chaque article arrive dans un panier à approuver : le Commis traduit « LAIT 2% 2L » en « Lait 2 % » et le relie à votre produit.</li><li>Vérifiez la quantité, l'espace et la date de péremption, puis approuvez un article à la fois ou tout d'un coup.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Rien n'entre dans l'inventaire sans votre accord. Un article approuvé est rangé dans son espace et coché dans la liste, et son prix est noté pour les prochaines comparaisons.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-liste"><div><div><div class="e-nom">LAIT 2% 2L → Lait 2 %</div><div class="e-meta">2 · Frigo · exp. 24 nov.</div></div><span class="e-btn">Approuver</span></div></div></div></div>
 
-  <div class="step-panel" id="step6" hidden><div><h3><span>7</span>Rangé au bon endroit</h3><p>L'onglet Lieu montre ce que vous avez, rangé par espace : garde-manger, frigo, congélateur. Un coup d'œil avant de partir, et pas de troisième pot de moutarde.</p><ol class="sp-how"><li>Chaque produit a son espace, sa réserve (+ et −) et sa date de péremption.</li><li>Les produits qui expirent dans les trois jours montent en haut, en rouge, pour qu'on les mange à temps.</li><li>Ajoutez un deuxième lieu, comme le Chalet : il a ses propres espaces et ses réserves, et le catalogue reste commun.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Vous cherchez quelque chose? Tapez « riz » et le Commis vous dit où il est rangé.</p></div>
+  <div class="step-panel" id="step6" hidden><div><h3><span>7</span>Rangé au bon endroit</h3><p>L'onglet Lieu montre ce que vous avez, rangé par espace : garde-manger, frigo, congélateur. Un coup d'œil avant de partir, et pas de troisième pot de moutarde.</p><ol class="sp-how"><li>Chaque produit a son espace, sa réserve (+ et −) et sa date de péremption.</li><li>Les produits qui expirent dans les trois jours montent en haut, en rouge, pour qu'on les mange à temps.</li><li>Ajoutez un deuxième lieu, comme le Chalet : il a ses propres espaces et ses réserves, et vos produits restent communs.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Vous cherchez quelque chose? Tapez « riz » et le Commis vous dit où il est rangé.</p></div>
     <div class="sp-vis" aria-hidden="true"><div class="e-section">Frigo</div><div class="e-liste"><div><div><div class="e-nom">Lait 2 %</div><div class="e-meta">exp. 24 nov.</div></div><span class="e-qte">2</span></div><div><div><div class="e-nom">Yogourt grec</div><div class="e-meta"><span class="e-rouge">Expire demain</span></div></div><span class="e-qte">1</span></div></div></div></div>
 
   <div class="step-panel" id="step7" hidden><div><h3><span>8</span>Le bilan du soir</h3><p>Pour que l'inventaire reste juste sans rien noter pendant la journée, le Commis pose une seule question, le soir.</p><ol class="sp-how"><li>Activez le rappel de 21 h en touchant la cloche, en haut de l'app.</li><li>À 21 h, une notification demande ce qui a été utilisé aujourd'hui.</li><li>Pour chaque produit, touchez −1, −25 %, −50 % ou Tout. Trente secondes et c'est fait.</li></ol><p class="sp-bon"><b>Bon à savoir.</b> Sur iPhone, ajoutez d'abord l'app à l'écran d'accueil et ouvrez-la depuis son icône pour recevoir la notification.</p></div>
@@ -448,7 +460,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       <div class="onglet"><span class="num">Onglet 4</span><h3>Spéciaux</h3><p>Les rabais de la semaine sur vos produits surveillés, à ajouter à la liste d'un toucher.</p></div>
     </div>
     <div class="lieux">
-      <div><b>Plusieurs lieux</b>La Maison, le Chalet, l'appartement de l'étudiant : chaque lieu a ses espaces et ses réserves. Le catalogue, lui, est commun.</div>
+      <div><b>Plusieurs lieux</b>La Maison, le Chalet, l'appartement de l'étudiant : chaque lieu a ses espaces et ses réserves. Les produits, eux, sont communs.</div>
       <div><b>Plusieurs listes</b>Épicerie, Costco, Pharmacie, Party du 24 juin. Chaque produit peut avoir sa liste habituelle.</div>
     </div>
   </div>
@@ -492,23 +504,26 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   <div class="wrap">
     <div>
       <h2>Un commis qui répond</h2>
-      <p class="intro" style="margin-bottom:24px">Une question sur l'app? Touchez « Aide » : le Commis répond en français, à toute heure, et vous amène directement au bon écran.</p>
+      <p class="intro" style="margin-bottom:20px">Dans l'app, une question? Touchez « Aide » en haut de l'écran : le Commis répond en français, à toute heure, et vous amène directement au bon écran.</p>
+      <p class="demo-titre">Essayez ici, avec des exemples de questions :</p>
+      <div class="demo-q" role="group" aria-label="Exemples de questions au Commis">
+        <button type="button" data-q="0" aria-pressed="true">Comment j'ajoute le chalet?</button>
+        <button type="button" data-q="1" aria-pressed="false">Comment inviter quelqu'un?</button>
+        <button type="button" data-q="2" aria-pressed="false">Comment lire ma facture?</button>
+        <button type="button" data-q="3" aria-pressed="false">Où sont mes économies?</button>
+      </div>
       <ul class="checks">
         <li>Un accueil pour chaque nouveau membre, qui explique l'app en trois étapes.</li>
-        <li>La carte « Bien démarrer » montre la prochaine chose à faire, une à la fois.</li>
+        <li>La carte « Bien démarrer » montre la prochaine chose à faire, une à la fois.</li>
         <li>Pas de mode d'emploi à lire : on demande, le Commis montre.</li>
       </ul>
     </div>
-    <div class="phone full" role="img" aria-label="Une conversation avec le Commis : comment ajouter le chalet comme deuxième lieu.">
-      <div class="ecran" aria-hidden="true" style="height:auto;padding-bottom:16px">
+    <div class="phone full">
+      <div class="ecran" style="height:auto;min-height:380px;padding-bottom:16px">
         <div class="e-titre"><img src="img/marque.svg" alt="">Le Commis</div>
         <p class="e-qui">Votre aide pour l'app. Posez votre question.</p>
-        <p class="bulle moi">Comment j'ajoute le chalet?</p>
-        <p class="bulle">Dans l'onglet Lieu, touchez « ＋ Lieu » et nommez-le Chalet. Il aura ses propres espaces et ses réserves. Le catalogue reste commun.</p>
-        <span class="e-btn">Aller à Maison</span>
-        <p class="bulle moi" style="margin-top:12px">Et pour inviter Marie-Eve?</p>
-        <p class="bulle">Touchez « Membres » en haut, puis entrez son prénom et son cellulaire. Elle recevra un code par texto.</p>
-        <span class="e-btn doux">Ouvrir Membres</span>
+        <div id="demo-chat" aria-live="polite"></div>
+        <p class="demo-note">Exemple de conversation</p>
       </div>
     </div>
   </div>
@@ -520,7 +535,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
     <p class="intro">Quelques façons d'utiliser Le Commis, selon la maisonnée.</p>
     <div class="pour-grid">
       <div class="cas"><span class="qui">La famille</span><h3>Une grosse épicerie par semaine, quatre bouches à nourrir</h3><p>Tout le monde ajoute à la même liste, même les ados. Le parent qui fait l'épicerie sait quoi prendre, photo à l'appui.</p><ul><li>Les minimums remettent le lait et les céréales sur la liste tout seuls.</li><li>Les spéciaux sur les produits chers, comme la viande et le café, sont repérés le jeudi.</li></ul></div>
-      <div class="cas"><span class="qui">Le couple avec un chalet</span><h3>Deux garde-mangers, une seule tête pour s'en souvenir</h3><p>Chaque lieu a ses espaces et ses réserves. Avant de monter au chalet, on voit ce qui y manque déjà.</p><ul><li>Une liste « Chalet » à part, qu'on remplit pendant la semaine.</li><li>Le catalogue et les prix restent communs aux deux lieux.</li></ul></div>
+      <div class="cas"><span class="qui">Le couple avec un chalet</span><h3>Deux garde-mangers, une seule tête pour s'en souvenir</h3><p>Chaque lieu a ses espaces et ses réserves. Avant de monter au chalet, on voit ce qui y manque déjà.</p><ul><li>Une liste « Chalet » à part, qu'on remplit pendant la semaine.</li><li>Les produits et les prix restent communs aux deux lieux.</li></ul></div>
       <div class="cas"><span class="qui">Les colocs</span><h3>Fini le « c'est qui qui a fini le beurre? »</h3><p>Chacun voit qui a ajouté quoi. Ce qui est acheté est coché en direct, pour ne pas acheter deux fois.</p><ul><li>Jusqu'à 4 personnes, chacune avec son compte.</li><li>Un seul paiement pour tout l'appartement.</li></ul></div>
       <div class="cas"><span class="qui">Ceux qui détestent jeter</span><h3>Manger le yogourt avant qu'il passe date</h3><p>La facture en photo note les dates de péremption. Ce qui expire bientôt monte en haut, en rouge.</p><ul><li>Le bilan du soir garde l'inventaire juste en 30 secondes.</li><li>On achète ce qui manque vraiment, pas un troisième pot de moutarde.</li></ul></div>
     </div>
@@ -651,6 +666,23 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   if (c.avisUrl && c.avisCle && window.fetch) {
     fetch(c.avisUrl, { method: 'POST', headers: { apikey: c.avisCle, 'Content-Type': 'application/json' }, body: '{}' })
       .then(function (r) { return r.ok ? r.json() : []; }).then(montrerAvis).catch(function () {});
+  }
+  var DEMO = [
+    ["Comment j'ajoute le chalet?", "Dans l'onglet Lieu, touchez « ＋ Lieu » et nommez-le Chalet. Il aura ses propres espaces et ses réserves. Vos produits restent communs aux deux lieux.", "Aller à Lieu"],
+    ["Comment inviter quelqu'un?", "Touchez « Membres » en haut, puis entrez son prénom et son cellulaire. L'app prépare un message à lui envoyer; la personne créera son compte avec un code reçu par texto.", "Ouvrir Membres"],
+    ["Comment lire ma facture?", "Dans l'onglet Lieu, touchez « Lire une facture » et photographiez le reçu. Vérifiez chaque article, sa place et sa date de péremption, puis touchez « Approuver ».", "Lire une facture"],
+    ["Où sont mes économies?", "Dans l'onglet Spéciaux, la carte « Économies réalisées » montre ce que vous avez économisé ce mois-ci et cette année, d'après vos factures.", "Aller à Spéciaux"]
+  ];
+  var chat = document.getElementById('demo-chat');
+  function montrerDemo(i) {
+    var d = DEMO[i]; chat.innerHTML = '';
+    [['bulle moi', d[0]], ['bulle', d[1]]].forEach(function (x) { var p = document.createElement('p'); p.className = x[0]; p.textContent = x[1]; chat.appendChild(p); });
+    var b = document.createElement('span'); b.className = 'e-btn'; b.textContent = d[2]; chat.appendChild(b);
+    document.querySelectorAll('.demo-q button').forEach(function (x) { x.setAttribute('aria-pressed', String(x.getAttribute('data-q') === String(i))); });
+  }
+  if (chat) {
+    montrerDemo(0);
+    document.querySelectorAll('.demo-q button').forEach(function (b) { b.addEventListener('click', function () { montrerDemo(Number(b.getAttribute('data-q'))); }); });
   }
   if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl + (a.classList.contains('essai') ? '?essai' : ''); });
   var btns = document.querySelectorAll('.strip [data-step]');
