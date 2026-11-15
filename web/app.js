@@ -931,6 +931,7 @@
     if (open) { fermerPanneaux("#help"); $("#help").scrollIntoView({ block: "start", behavior: "smooth" }); }
   }
   $("#open-help").addEventListener("click", () => showHelp(true));
+  $("#open-visite").addEventListener("click", () => { $("#commis").hidden = true; visiteCommis(false); });
   $("#close-help").addEventListener("click", () => showHelp(false));
   $("#close-help-2").addEventListener("click", () => showHelp(false));
 
@@ -946,7 +947,22 @@
     const m = state.membres.find((x) => !estMoi(x) && memeContact(x, me.invite_par));
     return m ? prenom(m.nom) || null : null;
   }
+  // Visite guidée par le Commis en personne (avatar). Repli : la carte de bienvenue ci-dessous.
+  function visiteCommis(premiere) {
+    if (!window.CommisGuide) return false;
+    const me = moiMembre() || {}, nom = prenom(me.nom), parQui = invitePar(me);
+    const intro = premiere
+      ? (parQui ? `${parQui} vous a invité à partager l'épicerie de la maison. ` : "") + "Je tiens l'épicerie avec vous : ce que vous achetez, ce que vous avez, ce qui manque et ce qui est en rabais. Voici comment je travaille, en six petites étapes."
+      : "Voici comment je travaille, en six petites étapes.";
+    CommisGuide.ouvrir({
+      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: `Bienvenue${nom ? ", " + nom : ""}! Moi, c'est le Commis.`, texte: intro }].concat(CommisGuide.CONCEPTS),
+      fin: { titre: "À vous de jouer!", texte: "Commencez par photographier trois ou quatre produits que vous achetez souvent. La carte « Bien démarrer » vous guide ensuite. Une question? Touchez « Aide » en haut : je réponds.", bouton: "Commencer" },
+      onFermer: () => { lsSet(cleAccueil(), String(Date.now())); renderDemarrer(); window.scrollTo({ top: 0, behavior: "smooth" }); },
+    });
+    return true;
+  }
   function montrerBienvenue() {
+    if (visiteCommis(true)) return;
     const me = moiMembre() || {}, nom = prenom(me.nom), parQui = invitePar(me);
     const autres = state.membres.filter((x) => !estMoi(x)).map((x) => prenom(x.nom)).filter(Boolean);
     const box = $("#bienvenue");

@@ -117,7 +117,8 @@ export default {
     if (!prefix && (path.startsWith("/site/") || path === "/site" || path.startsWith("/console/") || path === "/console")) {
       return new Response("Introuvable", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
-    let file = prefix + path;
+    // Fichiers communs (ex. l'avatar du Commis) : servis tels quels sur toutes les adresses
+    let file = path.startsWith("/commun/") ? path : prefix + path;
     if (file.endsWith("/")) file += "index.html";
 
     const assetUrl = new URL(file, url.origin);

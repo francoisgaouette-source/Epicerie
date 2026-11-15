@@ -15,6 +15,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
 <script src="config.js"></script>
+<script src="/commun/commis-guide.js"></script>
 <style>
 :root {
   --vert-nuit: #173F2A;   /* le vert d'épicier, foncé pour les grands aplats */
@@ -322,6 +323,12 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 #demo-chat .e-btn { animation: apparait .25s ease-out .6s both; }
 @keyframes apparait { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { #demo-chat .bulle, #demo-chat .e-btn { animation: none; } }
+
+.visite-zone { margin-top: -6px; }
+.visite { display: inline-flex; align-items: center; gap: 10px; background: none; border: 0; color: #fff; font: 600 17px var(--body); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: rgba(255,255,255,.4); }
+.visite:hover { text-decoration-color: var(--etiquette); }
+.visite-av { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid var(--etiquette); flex: none; background: #DCEBDF; }
+.visite-av svg { width: 100%; height: 100%; display: block; }
 </style>
 </head>
 <body>
@@ -351,6 +358,8 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       <div class="ctas">
         <a class="btn main app-link essai" href="https://app.lecommis.ai/?essai">Essayer 30 jours gratuits</a>
         <a class="btn ghost" href="achat.html">Acheter · 19,99 $ par année</a>
+      </div>
+      <div class="ctas visite-zone"><button type="button" class="visite" id="visite"><span class="visite-av" id="visite-av"></span>Visite guidée avec le Commis · 1 min</button>
       </div>
       <p class="small"><a href="#economies" style="color:var(--etiquette);font-weight:600">Environ 510 $ d'économies par année</a> pour une famille, selon notre estimation. 30 jours complets, sans carte de crédit. Jusqu'à 4 personnes par foyer. Sur iPhone, Android et ordinateur. Fait au Québec, en français.</p>
     </div>
@@ -683,6 +692,26 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   if (chat) {
     montrerDemo(0);
     document.querySelectorAll('.demo-q button').forEach(function (b) { b.addEventListener('click', function () { montrerDemo(Number(b.getAttribute('data-q'))); }); });
+  }
+  // Le Commis en personne : visite guidée des concepts
+  function visite() {
+    if (!window.CommisGuide) return;
+    CommisGuide.ouvrir({
+      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: "Moi, c'est le Commis.", texte: "Je tiens l'épicerie de votre maison : ce que vous achetez, ce que vous avez, ce qui manque et ce qui est en rabais. Je vous montre comment je travaille, en six petites étapes." }].concat(CommisGuide.CONCEPTS),
+      fin: { titre: "Prêt à m'engager?", texte: "30 jours gratuits, sans carte de crédit. Ensuite, " + (c.prix || "19,99 $") + " par année pour toute la maison, jusqu'à 4 personnes.", bouton: "Essayer 30 jours gratuits",
+        action: function () { location.href = (c.appUrl || "https://app.lecommis.ai/") + "?essai"; } },
+      onFermer: function () { try { localStorage.setItem("commis.visite", "1"); } catch (e) {} }
+    });
+  }
+  if (window.CommisGuide) {
+    var va = document.getElementById('visite-av'); if (va) va.innerHTML = CommisGuide.avatar();
+    var vb = document.getElementById('visite'); if (vb) vb.addEventListener('click', visite);
+    var vu = null; try { vu = localStorage.getItem("commis.visite"); } catch (e) {}
+    if (!vu) setTimeout(function () {
+      if (document.querySelector('.cg-fond')) return;
+      CommisGuide.lanceur({ titre: "Bonjour! Je suis le Commis.", texte: "Je vous fais visiter en une minute?", bouton: "Faire la visite", ouvrir: visite,
+        onFermer: function () { try { localStorage.setItem("commis.visite", "1"); } catch (e) {} } });
+    }, 2500);
   }
   if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl + (a.classList.contains('essai') ? '?essai' : ''); });
   var btns = document.querySelectorAll('.strip [data-step]');
