@@ -9,7 +9,7 @@
   const DEFAULT_STORES = ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const CATS = ["Fruits et légumes", "Viandes et poissons", "Produits laitiers et œufs", "Boulangerie", "Épicerie sèche",
     "Surgelés", "Boissons", "Collations", "Hygiène et beauté", "Entretien ménager", "Autre"];
-  const state = { liste: [], listes: [], lieux: [], inv: [], spec: [], prod: [], espaces: [], panier: [], config: null, membres: [], email: null };
+  const state = { liste: [], listes: [], lieux: [], inv: [], spec: [], prod: [], espaces: [], panier: [], eco: [], config: null, membres: [], email: null };
   let openProd = null, search = "", channel = null, filtre = "tous";
   const surveilles = () => state.prod.filter((p) => p.surveiller);
 
@@ -181,7 +181,7 @@
     const c = state.config;
     $("#agent-info").innerHTML = c && c.derniere_verif
       ? `Dernière vérification : <b>${fmtDate(c.derniere_verif)}</b>${c.semaine ? ` · circulaires ${esc(c.semaine)}` : ""}${c.resume ? `<br>${esc(c.resume)}` : ""}`
-      : `L'agent vérifie les circulaires <b>chaque jeudi matin</b>. Les spéciaux des produits surveillés (★ dans le Catalogue) apparaîtront ici.`;
+      : `L'agent vérifie les circulaires <b>chaque jeudi matin</b>. Les spéciaux des produits surveillés (★ dans l'onglet Produits) apparaîtront ici.`;
     $("#list-spec").innerHTML = spec.length ? `<div class="deals">${spec.map((s) => {
       const inList = state.liste.some((i) => !i.fait && norm(i.nom) === norm(s.item));
       const pr = num(s.prix), rg = num(s.prix_reg);
@@ -195,8 +195,9 @@
           ${/^https?:\/\//.test(s.lien || "") ? `<a href="${esc(s.lien)}" target="_blank" rel="noopener">Voir la circulaire</a>` : ""}
         </div></div>`;
     }).join("")}</div>`
-      : emptyBox("Aucun spécial trouvé pour l'instant", surveilles().length ? `Aucun de vos ${surveilles().length} produits surveillés n'est en rabais dans les circulaires vérifiées.` : "Touchez l'étoile ★ d'un produit dans le Catalogue pour surveiller ses spéciaux.");
+      : emptyBox("Aucun spécial trouvé pour l'instant", surveilles().length ? `Aucun de vos ${surveilles().length} produits surveillés n'est en rabais dans les circulaires vérifiées.` : "Touchez l'étoile ★ d'un produit dans l'onglet Produits pour surveiller ses spéciaux.");
 
+    renderEco();
     renderProducts();
     renderMaison();
     if (state.userId) renderDemarrer();
@@ -240,11 +241,11 @@
     $("#c-produits").textContent = state.prod.length;
     const q = norm(search);
     const nSurv = state.prod.filter((p) => p.surveiller).length, nMaison = state.prod.filter((p) => Number(p.stock || 0) > 0).length;
-    $("#n-surv").textContent = nSurv; $("#n-maison").textContent = nMaison; $("#f-lieu-nom").textContent = state.lieux.length > 1 ? nomLieu() : "À la maison";
+    $("#n-surv").textContent = nSurv; $("#n-maison").textContent = nMaison; $("#f-lieu-nom").textContent = state.lieux.length > 1 ? nomLieu() : "En réserve";
     document.querySelectorAll("[data-filter]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filter === filtre)));
     const list = state.prod.filter((p) => (!q || norm([p.nom, p.marque, p.format, p.categorie].join(" ")).includes(q))
       && (filtre === "tous" || (filtre === "surv" && p.surveiller) || (filtre === "maison" && Number(p.stock || 0) > 0)));
-    if (!state.prod.length) { $("#list-prod").innerHTML = emptyBox("Le catalogue est vide", "Ajoutez vos produits habituels ci-dessus, ou ajoutez simplement des articles à la liste : ils s'inscriront ici."); return; }
+    if (!state.prod.length) { $("#list-prod").innerHTML = emptyBox("Aucun produit pour l'instant", "Ajoutez vos produits habituels ci-dessus, ou ajoutez simplement des articles à la liste : ils s'inscriront ici."); return; }
     if (!list.length) { $("#list-prod").innerHTML = filtre === "surv" && !q ? emptyBox("Aucun produit surveillé", "Touchez l'étoile ☆ à droite d'un produit pour que l'agent cherche ses spéciaux chaque jeudi.")
       : filtre === "maison" && !q ? emptyBox("Rien à la maison", "Les produits rangés dans un espace avec une réserve apparaîtront ici.")
       : emptyBox("Aucun produit trouvé", `Rien ne correspond à « ${esc(search)} ».`); return; }
@@ -297,7 +298,7 @@
   function choisirLieu(id) { lieuActif = id; try { localStorage.setItem("lieu-actif", id); } catch (e) {} appliquerLieu(); render(); }
   function renderLieux() {
     const act = idLieu(), ls = lieuxTries();
-    $("#tab-lieu-nom").textContent = ls.length > 1 ? nomLieu(act) : "Maison";
+    $("#tab-lieu-nom").textContent = "Lieu";
     $("#lieux-bar").innerHTML = ls.map((l) => `<button class="fchip" type="button" data-lieu="${l.id}" aria-pressed="${l.id === act}">${esc(l.nom)}</button>`).join("")
       + `<button class="fchip" type="button" data-lieu-new aria-label="Nouveau lieu">＋ Lieu</button>`;
     $("#f-nouveau-lieu").hidden = !lieuEnEdition;
@@ -308,7 +309,7 @@
         <button class="icon" type="button" data-lieumove="-1" data-id="${l.id}" aria-label="Monter" ${i === 0 ? "disabled" : ""}>↑</button>
         <button class="icon" type="button" data-lieumove="1" data-id="${l.id}" aria-label="Descendre" ${i === ls.length - 1 ? "disabled" : ""}>↓</button>
         ${ls.length > 1 ? `<button class="icon" type="button" data-lieudel="${l.id}" aria-label="Supprimer ${esc(l.nom)}">✕</button>` : ""}
-        ${lieuASupprimer === l.id ? `<div class="move-row del-row"><span class="hint">Supprimer « ${esc(l.nom)} », ses espaces et ses réserves ? Les produits restent dans le Catalogue.</span>
+        ${lieuASupprimer === l.id ? `<div class="move-row del-row"><span class="hint">Supprimer « ${esc(l.nom)} », ses espaces et ses réserves ? Les produits restent dans l'onglet Produits.</span>
           <div class="move-choices"><button class="chip-btn danger" type="button" data-lieudel-ok="${l.id}">Supprimer</button><button class="chip-btn muted" type="button" data-lieudel-annuler>Annuler</button></div></div>` : ""}
       </li>`).join("");
   }
@@ -367,6 +368,50 @@
         <button class="link muted" type="button" id="panier-vider">Tout ignorer</button></div>
     </div>`;
   }
+  // ---------- économies réalisées : notées quand on approuve une facture
+  const round2 = (x) => Math.round(x * 100) / 100;
+  // Prix de référence : le prix régulier d'un spécial en cours sur ce produit, sinon le prix habituel déjà connu dans ce magasin.
+  function economieDe(p, pu, magasin, date) {
+    if (!p || !(pu > 0)) return null;
+    const sp = state.spec.find((s) => !s.ignore && norm(s.item) === norm(p.nom) && num(s.prix_reg) > 0
+      && (!magasin || !s.magasin || norm(s.magasin) === norm(magasin))
+      && (!s.debut || s.debut <= date) && (!s.fin || s.fin >= date));
+    let ref = null, source = null;
+    if (sp && pu < num(sp.prix_reg)) { ref = num(sp.prix_reg); source = "special"; }
+    else {
+      const e = magasin && p.prix && p.prix[magasin], reg = e && num(e.reg);
+      if (reg && pu < reg) { ref = reg; source = "habituel"; }
+    }
+    // Écart trop petit, ou trop grand pour être vrai (facture mal lue) : on ne compte rien
+    if (!ref || ref - pu < 0.05 || pu < ref * 0.25) return null;
+    return { ref: round2(ref), source };
+  }
+  function renderEco() {
+    const box = $("#economies"); if (!box) return;
+    const an = String(new Date().getFullYear()), mois = today().slice(0, 7);
+    const somme = (l) => l.reduce((t, e) => t + (num(e.montant) || 0), 0);
+    const annee = state.eco.filter((e) => String(e.date_achat || "").startsWith(an));
+    const ceMois = annee.filter((e) => String(e.date_achat || "").startsWith(mois));
+    if (!state.eco.length) {
+      box.innerHTML = `<div class="eco vide"><div class="eco-titre">Économies réalisées</div>
+        <p class="hint">Lisez vos factures dans l'onglet Lieu : chaque article payé sous son prix régulier est noté ici, avec ce que vous avez économisé.</p></div>`;
+      return;
+    }
+    const recentes = [...state.eco].sort((a, b) => String(b.date_achat).localeCompare(String(a.date_achat)) || String(b.cree || "").localeCompare(String(a.cree || ""))).slice(0, 5);
+    box.innerHTML = `<div class="eco">
+      <div class="eco-titre">Économies réalisées</div>
+      <div class="eco-chiffres">
+        <div><span class="eco-val">${money(somme(ceMois))}</span><span class="eco-lbl">ce mois-ci</span></div>
+        <div><span class="eco-val">${money(somme(annee))}</span><span class="eco-lbl">en ${an}</span></div>
+        <div><span class="eco-val">${annee.length}</span><span class="eco-lbl">article${annee.length > 1 ? "s" : ""} sous le prix</span></div>
+      </div>
+      <details><summary>Derniers achats</summary><ul class="eco-liste">${recentes.map((e) => `<li>
+        <span>${esc(e.nom)}${e.magasin ? ` <span class="meta">· ${esc(e.magasin)}</span>` : ""}<br><span class="meta">${e.source === "special" ? "en spécial" : "sous le prix habituel"} · payé ${money(num(e.prix_paye))} au lieu de ${money(num(e.prix_ref))}${num(e.quantite) > 1 ? ` × ${fmtQ(e.quantite)}` : ""}</span></span>
+        <span class="eco-plus">−${money(num(e.montant))}</span></li>`).join("")}</ul>
+        <p class="hint">Calcul : prix régulier du spécial, ou prix habituel connu dans ce magasin, moins le prix payé sur la facture.</p></details>
+    </div>`;
+  }
+
   async function approuver(r) {
     const nom = (r.nom || "").trim(); if (!nom) { status("Donnez un nom à l'article avant de l'approuver."); return false; }
     const qte = Number(r.quantite) > 0 ? Number(r.quantite) : 1;
@@ -385,7 +430,15 @@
     if (!(await majInv(p.id, maj))) return false;
     Object.assign(p, maj);
     const pu = Number(r.prix_unitaire) > 0 ? Number(r.prix_unitaire) : (Number(r.prix_total) > 0 ? Number(r.prix_total) / qte : null);
-    if (pu && r.magasin && stores().includes(r.magasin)) {
+    const eco = economieDe(p, pu, r.magasin, r.date_achat || today());
+    if (eco) {
+      const ligne = { produit_id: p.id, nom: p.nom, magasin: r.magasin || null, date_achat: r.date_achat || today(), quantite: qte,
+        prix_paye: round2(pu), prix_ref: eco.ref, montant: round2((eco.ref - pu) * qte), source: eco.source };
+      const { error } = await sb.from("economies").insert(ligne);
+      if (error) console.error(error); else state.eco.push(ligne);
+    }
+    // Acheté en spécial : on garde le prix régulier connu (le prix habituel ne doit pas devenir le prix du spécial)
+    if (pu && r.magasin && stores().includes(r.magasin) && !(eco && eco.source === "special")) {
       await sb.rpc("maj_prix", { p_id: p.id, p_magasin: r.magasin, p_entree: { reg: Math.round(pu * 100) / 100, maj: r.date_achat || today(), par: "facture" } });
     }
     const it = state.liste.find((i) => !i.fait && norm(i.nom) === norm(p.nom));
@@ -623,7 +676,7 @@
                 <button class="chip-btn danger" type="button" data-effacer-ok="${p.id}">Supprimer complètement</button>
                 <button class="chip-btn muted" type="button" data-effacer-annuler>Annuler</button>
               </div>
-              <span class="hint">« Il n'y en a plus » le sort de la Maison mais le garde dans le Catalogue (prix, photo, espace habituel). « Supprimer complètement » l'efface du Catalogue aussi.</span></div>` : ""}</li>`).join("")}</ul>`
+              <span class="hint">« Il n'y en a plus » le retire du lieu mais le garde dans l'onglet Produits (prix, photo, espace habituel). « Supprimer complètement » l'efface de l'onglet Produits aussi.</span></div>` : ""}</li>`).join("")}</ul>`
           : `<p class="hint espace-vide">Rien en réserve ici pour l'instant.</p>`}
         </div>`;
       }).join("") || emptyBox("Aucun produit trouvé", `Rien ne correspond à « ${esc($("#in-msearch").value)} ».`);
@@ -693,13 +746,13 @@
       <div class="row-actions">
         <button class="link" type="button" data-tolist="${pid}">Ajouter à la liste</button>
         <button class="link" type="button" data-survtoggle="${pid}">${p.surveiller ? "★ Ne plus surveiller" : "☆ Surveiller les spéciaux"}</button>
-        <button class="link muted" type="button" data-del="produits" data-id="${pid}">Supprimer du catalogue</button>
+        <button class="link muted" type="button" data-del="produits" data-id="${pid}">Supprimer des produits</button>
       </div>
     </div>`;
   }
 
   // ---------- data
-  const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier", listes: "listes", lieux: "lieux", inventaire: "inv" };
+  const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier", listes: "listes", lieux: "lieux", inventaire: "inv", economies: "eco" };
   async function load(table) {
     if (table === "foyers") {
       const { data } = await sb.from("foyers").select("*").maybeSingle();
@@ -725,7 +778,7 @@
     if (table === "produits" || table === "lieux") appliquerLieu();
   }
   async function loadAll() {
-    await Promise.all(["epicerie", "produits", "espaces", "panier", "listes", "lieux", "inventaire", "config"].map(load).concat(
+    await Promise.all(["epicerie", "produits", "espaces", "panier", "listes", "lieux", "inventaire", "config", "economies"].map(load).concat(
       sb.from("speciaux").select("*").limit(2000).then(({ data }) => { state.spec = data || []; })));
     render();
   }
@@ -742,7 +795,7 @@
   function subscribe() {
     if (channel) sb.removeChannel(channel);
     channel = sb.channel("epicerie-live");
-    ["epicerie", "speciaux", "produits", "espaces", "panier", "listes", "lieux", "inventaire", "config", "membres", "foyers"].forEach((t) =>
+    ["epicerie", "speciaux", "produits", "espaces", "panier", "listes", "lieux", "inventaire", "config", "membres", "foyers", "economies"].forEach((t) =>
       channel.on("postgres_changes", { event: "*", schema: "public", table: t }, () => scheduleReload(t)));
     channel.subscribe();
   }
@@ -903,8 +956,8 @@
       <h1 id="bv-title">Bienvenue${nom ? ", " + esc(nom) : ""}.</h1>
       <p class="bv-lead">${parQui ? esc(parQui) + " vous a invité" + " à partager l'épicerie de la maison." : "Vous partagez maintenant l'épicerie de la maison."} Tout ce que vous ajoutez apparaît aussitôt chez les autres.</p>
       <ol class="bv-tabs">
-        <li><b>Catalogue</b><span>Tous vos produits. Photographiez-en un pour l'ajouter. L'étoile ★ surveille ses spéciaux.</span></li>
-        <li><b>Maison</b><span>Ce que vous avez, rangé par espace, avec les dates de péremption.</span></li>
+        <li><b>Produits</b><span>Tous vos produits. Photographiez-en un pour l'ajouter. L'étoile ★ surveille ses spéciaux.</span></li>
+        <li><b>Lieu</b><span>Ce que vous avez, rangé par espace, avec les dates de péremption.</span></li>
         <li><b>Liste épicerie</b><span>Ce qu'il faut acheter. Cochez en magasin.</span></li>
         <li><b>Spéciaux</b><span>Chaque jeudi, les rabais sur vos produits ★.</span></li>
       </ol>
@@ -940,10 +993,10 @@
     return [
       { k: "ecran", done: installee() || lsGet("demarrer.ecran") === "1", t: "Mettez l'app sur votre écran d'accueil", d: "Elle s'ouvre comme une vraie app, et le rappel du soir peut vous joindre.", b: "Comment", act: montrerEcran },
       { k: "rappel", done: rappelActif, t: "Activez le rappel de 21 h", d: "Chaque soir, l'app vous demande ce qui a été consommé.", b: "Activer", act: () => activerRappel() },
-      { k: "produits", done: nProd >= 5, t: "Ajoutez vos produits habituels", d: nProd ? `${nProd} produit${nProd > 1 ? "s" : ""} au catalogue. Visez-en au moins 5. Le plus rapide : la photo.` : "Le plus rapide : touchez l'appareil photo et photographiez un produit.", b: "Photographier", act: () => { showView("produits"); $("#in-pphoto").click(); } },
-      { k: "maison", done: nMaison >= 1, t: "Rangez ce que vous avez à la maison", d: "Dans le Catalogue, touchez un produit : choisissez son espace et mettez sa réserve avec +. Ou lisez votre dernière facture.", b: "Maison", act: () => showView("maison") },
+      { k: "produits", done: nProd >= 5, t: "Ajoutez vos produits habituels", d: nProd ? `${nProd} produit${nProd > 1 ? "s" : ""} dans vos produits. Visez-en au moins 5. Le plus rapide : la photo.` : "Le plus rapide : touchez l'appareil photo et photographiez un produit.", b: "Photographier", act: () => { showView("produits"); $("#in-pphoto").click(); } },
+      { k: "maison", done: nMaison >= 1, t: "Rangez ce que vous avez à la maison", d: "Dans l'onglet Produits, touchez un produit : choisissez son espace et mettez sa réserve avec +. Ou lisez votre dernière facture.", b: "Lieu", act: () => showView("maison") },
       { k: "liste", done: nListe >= 1, t: "Commencez la liste d'épicerie", d: "Ajoutez ce qui manque. Les autres le voient aussitôt.", b: "Liste", act: () => { showView("liste"); setTimeout(() => $("#in-liste").focus(), 50); } },
-      { k: "surv", done: nSurv >= 1, t: "Surveillez un spécial", d: "Dans le Catalogue, touchez l'étoile ☆ d'un produit que vous achetez souvent.", b: "Catalogue", act: () => { showView("produits"); filtre = "tous"; renderProducts(); } },
+      { k: "surv", done: nSurv >= 1, t: "Surveillez un spécial", d: "Dans l'onglet Produits, touchez l'étoile ☆ d'un produit que vous achetez souvent.", b: "Produits", act: () => { showView("produits"); filtre = "tous"; renderProducts(); } },
     ];
   }
   function renderDemarrer() {
@@ -1021,7 +1074,7 @@
   });
 
   // ---------- le Commis : l'agent qui répond aux questions
-  const ECRANS = { produits: "Catalogue", maison: "Maison", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet" };
+  const ECRANS = { produits: "Produits", maison: "Lieu", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet" };
   const commis = { msgs: [], busy: false };
   function allerA(k) {
     $("#commis").hidden = true;
@@ -1241,7 +1294,7 @@
     if (!catPhoto) return;
     const nom = $("#in-pnom").value.trim(), b = $("#ppending-add");
     b.disabled = catPhoto.busy || !nom;
-    b.textContent = catPhoto.busy ? "Identification…" : nom ? `Ajouter « ${nom} » au catalogue` : "Écrivez le nom ci-dessus";
+    b.textContent = catPhoto.busy ? "Identification…" : nom ? `Ajouter « ${nom} » aux produits` : "Écrivez le nom ci-dessus";
   }
   $("#in-pnom").addEventListener("input", majCatBtn);
   $("#ppending-add").addEventListener("click", () => $("#f-prod").requestSubmit());
@@ -1287,14 +1340,14 @@
     const existant = state.prod.find((p) => norm(p.nom) === norm(nom));
     if (existant) {
       if (ph && !existant.photo) {
-        if (await run(sb.from("produits").update({ photo: ph }).eq("id", existant.id), `« ${nom} » était déjà dans le catalogue : photo ajoutée.`)) scheduleReload("produits");
-      } else status(`« ${nom} » est déjà dans le catalogue.`);
+        if (await run(sb.from("produits").update({ photo: ph }).eq("id", existant.id), `« ${nom} » était déjà dans vos produits : photo ajoutée.`)) scheduleReload("produits");
+      } else status(`« ${nom} » est déjà dans vos produits.`);
       showCatPhoto(null); $("#in-pnom").value = ""; $("#in-pformat").value = ""; return;
     }
     const row = { nom, format, categorie };
     if (ph) { row.photo = ph; if (id.marque && norm(id.nom) === norm(nom)) row.marque = id.marque; }
     $("#in-pnom").value = ""; $("#in-pformat").value = ""; $("#in-pcat").value = "Autre"; showCatPhoto(null); focusIfDesktop($("#in-pnom"));
-    if (await run(sb.from("produits").insert(row), `« ${nom} » ajouté au catalogue.`)) scheduleReload("produits");
+    if (await run(sb.from("produits").insert(row), `« ${nom} » ajouté à vos produits.`)) scheduleReload("produits");
   });
   $("#in-search").addEventListener("input", (e) => { search = e.target.value; renderProducts(); });
 
@@ -1390,7 +1443,7 @@
     if (rm) {
       const p = state.prod.find((x) => x.id === rm.dataset.retirerMaison); delOpen = null; if (!p) return;
       p.stock = 0; p.peremption = null; render();
-      if (await majInv(p.id, { stock: 0, peremption: null })) status(`« ${p.nom} » est épuisé; il reste dans le Catalogue.`);
+      if (await majInv(p.id, { stock: 0, peremption: null })) status(`« ${p.nom} » est épuisé; il reste dans l'onglet Produits.`);
       return;
     }
     const eo = e.target.closest("[data-effacer-ok]");

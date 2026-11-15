@@ -349,3 +349,15 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 .login-oubli{align-self:center;margin-top:2px}
 .login-nouveau{display:flex;flex-direction:column;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);text-align:center}
 .login-nouveau span{font-weight:600}
+
+/* Économies réalisées (onglet Spéciaux) */
+.eco{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--tag);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.eco-titre{font-family:var(--f-display);font-weight:800;font-size:1.1rem}
+.eco.vide .hint{margin:0}
+.eco-chiffres{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.eco-chiffres > div{display:flex;flex-direction:column;gap:2px}
+.eco-val{font:500 1.35rem var(--f-mono);color:var(--accent);font-variant-numeric:tabular-nums}
+.eco-lbl{font-size:.78rem;color:var(--muted)}
+.eco-liste{list-style:none;margin:8px 0 0;padding:0}
+.eco-liste li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.eco-plus{font:500 .95rem var(--f-mono);color:var(--accent);white-space:nowrap}
