@@ -368,3 +368,14 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 
 /* Place pour le visage de Rosalie, toujours dans le coin */
 #app{padding-bottom:96px}
+
+/* Corriger un article de la liste */
+.list .main.editable{cursor:pointer;border-radius:8px}
+.list .main.editable:hover .name{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.list .main.editable:focus-visible{outline:3px solid var(--tag);outline-offset:2px}
+.edit-item{display:block!important;background:var(--soft);border-radius:12px;padding:12px!important}
+.f-edit-liste{display:flex;flex-direction:column;gap:6px}
+.f-edit-liste input,.f-edit-liste select{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.f-edit-liste .el-ligne{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.f-edit-liste .el-ligne > div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f-edit-liste .mf{flex:none;display:block}

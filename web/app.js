@@ -11,6 +11,7 @@
     "Surgelés", "Boissons", "Collations", "Hygiène et beauté", "Entretien ménager", "Autre"];
   const state = { liste: [], listes: [], lieux: [], inv: [], spec: [], prod: [], espaces: [], panier: [], eco: [], config: null, membres: [], email: null };
   let openProd = null, search = "", channel = null, filtre = "tous";
+  let editListe = null, brouillonListe = null; // article de la liste en cours de correction
   const surveilles = () => state.prod.filter((p) => p.surveiller);
 
   // ---------- utils
@@ -158,10 +159,22 @@
         const by = nameOf(i.par); const p = pm.get(norm(i.nom)); const b = p && bestOf(p);
         const onSale = saleNames.has(norm(i.nom)) || (b && b.special);
         const ph = photoOf(i, pm);
+        if (i.id === editListe && brouillonListe) {
+          const d = brouillonListe, autres = listesTriees();
+          return `<li class="edit-item"><form class="f-edit-liste" data-id="${i.id}">
+            <label class="mf" for="el-nom">Article</label>
+            <input id="el-nom" data-el="nom" value="${esc(d.nom)}" required maxlength="80" autocomplete="off">
+            <div class="el-ligne">
+              <div><label class="mf" for="el-qte">Quantité</label><input id="el-qte" data-el="qte" value="${esc(d.qte)}" maxlength="20" placeholder="ex. 2, 1 kg" autocomplete="off"></div>
+              ${autres.length > 1 ? `<div><label class="mf" for="el-liste">Liste</label><select id="el-liste" data-el="liste_id">${autres.map((l) => `<option value="${l.id}" ${l.id === d.liste_id ? "selected" : ""}>${esc(l.nom)}</option>`).join("")}</select></div>` : ""}
+            </div>
+            <div class="row-actions"><button class="btn" type="submit">Enregistrer</button><button class="link muted" type="button" data-el-annuler>Annuler</button></div>
+          </form></li>`;
+        }
         return `<li class="${i.fait ? "done" : ""}">
           <input type="checkbox" class="check" id="chk-${i.id}" data-id="${i.id}" ${i.fait ? "checked" : ""} aria-label="Acheté : ${esc(i.nom)}">
           ${thumb(ph, i.nom)}
-          <div class="main"><div class="name">${esc(i.nom)}${i.qte ? ` <span class="meta">× ${esc(i.qte)}</span>` : ""}${onSale ? '<span class="sale">en spécial</span>' : ""}</div>
+          <div class="main editable" data-editliste="${i.id}" role="button" tabindex="0" aria-label="Corriger ${esc(i.nom)}"><div class="name">${esc(i.nom)}${i.qte ? ` <span class="meta">× ${esc(i.qte)}</span>` : ""}${onSale ? '<span class="sale">en spécial</span>' : ""}</div>
           <div class="meta">${b ? `Meilleur prix : <span class="mono">${money(b.val)}</span> chez ${esc(b.store)}` : ""}${b && by ? " · " : ""}${by ? `ajouté par ${esc(by)}` : ""}</div></div>
           <button class="icon" data-del="epicerie" data-id="${i.id}" aria-label="Supprimer ${esc(i.nom)}">✕</button></li>`;
       }).join("")}</ul>`;
@@ -1027,7 +1040,7 @@
       <ol class="onb-list">${st.map((x) => `<li class="${x.done ? "done" : x === next ? "next" : ""}"><span class="onb-dot">${x.done ? "✓" : ""}</span>
         <div class="main"><b>${esc(x.t)}</b>${x === next ? `<small>${esc(x.d)}</small>` : ""}</div>
         ${x.done ? "" : `<button class="${x === next ? "btn small" : "onb-more"}" type="button" data-onb="${x.k}" aria-label="${esc(x.b)}">${x === next ? esc(x.b) : "›"}</button>`}</li>`).join("")}</ol>
-      <p class="hint onb-foot">Une question ? <button class="link" type="button" data-onb-commis>Demandez au Commis</button> · <button class="link muted" type="button" data-onb-masquer>Masquer</button></p>
+      <p class="hint onb-foot">Une question ? <button class="link" type="button" data-onb-commis>Demandez à Rosalie</button> · <button class="link muted" type="button" data-onb-masquer>Masquer</button></p>
     </section>`;
   }
   $("#demarrer").addEventListener("click", (e) => {
@@ -1579,7 +1592,36 @@
     status(`Lieu « ${nom} » créé avec un garde-manger, un réfrigérateur et un congélateur. Modifiez ses espaces dans « Gérer les espaces ».`);
   });
 
+  // Corriger un article de la liste : toucher son nom
+  function ouvrirEditListe(id) {
+    const i = state.liste.find((x) => x.id === id); if (!i) return;
+    editListe = id; brouillonListe = { nom: i.nom || "", qte: i.qte || "", liste_id: i.liste_id || idListeActive() };
+    render(); setTimeout(() => { const n = $("#el-nom"); if (n) { n.focus(); n.select(); } }, 30);
+  }
+  function fermerEditListe() { editListe = null; brouillonListe = null; render(); }
+  $("#v-liste").addEventListener("input", (e) => { const f = e.target.dataset && e.target.dataset.el; if (f && brouillonListe) brouillonListe[f] = e.target.value; });
+  $("#v-liste").addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && editListe) { fermerEditListe(); return; }
+    const m = e.target.closest && e.target.closest("[data-editliste]");
+    if (m && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); ouvrirEditListe(m.dataset.editliste); }
+  });
+  $("#v-liste").addEventListener("submit", async (e) => {
+    const f = e.target.closest(".f-edit-liste"); if (!f) return;
+    e.preventDefault();
+    const d = brouillonListe || {}, nom = (d.nom || "").trim();
+    if (!nom) { status("Donnez un nom à l'article."); return; }
+    const maj = { nom, qte: (d.qte || "").trim() || null };
+    if (d.liste_id) maj.liste_id = d.liste_id;
+    const id = f.dataset.id, ancien = state.liste.find((x) => x.id === id);
+    if (ancien) Object.assign(ancien, maj);
+    editListe = null; brouillonListe = null; render();
+    const ailleurs = maj.liste_id && maj.liste_id !== idListeActive();
+    await run(sb.from("epicerie").update(maj).eq("id", id), ailleurs ? `« ${nom} » déplacé dans « ${nomListe(maj.liste_id)} ».` : `« ${nom} » corrigé.`);
+    scheduleReload("epicerie");
+  });
   $("#v-liste").addEventListener("click", async (e) => {
+    if (e.target.closest("[data-el-annuler]")) { fermerEditListe(); return; }
+    const ed = e.target.closest("[data-editliste]"); if (ed) { ouvrirEditListe(ed.dataset.editliste); return; }
     const c = e.target.closest("[data-liste]"); if (c) return choisirListe(c.dataset.liste);
     if (e.target.closest("[data-liste-new]")) { listeEnEdition = !listeEnEdition; renderListes(); if (listeEnEdition) setTimeout(() => $("#in-nouvelle-liste").focus(), 30); return; }
     const mv = e.target.closest("[data-listemove]");
@@ -1601,6 +1643,7 @@
     }
   });
   $("#v-liste").addEventListener("change", async (e) => {
+    if (e.target.dataset && e.target.dataset.el && brouillonListe) { brouillonListe[e.target.dataset.el] = e.target.value; return; }
     const n = e.target.closest("[data-listenom]"); if (!n) return;
     const v = n.value.trim(); if (!v) return;
     await run(sb.from("listes").update({ nom: v }).eq("id", n.dataset.listenom), "Liste renommée."); scheduleReload("listes");
