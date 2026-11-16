@@ -692,7 +692,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
   }
   if (chat) {
     montrerDemo(0);
-    document.querySelectorAll('.demo-q button').forEach(function (b) { b.addEventListener('click', function () { montrerDemo(Number(b.getAttribute('data-q'))); }); });
+    document.querySelectorAll('.demo-q button').forEach(function (b) { b.addEventListener('click', function () { var i = Number(b.getAttribute('data-q')); montrerDemo(i); if (window.CommisGuide) CommisGuide.parler(DEMO[i][1], document.getElementById('demo-av')); }); });
   }
   // Le Commis en personne : visite guidée des concepts
   function visite() {

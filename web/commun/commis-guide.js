@@ -77,6 +77,8 @@
 .cg-btn.cg-plein{background:#1F5B3A;color:#fff}
 .cg-btn.cg-jaune{background:#F2C230;border-color:#F2C230;color:#2A2000}
 .cg-btn:focus-visible,.cg-lien:focus-visible{outline:3px solid #F2C230;outline-offset:2px}
+.cg-voix{background:#fff;border:1.5px solid #DCDFD8;border-radius:10px;min-width:46px;min-height:46px;font-size:20px;cursor:pointer}
+.cg-voix:focus-visible{outline:3px solid #F2C230;outline-offset:2px}
 .cg-lien{background:none;border:0;color:#59635C;font:500 15px 'Familjen Grotesk',system-ui,sans-serif;text-decoration:underline;cursor:pointer;padding:6px 2px}
 .cg-yeux{transform-origin:100px 96px;animation:cg-cligne 4.5s infinite}
 .cg-parle .cg-bouche{transform-origin:100px 116px;animation:cg-parle .22s ease-in-out infinite alternate}
@@ -89,6 +91,7 @@
 @keyframes cg-in{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.cg-yeux,.cg-tete,.cg-parle .cg-bouche,.cg-salue .cg-bras,.cg-fond{animation:none}}
 .cg-lanceur{position:fixed;right:16px;bottom:16px;z-index:900;display:flex;align-items:flex-end;gap:8px;max-width:calc(100vw - 32px)}
+.cg-lanceur .cg-mini.cg-parle .cg-bouche,.cg-lanceur .cg-mini .cg-parle .cg-bouche{transform-origin:100px 116px;animation:cg-parle .22s ease-in-out infinite alternate}
 .cg-lanceur .cg-mini{width:72px;height:72px;border-radius:50%;border:3px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.25);background:#DCEBDF;padding:0;cursor:pointer;flex:none;overflow:hidden}
 .cg-lanceur .cg-mini svg{width:100%;height:100%}
 .cg-lanceur[hidden],.cg-lanceur .cg-dit[hidden]{display:none}
@@ -101,6 +104,41 @@ body:has(.cg-fond) .cg-lanceur{display:none}
 .cg-lanceur .cg-dit button.cg-go{all:unset;cursor:pointer;color:#1F5B3A;font-weight:600;text-decoration:underline;margin-top:4px;display:inline-block}
 .cg-lanceur .cg-ferme{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;border:0;background:#1D2520;color:#fff;font-size:13px;cursor:pointer;line-height:24px;padding:0}
 `;
+
+
+  // ---------- La voix de Rosalie : synthèse vocale du téléphone (gratuite), une voix féminine française, québécoise si possible
+  const VOIX_CLE = "rosalie.voix";
+  const peutParler = typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined";
+  const HOMMES = /thomas|nicolas|daniel|f[ée]lix|jacques|henri|paul|mathieu|antoine|guillaume|yannick|olivier|male|homme/i;
+  const FEMMES = /am[ée]lie|aur[ée]lie|audrey|marie|julie|sylvie|chantal|caroline|claire|c[ée]line|virginie|denise|hortense|sandrine|ava|femme|female|google fran[cç]ais canadien/i;
+  let voixChoisie = null;
+  function choisirVoix() {
+    if (!peutParler) return null;
+    const v = speechSynthesis.getVoices().filter((x) => /^fr/i.test(x.lang));
+    if (!v.length) return null;
+    const note = (x) => (/fr[-_]CA/i.test(x.lang) ? 4 : 0) + (FEMMES.test(x.name) ? 3 : 0) - (HOMMES.test(x.name) ? 5 : 0) + (x.localService ? 1 : 0);
+    voixChoisie = v.sort((a, b) => note(b) - note(a))[0];
+    return voixChoisie;
+  }
+  if (peutParler) { choisirVoix(); speechSynthesis.addEventListener && speechSynthesis.addEventListener("voiceschanged", choisirVoix); }
+  function voixActive() { if (!peutParler) return false; try { return localStorage.getItem(VOIX_CLE) !== "0"; } catch (e) { return true; } }
+  function activerVoix(oui) { try { localStorage.setItem(VOIX_CLE, oui ? "1" : "0"); } catch (e) {} if (!oui) taireVoix(); document.querySelectorAll("[data-cg-voix]").forEach(majBoutonVoix); }
+  function majBoutonVoix(b) { const on = voixActive(); b.textContent = on ? "🔊" : "🔇"; b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-label", on ? "Couper la voix de Rosalie" : "Faire parler Rosalie"); b.title = b.getAttribute("aria-label"); }
+  // Lit le texte à voix haute; « perso » est l'élément de l'avatar dont la bouche bouge pendant qu'elle parle
+  function parler(texte, perso) {
+    if (!voixActive() || !texte) return false;
+    const propre = String(texte).replace(/\[\[[^\]]*\]\]/g, "").replace(/[★☆✕＋→·]/g, " ").replace(/\s+/g, " ").trim();
+    if (!propre) return false;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(propre);
+    const v = voixChoisie || choisirVoix();
+    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "fr-CA";
+    u.rate = 1.02; u.pitch = 1.08;
+    if (perso) { u.onstart = () => perso.classList.add("cg-parle"); u.onend = u.onerror = () => perso.classList.remove("cg-parle"); }
+    try { speechSynthesis.speak(u); } catch (e) { return false; }
+    return true;
+  }
+  function taireVoix() { if (peutParler) speechSynthesis.cancel(); }
 
   let styleOk = false;
   function style() {
@@ -121,6 +159,7 @@ body:has(.cg-fond) .cg-lanceur{display:none}
         <div class="cg-bulle" aria-live="polite"><div class="cg-contenu"></div></div></div>
       <div class="cg-points" aria-hidden="true">${etapes.map(() => "<span></span>").join("")}</div>
       <div class="cg-actions">
+        ${peutParler ? '<button type="button" class="cg-voix" data-cg-voix></button>' : ""}
         <button type="button" class="cg-lien" data-cg="passer">Passer la visite</button>
         <button type="button" class="cg-btn" data-cg="prec">Précédent</button>
         <button type="button" class="cg-btn cg-plein" data-cg="suiv">Suivant</button>
@@ -139,14 +178,17 @@ body:has(.cg-fond) .cg-lanceur{display:none}
       bPasser.hidden = !!e.estFin;
       bSuiv.textContent = e.estFin ? (e.bouton || "Terminer") : (i === 0 ? "Allons-y" : "Suivant");
       bSuiv.classList.toggle("cg-jaune", !!e.estFin);
-      // Le Commis parle le temps de « dire » la bulle
-      perso.classList.add("cg-parle"); clearTimeout(minuterie);
-      minuterie = setTimeout(() => perso.classList.remove("cg-parle"), Math.min(4000, 600 + (e.texte || "").length * 22));
+      // Rosalie lit la bulle à voix haute (sinon sa bouche bouge le temps de la « dire »)
+      clearTimeout(minuterie);
+      if (!parler(e.titre + ". " + e.texte, perso)) {
+        perso.classList.add("cg-parle");
+        minuterie = setTimeout(() => perso.classList.remove("cg-parle"), Math.min(4000, 600 + (e.texte || "").length * 22));
+      }
       if (i > 0) perso.classList.remove("cg-salue");
       bSuiv.focus();
     }
     function fermer(fini) {
-      clearTimeout(minuterie);
+      clearTimeout(minuterie); taireVoix();
       document.removeEventListener("keydown", clavier, true);
       fond.remove(); document.body.style.overflow = ancienOverflow;
       if (avant && avant.focus) try { avant.focus(); } catch (x) {}
@@ -172,6 +214,8 @@ body:has(.cg-fond) .cg-lanceur{display:none}
       i++; montrer();
     };
     fond.addEventListener("click", (ev) => { if (ev.target === fond) fermer(false); });
+    const bv = fond.querySelector("[data-cg-voix]");
+    if (bv) { majBoutonVoix(bv); bv.onclick = () => { const on = !voixActive(); activerVoix(on); if (on) { const e = etapes[i]; parler(e.titre + ". " + e.texte, perso); } }; }
     montrer();
     return { fermer };
   }
@@ -191,13 +235,16 @@ body:has(.cg-fond) .cg-lanceur{display:none}
     const dit = box.querySelector(".cg-dit"), mini = box.querySelector(".cg-mini");
     let minuterie = null;
     mini.onclick = () => { taire(); if (opts.surFace) opts.surFace(); };
-    function taire() { clearTimeout(minuterie); dit.hidden = true; dit.innerHTML = ""; mini.classList.remove("cg-parle"); }
+    function taire() { clearTimeout(minuterie); taireVoix(); dit.hidden = true; dit.innerHTML = ""; mini.classList.remove("cg-parle"); }
     function dire(m) {
       clearTimeout(minuterie);
       dit.innerHTML = `<button type="button" class="cg-ferme" aria-label="Fermer">✕</button><b>${esc(m.titre || "")}</b>${esc(m.texte || "")}` +
         (m.bouton ? `<br><button type="button" class="cg-go">${esc(m.bouton)}</button>` : "");
       dit.hidden = false;
-      mini.classList.add("cg-parle"); setTimeout(() => mini.classList.remove("cg-parle"), Math.min(3500, 600 + (m.texte || "").length * 22));
+      const geste = !navigator.userActivation || navigator.userActivation.hasBeenActive;
+      if (!(m.parler !== false && geste && parler((m.titre || "") + " " + (m.texte || ""), mini))) {
+        mini.classList.add("cg-parle"); setTimeout(() => mini.classList.remove("cg-parle"), Math.min(3500, 600 + (m.texte || "").length * 22));
+      }
       dit.querySelector(".cg-ferme").onclick = () => { taire(); if (m.onFermer) m.onFermer(); };
       const go = dit.querySelector(".cg-go"); if (go) go.onclick = () => { taire(); if (m.action) m.action(); };
       if (m.duree) minuterie = setTimeout(taire, m.duree);
@@ -230,5 +277,5 @@ body:has(.cg-fond) .cg-lanceur{display:none}
       texte: "Une seule question chaque soir : qu'avez-vous utilisé aujourd'hui? Un toucher par produit, et l'inventaire reste juste." },
   ];
 
-  window.CommisGuide = { ouvrir, lanceur, presence, avatar: () => AVATAR, CONCEPTS };
+  window.CommisGuide = { ouvrir, lanceur, presence, avatar: () => AVATAR, CONCEPTS, parler, taireVoix, voixActive, activerVoix, peutParler, majBoutonVoix };
 })();

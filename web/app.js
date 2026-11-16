@@ -1136,6 +1136,7 @@
   }
   function renderCommis() {
     const av = $("#commis-av"); if (av && window.CommisGuide && !av.dataset.ok) { av.innerHTML = CommisGuide.avatar(); av.dataset.ok = "1"; }
+    const bv = $("#voix-commis"); if (bv && window.CommisGuide && CommisGuide.peutParler) { bv.hidden = false; CommisGuide.majBoutonVoix(bv); }
     const nom = prenom((moiMembre() || {}).nom);
     if (!commis.msgs.length) commis.msgs.push({ role: "assistant", content: `Bonjour${nom ? " " + nom : ""} ! Moi, c'est Rosalie, votre commis. Posez-moi vos questions sur l'app : ajouter un produit, ranger la maison, la liste, les spéciaux…` });
     $("#commis-log").innerHTML = commis.msgs.map(msgHtml).join("") + (commis.busy ? '<div class="cad-msg bot busy">…</div>' : "");
@@ -1162,10 +1163,17 @@
       if (!error && data && data.text && posee) sb.from("console_questions").insert({ app: "commis", question: String(posee.content).slice(0, 2000), reponse: String(data.text).slice(0, 4000), contexte: String(contexte.onglet || "").slice(0, 200) }).then(() => {}, () => {});
     } catch (e) { commis.msgs.push({ role: "assistant", content: "Pas de réseau pour l'instant. Réessayez dans un moment." }); }
     commis.busy = false; renderCommis();
+    const dern = commis.msgs[commis.msgs.length - 1];
+    if (window.CommisGuide && dern && dern.role === "assistant" && !$("#commis").hidden) CommisGuide.parler(dern.content, $("#commis-av"));
     if (!desktop) $("#in-commis").blur();
   }
   $("#open-commis").addEventListener("click", () => ($("#commis").hidden ? ouvrirCommis() : ($("#commis").hidden = true)));
-  $("#close-commis").addEventListener("click", () => { $("#commis").hidden = true; });
+  $("#close-commis").addEventListener("click", () => { $("#commis").hidden = true; if (window.CommisGuide) CommisGuide.taireVoix(); });
+  $("#voix-commis").addEventListener("click", () => {
+    const on = !CommisGuide.voixActive(); CommisGuide.activerVoix(on);
+    const dern = [...commis.msgs].reverse().find((m) => m.role === "assistant");
+    if (on && dern) CommisGuide.parler(dern.content, $("#commis-av"));
+  });
   $("#f-commis").addEventListener("submit", (e) => { e.preventDefault(); const q = $("#in-commis").value.trim(); if (!q || commis.busy) return; $("#in-commis").value = ""; demanderCommis(q); });
   $("#commis").addEventListener("click", (e) => {
     const g = e.target.closest("[data-cadgo]"); if (g) return allerA(g.dataset.cadgo);
