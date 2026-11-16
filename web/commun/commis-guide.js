@@ -109,9 +109,9 @@ body:has(.cg-fond) .cg-lanceur{display:none}
   // ---------- La voix de Rosalie : synthèse vocale du téléphone (gratuite), une voix féminine française, québécoise si possible
   const VOIX_CLE = "rosalie.voix";
   const peutParler = typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined";
-  const HOMMES = /thomas|nicolas|daniel|f[ée]lix|jacques|henri|paul|mathieu|antoine|guillaume|yannick|olivier|male|homme/i;
+  const HOMMES = /thomas|claude|jean|alain|r[ée]my|nicolas|daniel|f[ée]lix|jacques|henri|paul|mathieu|antoine|guillaume|yannick|olivier|male|homme/i;
   const FEMMES = /am[ée]lie|aur[ée]lie|audrey|marie|julie|sylvie|chantal|caroline|claire|c[ée]line|virginie|denise|hortense|sandrine|ava|femme|female|google fran[cç]ais canadien/i;
-  let voixChoisie = null;
+  let voixChoisie = null, parleEnCours = [], numLot = 0;
   function choisirVoix() {
     if (!peutParler) return null;
     const v = speechSynthesis.getVoices().filter((x) => /^fr/i.test(x.lang));
@@ -129,16 +129,29 @@ body:has(.cg-fond) .cg-lanceur{display:none}
     if (!voixActive() || !texte) return false;
     const propre = String(texte).replace(/\[\[[^\]]*\]\]/g, "").replace(/[★☆✕＋→·]/g, " ").replace(/\s+/g, " ").trim();
     if (!propre) return false;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(propre);
+    const enCours = speechSynthesis.speaking || speechSynthesis.pending;
+    if (enCours) speechSynthesis.cancel();
+    // Phrase par phrase : Chrome coupe les longs textes après ~15 s
+    const morceaux = propre.match(/[^.!?]+[.!?]*/g) || [propre];
     const v = voixChoisie || choisirVoix();
-    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "fr-CA";
-    u.rate = 1.02; u.pitch = 1.08;
-    if (perso) { u.onstart = () => perso.classList.add("cg-parle"); u.onend = u.onerror = () => perso.classList.remove("cg-parle"); }
-    try { speechSynthesis.speak(u); } catch (e) { return false; }
+    const lot = ++numLot;
+    parleEnCours = morceaux.map((m, k) => {
+      const u = new SpeechSynthesisUtterance(m.trim());
+      if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "fr-CA";
+      u.rate = 1.02; u.pitch = 1.08;
+      if (perso) {
+        if (k === 0) u.onstart = () => perso.classList.add("cg-parle");
+        if (k === morceaux.length - 1) u.onend = () => perso.classList.remove("cg-parle");
+        u.onerror = () => perso.classList.remove("cg-parle");
+      }
+      return u;
+    });
+    const lancer = () => { if (lot !== numLot) return; try { speechSynthesis.resume(); parleEnCours.forEach((u) => speechSynthesis.speak(u)); } catch (e) {} };
+    // Chrome perd parfois la phrase dite juste après un arrêt : petite pause
+    if (enCours) setTimeout(lancer, 120); else lancer();
     return true;
   }
-  function taireVoix() { if (peutParler) speechSynthesis.cancel(); }
+  function taireVoix() { numLot++; parleEnCours = []; if (peutParler) speechSynthesis.cancel(); }
 
   let styleOk = false;
   function style() {
