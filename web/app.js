@@ -519,7 +519,12 @@
     const box = $("#bilan");
     const items = state.prod.filter((p) => Number(p.stock || 0) > 0)
       .sort((a, b) => (ESP_ORDRE(a) - ESP_ORDRE(b)) || ((a.peremption || "9") < (b.peremption || "9") ? -1 : 1) || norm(a.nom).localeCompare(norm(b.nom)));
-    if (!bilanOuvert && !bilanDu()) { box.innerHTML = ""; return; }
+    if (!bilanOuvert && !bilanDu()) {
+      // Toujours un moyen d'y revenir, même avant 21 h ou après « Plus tard »
+      const fait = (state.config || {}).dernier_bilan === today();
+      box.innerHTML = items.length ? `<div class="bilan-lien"><button class="link" type="button" id="bilan-go">${fait ? "Bilan fait aujourd'hui · le corriger ou l'ajouter" : "Bilan de consommation · noter ce qui a été consommé"}</button></div>` : "";
+      return;
+    }
     if (!bilanOuvert) {
       box.innerHTML = `<div class="mix bilan-invite"><b>Bilan de la journée</b> : qu'est-ce qui a été consommé aujourd'hui ?
         <div class="row-actions"><button class="btn" type="button" id="bilan-go">Faire le bilan</button><button class="link muted" type="button" id="bilan-rien">Rien aujourd'hui</button></div></div>`;
@@ -571,7 +576,7 @@
   $("#bilan").addEventListener("click", async (e) => {
     if (e.target.closest("#bilan-go")) return ouvrirBilan();
     if (e.target.closest("#bilan-rien")) { await marquerBilanFait(); render(); status("Noté : rien consommé aujourd'hui."); return; }
-    if (e.target.closest("#bilan-fermer")) { bilanOuvert = false; render(); return; }
+    if (e.target.closest("#bilan-fermer")) { bilanOuvert = false; render(); status("D'accord. Vos choix sont gardés : le bilan reste en haut de l'onglet Lieu pour continuer quand vous voulez."); return; }
     if (e.target.closest("#bilan-ok")) return enregistrerBilan();
     const b = e.target.closest("[data-conso]"); if (!b) return;
     const p = state.prod.find((x) => x.id === b.dataset.id); if (!p) return;

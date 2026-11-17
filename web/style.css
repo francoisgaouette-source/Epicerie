@@ -392,3 +392,6 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 .edit-fields{align-items:start}
 .edit-fields .mf{flex:1 1 140px}
 .edit-fields .mf input,.edit-fields .mf select{flex:none;width:100%}
+
+.bilan-lien{margin:0 0 10px}
+.bilan-lien .link{font-weight:600}
