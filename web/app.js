@@ -509,6 +509,40 @@
   });
   // ---------- bilan du soir (consommation)
   let bilanOuvert = false; const conso = {}; // id -> quantité consommée
+  const consoUnite = {}, consoSaisie = {}; // id -> "u" | "pct" | "poids"; ce qui a été tapé
+  // Taille d'un emballage d'après le format (« 500 g », « 1,89 L », « 12 x 355 ml », « 2 lb ») : { qte, base: "g" | "ml" }
+  function tailleFormat(f) {
+    const t = norm(String(f || "")).replace(",", ".");
+    const m = t.match(/(?:(\d+)\s*[x×]\s*)?(\d+(?:\.\d+)?)\s*(kg|mg|g|lbs?|oz|ml|cl|l)\b/);
+    if (!m) return null;
+    const mult = m[1] ? Number(m[1]) : 1, n = Number(m[2]) * mult, u = m[3];
+    const conv = { kg: [1000, "g"], g: [1, "g"], mg: [0.001, "g"], lb: [453.6, "g"], lbs: [453.6, "g"], oz: [28.35, "g"], l: [1000, "ml"], cl: [10, "ml"], ml: [1, "ml"] }[u];
+    return n > 0 ? { qte: n * conv[0], base: conv[1] } : null;
+  }
+  // Convertit une saisie (« 300 », « 300 g », « 0,3 kg », « 30 % », « 1,5 ») en emballages consommés
+  function saisieEnUnites(p, brut, unite) {
+    const t = String(brut || "").trim().toLowerCase().replace(",", ".");
+    if (!t) return 0;
+    const v = parseFloat(t); if (!isFinite(v) || v < 0) return null;
+    const tf = tailleFormat(p.format);
+    let u = unite || "u";
+    if (/%/.test(t)) u = "pct";
+    else if (/(kg|mg|g|lb|oz|ml|cl|l)\s*$/.test(t)) u = "poids";
+    if (u === "pct") return v / 100;
+    if (u === "poids") {
+      if (!tf) return null;
+      const m = t.match(/(kg|mg|g|lbs?|oz|ml|cl|l)\s*$/);
+      const f = m ? ({ kg: 1000, g: 1, mg: 0.001, lb: 453.6, lbs: 453.6, oz: 28.35, l: 1000, cl: 10, ml: 1 }[m[1]]) : 1;
+      return (v * f) / tf.qte;
+    }
+    return v;
+  }
+  function fmtConso(p, c) {
+    const u = consoUnite[p.id], tf = tailleFormat(p.format);
+    if (u === "pct") return `${fmtQ(c * 100)} %`;
+    if (u === "poids" && tf) { const q = c * tf.qte; return q >= 1000 ? `${fmtQ(q / 1000)} ${tf.base === "g" ? "kg" : "L"}` : `${fmtQ(Math.round(q))} ${tf.base}`; }
+    return fmtQ(c);
+  }
   const ESP_ORDRE = (p) => { const e = state.espaces.find((x) => x.id === p.espace_id); return e ? e.ordre : 99; };
   function bilanDu() {
     const c = state.config || {}; const h = Number(c.bilan_heure ?? 21);
@@ -536,7 +570,7 @@
     let espCourant = null;
     box.innerHTML = `<div class="panier bilan">
       <div class="compare-head"><h2>Bilan de la journée</h2><span class="hint">${nb ? nb + " produit" + (nb > 1 ? "s" : "") + " consommé" + (nb > 1 ? "s" : "") : "Touchez ce qui a été consommé"}</span></div>
-      <p class="hint">Pour chaque produit : −1 unité, −25 % ou −50 % d'un emballage, ou « Tout ». Vous pouvez aussi inscrire une quantité (0,3 = 30 %).</p>
+      <p class="hint">Pour chaque produit : −1 unité, −25 % ou −50 % d'un emballage, ou « Tout ». Ou inscrivez la quantité exacte et choisissez l'unité : en unités, en %, ou en poids (g, ml) quand le format du produit est connu (ex. « 500 g »).</p>
       ${items.length ? `<ul class="list">${items.map((p) => {
         const e = state.espaces.find((x) => x.id === p.espace_id);
         const head = (e ? e.nom : "Sans espace") !== espCourant ? (espCourant = e ? e.nom : "Sans espace", `<li class="cat-head" style="display:block">${esc(espCourant)}</li>`) : "";
@@ -544,13 +578,18 @@
         return head + `<li class="bilan-item${c > 0 ? " touched" : ""}">
           ${thumb(p.photo, p.nom)}
           <div class="main"><div class="name">${esc(p.nom)}</div>
-            <div class="meta">${c > 0 ? `<b>−${fmtQ(c)}</b> · il restera ${fmtQ(reste)}` : `${fmtQ(p.stock)} ${state.lieux.length > 1 ? "au lieu « " + esc(nomLieu()) + " »" : "à la maison"}`}${expTag(p) ? " · " + expTag(p) : ""}</div></div>
+            <div class="meta">${c > 0 ? `<b>−${esc(fmtConso(p, c))}</b>${consoUnite[p.id] && consoUnite[p.id] !== "u" ? ` (${fmtQ(c)} emballage${c >= 2 ? "s" : ""})` : ""} · il restera ${fmtQ(reste)}` : `${fmtQ(p.stock)} ${state.lieux.length > 1 ? "au lieu « " + esc(nomLieu()) + " »" : "à la maison"}`}${expTag(p) ? " · " + expTag(p) : ""}</div></div>
           <div class="bilan-ctl">
             <button class="chip-btn" type="button" data-conso="1" data-id="${p.id}">−1</button>
             <button class="chip-btn" type="button" data-conso="0.25" data-id="${p.id}">−25 %</button>
             <button class="chip-btn" type="button" data-conso="0.5" data-id="${p.id}">−50 %</button>
             <button class="chip-btn" type="button" data-conso="tout" data-id="${p.id}">Tout</button>
-            <input class="bilan-in" inputmode="decimal" aria-label="Quantité consommée de ${esc(p.nom)}" placeholder="autre" value="${c > 0 ? esc(fmtQ(c)) : ""}" data-consoin="${p.id}">
+            <span class="bilan-autre"><input class="bilan-in" inputmode="decimal" aria-label="Quantité consommée de ${esc(p.nom)}" placeholder="autre" value="${esc(consoSaisie[p.id] != null && c > 0 ? consoSaisie[p.id] : c > 0 ? fmtQ(c) : "")}" data-consoin="${p.id}">
+              <select class="bilan-unite" aria-label="Unité pour ${esc(p.nom)}" data-consounit="${p.id}">
+                <option value="u"${(consoUnite[p.id] || "u") === "u" ? " selected" : ""}>unité${Number(p.stock) > 1 ? "s" : ""}</option>
+                <option value="pct"${consoUnite[p.id] === "pct" ? " selected" : ""}>%</option>
+                ${tailleFormat(p.format) ? `<option value="poids"${consoUnite[p.id] === "poids" ? " selected" : ""}>${tailleFormat(p.format).base}</option>` : ""}
+              </select></span>
             ${c > 0 ? `<button class="icon" type="button" data-conso="0" data-id="${p.id}" aria-label="Annuler pour ${esc(p.nom)}">↺</button>` : ""}
           </div></li>`;
       }).join("")}</ul>` : emptyBox("Rien à la maison", "Ajoutez des produits à la Maison pour faire le bilan.")}
@@ -568,7 +607,7 @@
     const ids = Object.keys(conso).filter((id) => conso[id] > 0);
     $("#bilan-ok").disabled = true;
     for (const id of ids) await ajusterStock(id, -conso[id]);
-    ids.forEach((id) => delete conso[id]);
+    ids.forEach((id) => { delete conso[id]; delete consoUnite[id]; delete consoSaisie[id]; });
     await marquerBilanFait();
     bilanOuvert = false; render();
     status(ids.length ? `Bilan enregistré : ${ids.length} produit${ids.length > 1 ? "s" : ""} mis à jour.` : "Bilan enregistré : rien consommé aujourd'hui.");
@@ -582,16 +621,27 @@
     const p = state.prod.find((x) => x.id === b.dataset.id); if (!p) return;
     const v = b.dataset.conso, stock = Number(p.stock || 0), avant = conso[p.id] || 0;
     conso[p.id] = v === "tout" ? stock : v === "0" ? 0 : Math.min(stock, Math.round((avant + Number(v)) * 100) / 100);
+    delete consoSaisie[p.id]; if (v === "0") delete consoUnite[p.id];
     renderBilan();
   });
   $("#bilan").addEventListener("change", (e) => {
-    const i = e.target.closest("[data-consoin]"); if (!i) return;
-    const p = state.prod.find((x) => x.id === i.dataset.consoin); if (!p) return;
-    let raw = i.value.trim().replace("%", "").trim(), v = num(raw);
-    if (raw && v == null) { status("Inscrivez un nombre, par exemple 1 ou 0,5."); return; }
-    if (v != null && /%/.test(i.value)) v = v / 100;
-    conso[p.id] = Math.max(0, Math.min(Number(p.stock || 0), v || 0));
-    i.blur(); renderBilan();
+    const sel = e.target.closest("[data-consounit]"), inp = e.target.closest("[data-consoin]");
+    if (!sel && !inp) return;
+    const id = sel ? sel.dataset.consounit : inp.dataset.consoin;
+    const p = state.prod.find((x) => x.id === id); if (!p) return;
+    const ligne = e.target.closest(".bilan-autre");
+    const champ = ligne.querySelector("[data-consoin]"), choix = ligne.querySelector("[data-consounit]");
+    let unite = choix.value; const brut = champ.value.trim();
+    // Une unité tapée dans le champ (« 30 % », « 300 g ») choisit l'unité
+    if (/%/.test(brut)) unite = "pct"; else if (/(kg|mg|g|lb|oz|ml|cl|l)\s*$/i.test(brut)) unite = "poids";
+    const v = saisieEnUnites(p, brut, unite);
+    if (v == null) { status(unite === "poids" && !tailleFormat(p.format) ? `Ajoutez le format de « ${p.nom} » (ex. 500 g) dans l'onglet Produits pour noter en poids.` : "Inscrivez un nombre, par exemple 1, 30 % ou 300 g."); return; }
+    consoUnite[p.id] = unite;
+    if (brut) consoSaisie[p.id] = brut.replace(/\s*(%|kg|mg|g|lbs?|oz|ml|cl|l)\s*$/i, ""); else delete consoSaisie[p.id];
+    const stock = Number(p.stock || 0);
+    if (v > stock + 1e-9) status(`Il n'y a que ${fmtQ(stock)} emballage${stock >= 2 ? "s" : ""} de « ${p.nom} » : j'ai noté le tout.`);
+    conso[p.id] = Math.max(0, Math.min(stock, Math.round(v * 1000) / 1000));
+    if (inp) inp.blur(); renderBilan();
   });
   $("#bilan-ouvrir").addEventListener("click", () => { $("#rappel").hidden = true; ouvrirBilan(); });
   window.addEventListener("hashchange", () => { if (location.hash === "#bilan" && state.email) ouvrirBilan(); });
