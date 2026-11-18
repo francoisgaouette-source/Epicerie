@@ -397,3 +397,24 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 .bilan-lien .link{font-weight:600}
 .bilan-autre{display:inline-flex;align-items:center;gap:4px}
 .bilan-unite{font:inherit;font-size:.85rem;padding:7px 6px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--ink)}
+
+/* Offrir un mois (parrainage) */
+.offrir-lien{font-weight:600}
+.offrir p{margin:.2em 0 .6em}
+.offrir-score{background:var(--accent-soft,#FFF6D6);border-radius:12px;padding:10px 12px;margin:0 0 12px}
+.offrir-h{font-size:1rem;margin:12px 0 6px}
+.offrir-idees{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.offrir-idees .fchip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.offrir .mf{display:block;flex:none;margin:0 0 10px}
+.offrir .mf span{display:block;font-size:.85rem;margin-bottom:4px;color:var(--muted)}
+.offrir .mf input,.offrir textarea{width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
+.offrir textarea{resize:vertical;min-height:7em}
+.offrir-btns{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}
+.offrir-btns .btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.btn.line{background:var(--soft);color:var(--ink)}
+.offrir-carte{border:1.5px solid var(--accent);background:var(--accent-soft,#FFF6D6);border-radius:16px;padding:14px 16px;margin:0 0 14px}
+.offrir-carte-txt{display:flex;flex-direction:column;gap:4px}
+.offrir-carte .row-actions{margin-top:10px}
+.eco-partage{margin-top:10px;font-weight:600}
+.login-cadeau{background:#FFF6D6;border:1.5px solid #F2C230;border-radius:12px;padding:10px 12px;margin:12px 0 0}
+#invite-sms{text-decoration:none;display:inline-flex;align-items:center}

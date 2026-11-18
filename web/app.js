@@ -434,6 +434,7 @@
         <span>${esc(e.nom)}${e.magasin ? ` <span class="meta">· ${esc(e.magasin)}</span>` : ""}<br><span class="meta">${e.source === "special" ? "en spécial" : "sous le prix habituel"} · payé ${money(num(e.prix_paye))} au lieu de ${money(num(e.prix_ref))}${num(e.quantite) > 1 ? ` × ${fmtQ(e.quantite)}` : ""}</span></span>
         <span class="eco-plus">−${money(num(e.montant))}</span></li>`).join("")}</ul>
         <p class="hint">Calcul : prix régulier du spécial, ou prix habituel connu dans ce magasin, moins le prix payé sur la facture.</p></details>
+      <button class="link eco-partage" type="button" data-offrir="economies">🎁 Faites économiser un proche : offrez-lui un mois</button>
     </div>`;
   }
 
@@ -937,11 +938,11 @@
   }
   function showMembres(open) {
     $("#membres").hidden = !open;
-    if (open) { $("#help").hidden = true; $("#rappel").hidden = true; $("#commis").hidden = true; renderMembres(); $("#membres").scrollIntoView({ block: "start", behavior: "smooth" }); }
+    if (open) { fermerPanneaux("#membres"); renderMembres(); $("#membres").scrollIntoView({ block: "start", behavior: "smooth" }); }
   }
   $("#open-membres").addEventListener("click", () => showMembres($("#membres").hidden));
   $("#close-membres").addEventListener("click", () => showMembres(false));
-  let inviteMsg = "";
+  let inviteMsg = "", inviteTel = "";
   const msgErreurMembre = (error, quoi) => {
     const msg = String((error && error.message) || "");
     return msg.includes("limite_membres") ? "La limite de 4 membres est atteinte."
@@ -963,9 +964,11 @@
     if (error) { status(msgErreurMembre(error, fmtTel(tel))); return; }
     $("#in-mtel").value = ""; $("#in-mnom").value = "";
     const moi = (state.membres.find(estMoi) || {}).nom || "";
-    inviteMsg = `${nom ? "Salut " + nom + "! " : ""}${moi ? moi + " t'invite" : "Je t'invite"} à partager notre liste d'épicerie. Ouvre ${APP_URL}, touche « Créer mon compte » et entre ton cellulaire ${fmtTel(tel)} : tu recevras un code par texto, puis tu choisiras ton mot de passe.`;
+    inviteMsg = `${nom ? "Salut " + nom + "! " : ""}${moi ? prenom(moi) + " t'invite" : "Je t'invite"} dans notre foyer sur Le Commis : la liste d'épicerie, ce qu'on a à la maison et les spéciaux, partagés en temps réel. Ouvre ${APP_URL}?essai et entre ton cellulaire ${fmtTel(tel)} : tu recevras un code par texto, puis tu choisiras ton mot de passe.`;
+    inviteTel = e164(tel);
     $("#invite-text").textContent = `${nom || fmtTel(tel)} a accès. Envoyez-lui ce message pour qu'elle ou il crée son compte :\n\n« ${inviteMsg} »`;
     $("#invite-send").hidden = !navigator.share;
+    $("#invite-sms").href = `sms:${inviteTel}?&body=${encodeURIComponent(inviteMsg)}`;
     $("#invite-share").hidden = false;
     status("");
     await load("membres");
@@ -1006,7 +1009,7 @@
   });
 
   // ---------- aide : guide complet
-  const fermerPanneaux = (sauf) => ["#help", "#membres", "#rappel", "#commis"].forEach((id) => { if (id !== sauf) $(id).hidden = true; });
+  const fermerPanneaux = (sauf) => ["#help", "#membres", "#rappel", "#commis", "#offrir"].forEach((id) => { if (id !== sauf) $(id).hidden = true; });
   function showHelp(open) {
     $("#help").hidden = !open;
     if (open) { fermerPanneaux("#help"); $("#help").scrollIntoView({ block: "start", behavior: "smooth" }); }
@@ -1151,7 +1154,7 @@
     const b = e.target.closest("[data-avis]");
     if (!b) return;
     lsSet("avis.etat." + state.userId, b.dataset.avis === "non" ? "non" : "plus-tard:" + Date.now());
-    renderAvis();
+    renderAvis(); renderOffrirCarte();
   });
   $("#avis").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -1170,8 +1173,128 @@
     status("Merci! Votre commentaire est bien reçu.");
   });
 
+
+  // ---------- Offrir un mois : le parrainage qui fait connaître Le Commis
+  const SITE_URL = "https://lecommis.ai/";
+  let parrain = null, offrirMoment = "", offrirIdee = "";
+  const IDEES = [
+    ["parents", "Vos parents", "Ça t'aiderait à savoir ce qu'il reste à la maison et à profiter des spéciaux."],
+    ["fratrie", "Votre sœur ou votre frère", "Je pense que ça vous simplifierait l'épicerie, à vous aussi."],
+    ["famille", "Une famille occupée", "Avec les enfants, ça évite les doublons et les oublis à l'épicerie."],
+    ["amis", "Des amis", "On ne se demande plus qui achète quoi : tout le monde voit la même liste."],
+    ["voisins", "Vos voisins", "Ça montre les spéciaux de la semaine sur ce qu'on achète vraiment."],
+    ["colocs", "Des colocs", "Parfait en coloc : une liste commune, et on voit ce qui est déjà au frigo."],
+    ["chalet", "Votre chalet ou votre camp", "Ça garde aussi ce qu'on a au chalet, séparément de la maison."],
+  ];
+  function lienParrain() { return parrain && parrain.code ? `${SITE_URL}?ref=${parrain.code}` : SITE_URL; }
+  function msgOffrir() {
+    const dest = $("#offrir-prenom").value.trim();
+    const moi = prenom((moiMembre() || {}).nom);
+    const idee = IDEES.find((x) => x[0] === offrirIdee);
+    return `${dest ? "Salut " + dest + "!" : "Salut!"} J'utilise Le Commis pour l'épicerie de la maison : une liste partagée en temps réel, ce qu'on a au frigo et au garde-manger, et les spéciaux de la semaine sur ce qu'on achète. ${idee ? idee[2] + " " : ""}Avec mon lien, tu as 60 jours gratuits au lieu de 30 : ${lienParrain()}${moi ? "\n" + moi : ""}`;
+  }
+  function majLiensOffrir() {
+    const t = $("#offrir-msg").value, e = encodeURIComponent(t);
+    $("#offrir-texto").href = `sms:?&body=${e}`;
+    $("#offrir-wa").href = `https://wa.me/?text=${e}`;
+    $("#offrir-mail").href = `mailto:?subject=${encodeURIComponent("Un cadeau pour ton épicerie : 60 jours de Le Commis")}&body=${e}`;
+    $("#offrir-lien").innerHTML = parrain && parrain.code ? `Votre lien : <b>${esc(lienParrain())}</b> · code ${esc(parrain.code)}` : "";
+  }
+  function renderOffrir() {
+    const sc = $("#offrir-score");
+    if (!parrain) sc.innerHTML = '<span class="hint">…</span>';
+    else if (!parrain.amis) sc.innerHTML = `<span class="hint">Personne encore. Le premier foyer qui s'inscrit avec votre lien vous donne 1 mois gratuit.</span>`;
+    else sc.innerHTML = `<b>${parrain.amis}</b> foyer${parrain.amis > 1 ? "s" : ""} inscrit${parrain.amis > 1 ? "s" : ""} avec votre lien · <b>${parrain.mois}</b> mois gagné${parrain.mois > 1 ? "s" : ""}`;
+    $("#offrir-idees").innerHTML = IDEES.map(([k, l]) => `<button class="fchip" type="button" data-idee="${k}" aria-pressed="${offrirIdee === k}">${esc(l)}</button>`).join("");
+    $("#offrir-partage").hidden = !navigator.share;
+    $("#offrir-contacts").hidden = !("contacts" in navigator && "select" in (navigator.contacts || {}));
+    $("#offrir-msg").value = msgOffrir();
+    majLiensOffrir();
+  }
+  async function chargerParrain() {
+    try { const { data, error } = await sb.rpc("mon_parrainage"); if (!error && data) parrain = data; } catch (e) {}
+  }
+  async function ouvrirOffrir(moment) {
+    offrirMoment = moment || "";
+    fermerPanneaux("#offrir"); $("#offrir").hidden = false; renderOffrir();
+    $("#offrir").scrollIntoView({ block: "start", behavior: "smooth" });
+    await chargerParrain(); renderOffrir();
+  }
+  function notePartage(canal) {
+    sb.from("partages").insert({ canal, moment: offrirMoment || null }).then(() => {}, () => {});
+    lsSet("offrir.etat." + state.userId, "partage:" + Date.now());
+    renderOffrirCarte();
+  }
+  $("#open-offrir").addEventListener("click", () => ($("#offrir").hidden ? ouvrirOffrir("entete") : ($("#offrir").hidden = true)));
+  $("#close-offrir").addEventListener("click", () => { $("#offrir").hidden = true; });
+  $("#offrir-prenom").addEventListener("input", () => { $("#offrir-msg").value = msgOffrir(); majLiensOffrir(); });
+  $("#offrir-msg").addEventListener("input", majLiensOffrir);
+  $("#offrir").addEventListener("click", async (e) => {
+    const i = e.target.closest("[data-idee]");
+    if (i) { offrirIdee = offrirIdee === i.dataset.idee ? "" : i.dataset.idee; renderOffrir(); return; }
+    const b = e.target.closest("[data-canal]"); if (!b) return;
+    const canal = b.dataset.canal, texte = $("#offrir-msg").value;
+    if (canal === "partage") {
+      e.preventDefault();
+      try { await navigator.share({ title: "Le Commis", text: texte }); notePartage("partage"); } catch (err) {}
+      return;
+    }
+    if (canal === "contacts") {
+      e.preventDefault();
+      try {
+        const choisis = await navigator.contacts.select(["name", "tel"], { multiple: true });
+        const tels = choisis.map((c) => (c.tel || [])[0]).filter(Boolean);
+        if (!tels.length) return;
+        if (choisis.length === 1 && !$("#offrir-prenom").value.trim() && (choisis[0].name || [])[0]) {
+          $("#offrir-prenom").value = prenom(choisis[0].name[0]); $("#offrir-msg").value = msgOffrir(); majLiensOffrir();
+        }
+        notePartage("contacts");
+        location.href = `sms:${tels.map((t) => t.replace(/[^\d+]/g, "")).join(",")}?&body=${encodeURIComponent($("#offrir-msg").value)}`;
+      } catch (err) {}
+      return;
+    }
+    if (canal === "copie") {
+      try { await navigator.clipboard.writeText(texte); status("Message et lien copiés. Collez-les où vous voulez : texto, Messenger, courriel…"); notePartage("copie"); }
+      catch (err) { status("Copie impossible ici : sélectionnez le message à la main."); }
+      return;
+    }
+    notePartage(canal); // texto, whatsapp, courriel : le lien s'ouvre normalement
+  });
+  document.addEventListener("click", (e) => { const o = e.target.closest("[data-offrir]"); if (o && !o.closest("#offrir")) ouvrirOffrir(o.dataset.offrir); });
+
+  // Une carte « Offrir un mois » aux bons moments : après des économies, ou après quelques jours d'usage
+  function offrirAMontrer() {
+    if (!state.userId || $("#avis").innerHTML) return null;
+    const etat = lsGet("offrir.etat." + state.userId) || "";
+    if (etat === "non") return null;
+    const [k, t] = etat.split(":"), quand = Number(t || 0);
+    if (k === "plus-tard" && Date.now() < quand + 10 * JOUR) return null;
+    if (k === "partage" && Date.now() < quand + 30 * JOUR) return null;
+    const mois = today().slice(0, 7);
+    const eco = (state.eco || []).filter((x) => String(x.date_achat || "").startsWith(mois)).reduce((s, x) => s + (num(x.montant) || 0), 0);
+    if (eco >= 5) return { eco };
+    if (state.userCreated && Date.now() - new Date(state.userCreated).getTime() >= 5 * JOUR) return { eco: 0 };
+    return null;
+  }
+  function renderOffrirCarte() {
+    const box = $("#offrir-carte"); if (!box) return;
+    const m = offrirAMontrer();
+    if (!m) { box.innerHTML = ""; return; }
+    box.innerHTML = `<section class="offrir-carte">
+      <div class="offrir-carte-txt"><b>${m.eco ? `Vous avez économisé ${money(m.eco)} ce mois-ci. Qui d'autre aimerait ça?` : "Le Commis vous simplifie l'épicerie? Qui d'autre aimerait ça?"}</b>
+        <span class="hint">Offrez 60 jours gratuits à un proche. Vous gagnez 1 mois pour chaque foyer qui s'inscrit.</span></div>
+      <div class="row-actions"><button class="btn" type="button" data-offrir="${m.eco ? "economies" : "carte"}">🎁 Offrir un mois</button>
+        <button class="link" type="button" data-offrir-carte="plus-tard">Plus tard</button><button class="link muted" type="button" data-offrir-carte="non">Non merci</button></div>
+    </section>`;
+  }
+  $("#offrir-carte").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-offrir-carte]"); if (!b) return;
+    lsSet("offrir.etat." + state.userId, b.dataset.offrirCarte === "non" ? "non" : "plus-tard:" + Date.now());
+    renderOffrirCarte();
+  });
+
   // ---------- le Commis : l'agent qui répond aux questions
-  const ECRANS = { produits: "Produits", maison: "Lieu", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet" };
+  const ECRANS = { produits: "Produits", maison: "Lieu", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet", offrir: "Offrir un mois" };
   const commis = { msgs: [], busy: false };
   function allerA(k) {
     $("#commis").hidden = true;
@@ -1179,6 +1302,7 @@
     else if (k === "membres") showMembres(true);
     else if (k === "rappel") showRappel(true);
     else if (k === "bilan") ouvrirBilan();
+    else if (k === "offrir") ouvrirOffrir("rosalie");
     else if (k === "facture") { showView("maison"); $("#in-facture").click(); }
     else if (k === "ecran") montrerEcran();
     else if (k === "guide") showHelp(true);
@@ -1772,8 +1896,22 @@
   // Liens du site : ?essai ouvre « Créer mon compte » ; ?acheter mène au paiement après la connexion
   const entree = new URLSearchParams(location.search);
   if (entree.has("acheter")) ssSet("apres", "acheter");
+  // Lien de parrainage (?ref=CODE) : gardé sur l'appareil jusqu'à la création du foyer
+  const refCle = "commis.ref";
+  const refGet = () => { try { return localStorage.getItem(refCle); } catch (e) { return null; } };
+  const refSet = (v) => { try { v ? localStorage.setItem(refCle, v) : localStorage.removeItem(refCle); } catch (e) {} };
+  if (/^[A-Za-z0-9]{6}$/.test(entree.get("ref") || "")) refSet(entree.get("ref").toUpperCase());
+  async function montrerCadeau() {
+    const code = refGet(); if (!code) return;
+    $("#go-creer").textContent = "Créer mon compte · 60 jours gratuits";
+    let qui = null;
+    try { const { data } = await sb.rpc("parrain_prenom", { p_code: code }); qui = data; } catch (e) {}
+    $("#login-cadeau").innerHTML = `🎁 <b>${esc(qui || "Un proche")} vous offre 60 jours gratuits</b> au lieu de 30. Créez votre compte ci-dessous.`;
+    $("#login-cadeau").hidden = false;
+  }
+  montrerCadeau();
   const entreeEssai = entree.has("essai");
-  if (entree.has("essai") || entree.has("acheter")) history.replaceState(null, "", location.pathname + location.hash);
+  if (entree.has("essai") || entree.has("acheter") || entree.has("ref")) history.replaceState(null, "", location.pathname + location.hash);
   $("#go-creer").addEventListener("click", () => ouvrirSms("creer"));
   $("#go-oubli").addEventListener("click", () => ouvrirSms("oubli"));
   document.querySelectorAll("[data-back-login]").forEach((b) => b.addEventListener("click", () => loginView("#f-login")));
@@ -1854,12 +1992,14 @@
     const nom = $("#in-foyer-nom").value.trim(), prenom = $("#in-foyer-prenom").value.trim();
     if (!prenom) { loginStatus("Entrez votre prénom."); return; }
     loginStatus("Création de votre foyer…");
-    const { error } = await sb.rpc("creer_foyer", { p_nom: nom || "Mon foyer", p_prenom: prenom });
+    const ref = refGet();
+    const { error } = await sb.rpc("creer_foyer", { p_nom: nom || "Mon foyer", p_prenom: prenom, p_ref: ref });
     if (error) { console.error(error); loginStatus(String(error.message || "").includes("deja_membre") ? "Vous faites déjà partie d'un foyer. Reconnectez-vous." : "Le foyer n'a pas pu être créé. Réessayez dans un moment."); return; }
     loginStatus("");
     const { data } = await sb.auth.getSession();
     current = null; await onSession(data && data.session);
-    status("Votre foyer est créé. L'essai gratuit dure 30 jours : tout est ouvert.");
+    refSet(null);
+    status(`Votre foyer est créé. L'essai gratuit dure ${ref ? "60" : "30"} jours : tout est ouvert.`);
   });
   $("#foyer-annuler").addEventListener("click", () => sb.auth.signOut());
 
@@ -1936,8 +2076,9 @@
       const p = ssGet("prenom");
       if (p) {
         ssSet("prenom", null);
-        const { error } = await sb.rpc("creer_foyer", { p_nom: "Foyer de " + p, p_prenom: p });
-        if (!error) { status("Bienvenue! Votre essai gratuit de 30 jours commence : tout est ouvert."); return onSession(session); }
+        const ref = refGet();
+        const { error } = await sb.rpc("creer_foyer", { p_nom: "Foyer de " + p, p_prenom: p, p_ref: ref });
+        if (!error) { refSet(null); status(`Bienvenue! Votre essai gratuit de ${ref ? "60" : "30"} jours commence : tout est ouvert.`); return onSession(session); }
         console.error(error);
       }
       // Sinon : on propose de créer un foyer
@@ -1961,7 +2102,7 @@
       if (estProprio()) { location.href = lienAchat(); return; }
       status(`Seul le propriétaire du foyer peut acheter l'app. Demandez à ${prenom(((state.membres || []).find((m) => m.role === "proprio") || {}).nom || "lui")}.`);
     }
-    maybeBienvenue(); renderDemarrer(); renderAvis();
+    maybeBienvenue(); renderDemarrer(); renderAvis(); renderOffrirCarte();
     accueilRosalie();
     if (location.hash === "#bilan") ouvrirBilan();
     subscribe();

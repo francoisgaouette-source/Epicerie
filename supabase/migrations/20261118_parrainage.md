@@ -1,0 +1,1 @@
+-- Appliqué sur Supabase le 2026-11-18 : parrainage (code_parrain, parrainages, partages, parrain_prenom, mon_parrainage, creer_foyer avec p_ref). Voir l'historique des migrations du projet.

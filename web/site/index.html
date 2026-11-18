@@ -313,6 +313,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 @media (max-width: 760px) { .pour-grid { grid-template-columns: 1fr; } }
 
 .demo-titre { font-weight: 600; margin: 0 0 10px; }
+.cadeau { background: #FFF6D6; border: 1.5px solid #F2C230; border-radius: 12px; padding: 10px 14px; margin: 0 0 16px; font-size: 17px; }
 .demo-q { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; }
 .demo-q button { font: 600 15px var(--body); border: 1.5px solid var(--epicerie); color: var(--epicerie); background: var(--blanc); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
 .demo-q button:hover { background: var(--vert-pale); }
@@ -356,6 +357,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
     <div>
       <h1>Votre commis d'épicerie, <em>à la maison.</em></h1>
       <p class="lead">Le Commis tient la liste de toute la maison, sait ce qu'il reste dans le garde-manger et trouve les spéciaux de la semaine. Fini le « on a-tu encore du lait? » texté de l'allée 4.</p>
+      <p class="cadeau" id="cadeau" hidden></p>
       <div class="ctas">
         <a class="btn main app-link essai" href="https://app.lecommis.ai/?essai">Essayer 30 jours gratuits</a>
         <a class="btn ghost" href="achat.html">Acheter · 19,99 $ par année</a>
@@ -624,7 +626,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
     <div class="list">
       <details><summary>Je suis déjà client : où est l'app?</summary><p>Touchez « Se connecter » en haut de cette page, ou ouvrez <a class="app-link" href="https://app.lecommis.ai/">app.lecommis.ai</a>. Entrez votre cellulaire et votre mot de passe. Ajoutez-la ensuite à votre écran d'accueil pour la retrouver en un geste.</p></details>
       <details><summary>Faut-il télécharger une app?</summary><p>Non. Ouvrez le lien sur votre téléphone, puis ajoutez le Commis à votre écran d'accueil. Sur iPhone : dans Safari, bouton Partager, puis « Sur l'écran d'accueil ». Sur Android : dans Chrome, menu ⋮, puis « Installer l'application ». Il s'ouvre ensuite comme une app.</p></details>
-      <details><summary>Comment se passe l'essai?</summary><p>Créez votre compte avec votre cellulaire : vous recevez un code par texto, puis vous choisissez un mot de passe. Vous avez 30 jours avec toutes les fonctions, sans carte de crédit. Après 30 jours, l'app passe en lecture seule jusqu'à l'achat : rien n'est effacé.</p></details>
+      <details><summary>Comment se passe l'essai?</summary><p>Créez votre compte avec votre cellulaire : vous recevez un code par texto, puis vous choisissez un mot de passe. Vous avez 30 jours avec toutes les fonctions, sans carte de crédit (60 jours si un proche vous a envoyé son lien). Après l'essai, l'app passe en lecture seule jusqu'à l'achat : rien n'est effacé.</p></details>
       <details><summary>Combien de personnes peuvent partager le foyer?</summary><p>Jusqu'à 4. Le propriétaire invite les autres dans « Membres » avec leur prénom et leur cellulaire. Chacun se connecte avec son propre compte.</p></details>
       <details><summary>Quelles épiceries sont couvertes?</summary><p>IGA, Metro, Maxi, Super C et Provigo, au Québec. Vous choisissez celles à vérifier. Pour comparer le coût de votre liste, le Commis utilise les prix de vos factures et des circulaires.</p></details>
       <details><summary>Comment marche la lecture des factures?</summary><p>Photographiez le reçu (plusieurs photos pour un long reçu). Chaque article apparaît dans un panier : vous vérifiez le nom, la quantité, l'espace et la date de péremption, puis vous approuvez. Rien n'entre dans l'inventaire sans votre accord.</p></details>
@@ -718,7 +720,27 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
       else rosalie.dire({ titre: "Re-bonjour!", texte: "Touchez mon visage pour refaire la visite.", duree: 6000 });
     }, 2000);
   }
-  if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl + (a.classList.contains('essai') ? '?essai' : ''); });
+  // Lien de parrainage : lecommis.ai/?ref=CODE → 60 jours gratuits, et le code suit jusqu'à l'app
+  var ref = null;
+  try {
+    var m = (new URLSearchParams(location.search).get('ref') || '').toUpperCase();
+    if (/^[A-Z0-9]{6}$/.test(m)) { ref = m; localStorage.setItem('commis.ref', m); history.replaceState(null, '', location.pathname + location.hash); }
+    else ref = localStorage.getItem('commis.ref');
+  } catch (e) {}
+  if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) {
+    a.href = c.appUrl + (a.classList.contains('essai') ? '?essai' + (ref ? '&ref=' + ref : '') : (ref ? '?ref=' + ref : ''));
+    if (ref && /30 jours/.test(a.textContent)) a.textContent = a.textContent.replace('30 jours', '60 jours');
+  });
+  if (ref) {
+    var bandeau = document.getElementById('cadeau');
+    var montrer = function (qui) {
+      bandeau.innerHTML = '🎁 <b>' + (qui ? qui.replace(/[<>&"]/g, '') : 'Un proche') + ' vous offre 60 jours gratuits</b> au lieu de 30.';
+      bandeau.hidden = false;
+    };
+    montrer(null);
+    if (window.fetch && c.avisUrl) fetch(c.avisUrl.replace('temoignages_publies', 'parrain_prenom'), { method: 'POST', headers: { apikey: c.avisCle, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_code: ref }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (q) { if (typeof q === 'string' && q) montrer(q); }).catch(function () {});
+  }
   var btns = document.querySelectorAll('.strip [data-step]');
   btns.forEach(function (b) { b.addEventListener('click', function () {
     var i = b.getAttribute('data-step'), open = b.getAttribute('aria-expanded') === 'true';

@@ -32,6 +32,7 @@
     <input id="in-pw" type="password" autocomplete="current-password" required placeholder="Mot de passe">
     <button class="btn" type="submit">Se connecter</button>
     <button class="link login-oubli" type="button" id="go-oubli">Mot de passe oublié ?</button>
+    <p class="login-cadeau" id="login-cadeau" hidden></p>
     <div class="login-nouveau">
       <span>Nouveau ici?</span>
       <button class="btn ghost" type="button" id="go-creer">Créer mon compte · 30 jours gratuits</button>
@@ -99,8 +100,30 @@
         <span class="bell-txt">Rappel pas activé</span>
       </button>
     </div>
-    <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link" id="open-commis" type="button">Aide</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
+    <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link offrir-lien" id="open-offrir" type="button">🎁 Offrir un mois</button> · <button class="link" id="open-commis" type="button">Aide</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
   </header>
+
+  <section class="help offrir" id="offrir" hidden aria-labelledby="offrir-title">
+    <div class="help-head">
+      <h2 id="offrir-title">Offrez un mois, gagnez un mois</h2>
+      <button class="icon" type="button" id="close-offrir" aria-label="Fermer">✕</button>
+    </div>
+    <p>Vos proches reçoivent <b>60 jours gratuits</b> au lieu de 30. Pour chaque foyer qui s'inscrit avec votre lien, <b>vous gagnez 1 mois gratuit</b> (jusqu'à 12).</p>
+    <div class="offrir-score" id="offrir-score"></div>
+    <h3 class="offrir-h">À qui pensez-vous?</h3>
+    <div class="offrir-idees" id="offrir-idees"></div>
+    <label class="mf offrir-pour"><span>Prénom de la personne (facultatif)</span><input id="offrir-prenom" maxlength="40" autocomplete="off" placeholder="ex. Julie"></label>
+    <label class="mf"><span>Votre message</span><textarea id="offrir-msg" rows="5" maxlength="600"></textarea></label>
+    <div class="offrir-btns">
+      <button class="btn" type="button" data-canal="partage" id="offrir-partage" hidden>Envoyer…</button>
+      <button class="btn" type="button" data-canal="contacts" id="offrir-contacts" hidden>Choisir dans mes contacts</button>
+      <a class="btn line" data-canal="texto" id="offrir-texto" href="#">Texto</a>
+      <a class="btn line" data-canal="whatsapp" id="offrir-wa" href="#" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="btn line" data-canal="courriel" id="offrir-mail" href="#">Courriel</a>
+      <button class="btn line" type="button" data-canal="copie" id="offrir-copie">Copier le lien</button>
+    </div>
+    <p class="hint" id="offrir-lien"></p>
+  </section>
 
   <section class="help" id="membres" hidden aria-labelledby="membres-title">
     <div class="help-head">
@@ -114,11 +137,13 @@
       <input id="in-mtel" type="tel" inputmode="tel" placeholder="Cellulaire" autocomplete="off" aria-label="Cellulaire de la personne invitée" required>
       <button class="btn" type="submit" id="btn-inviter">Inviter</button>
     </form>
+    <p class="hint">Quelqu'un d'autre aimerait l'app pour sa propre maison? <button class="link" type="button" data-offrir="membres">🎁 Lui offrir un mois</button></p>
     <p class="hint" id="membres-plein" hidden>La limite de 4 membres est atteinte. Retirez quelqu'un pour inviter une autre personne.</p>
     <div class="invite-share" id="invite-share" hidden>
       <p id="invite-text"></p>
       <div class="row-actions">
-        <button class="btn" type="button" id="invite-send">Envoyer l'invitation</button>
+        <a class="btn" id="invite-sms" href="#">Envoyer par texto</a>
+        <button class="btn line" type="button" id="invite-send">Autre façon…</button>
         <button class="link" type="button" id="invite-copy">Copier le message</button>
       </div>
     </div>
@@ -235,6 +260,7 @@
   <p class="status" id="status" role="status"></p>
   <div id="demarrer"></div>
   <div id="avis"></div>
+  <div id="offrir-carte"></div>
 
   <section id="v-liste" class="view">
     <div class="stack">
