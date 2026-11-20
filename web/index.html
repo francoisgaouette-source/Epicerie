@@ -100,8 +100,29 @@
         <span class="bell-txt">Rappel pas activé</span>
       </button>
     </div>
-    <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link offrir-lien" id="open-offrir" type="button">🎁 Offrir un mois</button> · <button class="link" id="open-commis" type="button">Aide</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
+    <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link offrir-lien" id="open-offrir" type="button">🎁 Offrir un mois</button> · <button class="link" id="open-commis" type="button">Aide</button> · <button class="link" id="open-idee" type="button">💡 Une idée?</button> · <button class="link muted" id="logout" type="button">Se déconnecter</button></span>
   </header>
+
+  <section class="help idee" id="idee" hidden aria-labelledby="idee-title">
+    <div class="help-head">
+      <h2 id="idee-title">Aidez-nous à améliorer Le Commis</h2>
+      <button class="icon" type="button" id="close-idee" aria-label="Fermer">✕</button>
+    </div>
+    <p class="hint">Une idée, quelque chose qui accroche, ou ce que vous aimez : tout est lu par l'équipe. Vous verrez ici notre réponse et quand c'est fait.</p>
+    <form id="f-idee">
+      <div class="idee-types" role="radiogroup" aria-label="Type de message">
+        <button type="button" class="fchip" data-itype="idee" aria-pressed="true">💡 Une idée</button>
+        <button type="button" class="fchip" data-itype="probleme" aria-pressed="false">🐞 Ça accroche</button>
+        <button type="button" class="fchip" data-itype="aime" aria-pressed="false">❤️ J'aime</button>
+        <button type="button" class="fchip" data-itype="autre" aria-pressed="false">💬 Autre</button>
+      </div>
+      <label class="sr-only" for="idee-texte">Votre message</label>
+      <textarea id="idee-texte" rows="4" maxlength="2000" required placeholder="Ce serait pratique si…"></textarea>
+      <label class="idee-ok"><input type="checkbox" id="idee-contact"> On peut me texter pour en parler</label>
+      <div class="row-actions"><button class="btn" type="submit" id="idee-envoyer">Envoyer</button></div>
+    </form>
+    <div id="idee-miennes"></div>
+  </section>
 
   <section class="help offrir" id="offrir" hidden aria-labelledby="offrir-title">
     <div class="help-head">
@@ -259,6 +280,7 @@
   <div id="forfait"></div>
   <p class="status" id="status" role="status"></p>
   <div id="demarrer"></div>
+  <div id="retour-carte"></div>
   <div id="avis"></div>
   <div id="offrir-carte"></div>
 

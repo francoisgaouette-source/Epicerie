@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-<link rel="stylesheet" href="console.css?v=3">
+<link rel="stylesheet" href="console.css?v=4">
 </head>
 <body>
 
@@ -72,9 +72,23 @@
     </div>
   </form>
 </dialog>
+<dialog id="dlg-saisie">
+  <form id="sa-form">
+    <h2 id="sa-titre"></h2>
+    <p id="sa-info" class="note"></p>
+    <label id="sa-l-titre" hidden>Titre<input id="sa-champ-titre" maxlength="120" placeholder="ex. Partager un spécial à un ami"></label>
+    <label for="sa-texte">Texte</label>
+    <textarea id="sa-texte" rows="6" maxlength="2000"></textarea>
+    <label id="sa-l-statut" hidden>État de l'idée<select id="sa-statut"><option value="etudiee">À l'étude</option><option value="prevue">Prévue</option><option value="faite">Faite</option><option value="non">Non retenue</option></select></label>
+    <div class="dlg-actions">
+      <button class="btn" type="submit" id="sa-ok"></button>
+      <button class="btn pale" type="button" id="sa-annuler">Annuler</button>
+    </div>
+  </form>
+</dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="console.js?v=3"></script>
+<script src="console.js?v=4"></script>
 </body>
 </html>

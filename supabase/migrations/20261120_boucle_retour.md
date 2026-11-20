@@ -1,0 +1,1 @@
+-- Appliqué sur Supabase le 2026-11-20 : boucle de retour (idees, sondages, nouveautes, console_retour, console_idee, console_nouveaute) et canal facebook dans partages.

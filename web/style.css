@@ -418,3 +418,27 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 .eco-partage{margin-top:10px;font-weight:600}
 .login-cadeau{background:#FFF6D6;border:1.5px solid #F2C230;border-radius:12px;padding:10px 12px;margin:12px 0 0}
 #invite-sms{text-decoration:none;display:inline-flex;align-items:center}
+
+/* Boucle de retour : idées, réponses, nouveautés, sondage */
+.idee-types{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.idee-types .fchip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#idee-texte,#sondage-raison{width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);resize:vertical;min-height:5.5em}
+.idee-ok{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:.92rem}
+.idee-liste{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.idee-liste li{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.idee-liste p{margin:6px 0 0;white-space:pre-wrap}
+.idee-tete{display:flex;justify-content:space-between;gap:8px;font-size:.85rem;color:var(--muted)}
+.idee-statut{font-weight:700;border-radius:999px;padding:1px 9px;background:var(--soft);color:var(--ink)}
+.idee-statut.prevue{background:#E4EEF9;color:#1F4E80}
+.idee-statut.faite{background:#DCEBDF;color:#1E5A35}
+.idee-statut.etude{background:#FFF6D6;color:#6B5200}
+.idee-rep{background:var(--soft);border-radius:10px;padding:8px 10px}
+.retour-carte{border:1.5px solid var(--line);background:var(--card,var(--bg));border-radius:16px;padding:14px 16px;margin:0 0 14px}
+.retour-carte p{margin:6px 0}
+.retour-carte .row-actions{margin-top:10px}
+.nps{display:grid;grid-template-columns:repeat(11,1fr);gap:4px;margin:10px 0 0}
+.nps-n{font:inherit;font-weight:700;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);cursor:pointer;padding:0}
+.nps-n:hover,.nps-n:focus-visible{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+@media (max-width:420px){.nps{grid-template-columns:repeat(6,1fr)}}
+.sp-tous{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 12px}
+.sp-tous .hint{flex:1 1 220px}

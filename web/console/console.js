@@ -45,7 +45,16 @@
   const puce = (app) => `<span class="app"><i class="pastille ${esc(app)}"></i>${esc(nomApp[app] || app)}</span>`;
 
   // ---------- serveur
+  // Idées, sondages et nouveautés : fonctions de la base, réservées aux comptes de la console
+  const MSG_RPC = { acces_refuse: "Votre accès permet seulement de consulter.", titre_requis: "Donnez un titre à la nouveauté.", introuvable: "Idée introuvable." };
+  async function rpc(nom, args) {
+    const { data, error } = await sb.rpc(nom, args);
+    if (error) throw Object.assign(new Error(MSG_RPC[error.message] || error.message), { code: 400 });
+    return data;
+  }
   async function appel(corps) {
+    if (corps.action === "commis.idee") return rpc("console_idee", { p_id: corps.id, p_statut: corps.statut ?? null, p_reponse: corps.reponse ?? null });
+    if (corps.action === "commis.nouveaute") return rpc("console_nouveaute", corps.geste === "retirer" ? { p_retirer: corps.id } : { p_titre: corps.titre, p_texte: corps.texte || null, p_idee: corps.idee_id || null });
     const { data: s } = await sb.auth.getSession();
     if (!s.session) throw Object.assign(new Error("Connexion requise."), { code: 401 });
     const r = await fetch(`${URL_SB}/functions/v1/console`, {
@@ -79,7 +88,8 @@
     const paiements = d.commis.paiements.filter((p) => !p.active);
     const essais = d.commis.foyers.map((f) => ({ f, e: forfaitCommis(f) })).filter((x) => x.e.cle === "essai" && x.e.jours <= 7);
     const fils = filsCourriels(d).filter((f) => f.attente);
-    return { avis, paiements, essais, fils, demandes: d.fanion.demandes, n: avis.length + paiements.length + d.fanion.demandes.length + fils.length };
+    const idees = ((d.retour || {}).idees || []).filter((i) => i.statut === "recue");
+    return { avis, paiements, essais, fils, idees, demandes: d.fanion.demandes, n: avis.length + paiements.length + d.fanion.demandes.length + fils.length + idees.length };
   }
 
   // ---------- courriels : les messages d'un même échange forment un fil
@@ -173,11 +183,57 @@
     ? `<div class="table-boite"><table><thead><tr>${entetes.map((h) => `<th${h.n ? ' class="n"' : ""}>${h.t}</th>`).join("")}</tr></thead><tbody>${lignes.map((l) => `<tr>${l.map((c, i) => `<td data-t="${esc(entetes[i].t)}" class="${i === 0 ? "principal" : ""}${entetes[i].n ? " n" : ""}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
     : `<p class="vide">${vide}</p>`);
 
+  // ---------- idées, sondages et nouveautés du Commis
+  const TYPES = { idee: ["💡", "Idée"], probleme: ["🐞", "Problème"], aime: ["❤️", "J'aime"], autre: ["💬", "Commentaire"] };
+  const STATUTS = { recue: "À lire", etudiee: "À l'étude", prevue: "Prévue", faite: "Faite", non: "Non retenue" };
+  const SOURCES = { app: "", sondage: "réponse au sondage", rosalie: "proposée par Rosalie" };
+  const ficheIdee = (i) => {
+    const [ic, mot] = TYPES[i.type] || TYPES.autre;
+    const tamp = i.statut === "recue" ? `<span class="tampon attente">À lire</span>` : `<span class="tampon${i.statut === "non" ? " neutre" : ""}">${esc(STATUTS[i.statut])}</span>`;
+    const autres = Object.keys(STATUTS).filter((k) => k !== i.statut && k !== "recue");
+    return `<article class="fiche">
+      <div class="tete">${tamp}<b>${ic} ${esc(mot)}</b><span>${esc(moment(i.cree))}</span>${i.prenom ? `<span>${esc(i.prenom)}</span>` : ""}${i.foyer ? `<span>foyer ${esc(i.foyer)}</span>` : ""}${i.ecran ? `<span>écran ${esc(i.ecran)}</span>` : ""}${SOURCES[i.source] ? `<span>${esc(SOURCES[i.source])}</span>` : ""}</div>
+      <blockquote>${esc(i.texte)}</blockquote>
+      ${i.contact_ok && i.contact ? `<p class="note">Accepte d'être contacté·e : <b>${esc(String(i.contact).startsWith("+") ? tel(i.contact) : i.contact)}</b></p>` : ""}
+      ${i.appareil ? `<p class="note">${esc(i.appareil)}</p>` : ""}
+      ${i.reponse ? `<div class="message envoye"><p class="note"><b>Votre réponse</b>, ${esc(moment(i.repondu))} · la personne la voit dans l'app</p><p class="lettre">${esc(i.reponse)}</p></div>` : ""}
+      <div class="gestes">
+        <button class="btn" data-idee="${esc(i.id)}" data-g="repondre">${i.reponse ? "Modifier la réponse" : "Répondre"}</button>
+        ${autres.map((k) => `<button class="btn pale" data-idee="${esc(i.id)}" data-g="statut" data-statut="${k}">${esc(STATUTS[k])}</button>`).join("")}
+        ${i.statut !== "faite" ? `<button class="lien" data-idee="${esc(i.id)}" data-g="annoncer">C'est fait : l'annoncer à tous</button>` : ""}
+      </div>
+    </article>`;
+  };
+  function vueIdees(d) {
+    const r = d.retour || { idees: [], sondages: [], nouveautes: [] };
+    const ids = r.idees, so = r.sondages;
+    const recents = so.filter((x) => Date.now() - t(x.cree) < 90 * JOUR);
+    const nps = recents.length ? Math.round(100 * (recents.filter((x) => x.note >= 9).length - recents.filter((x) => x.note <= 6).length) / recents.length) : null;
+    const F = [["recue", "À lire"], ["etudiee", "À l'étude"], ["prevue", "Prévues"], ["faite", "Faites"], ["non", "Non retenues"], ["tous", "Toutes"]];
+    const filtre = F.some(([k]) => k === etat.filtreIdee) ? etat.filtreIdee : "recue";
+    const vis = ids.filter((i) => filtre === "tous" || i.statut === filtre);
+    return `<section class="section">${chiffres([
+        [ids.filter((i) => i.statut === "recue").length, "à lire"], [ids.length, "idées et commentaires"],
+        [ids.filter((i) => i.statut === "faite").length, "faites"], [nps == null ? "–" : (nps > 0 ? "+" : "") + nps, "recommandation (NPS, 90 jours)"],
+        [recents.length, "réponses au sondage"]])}</section>` +
+      section("Idées et commentaires", "Ce que les membres envoient avec « 💡 Une idée? » dans l'app, ou en répondant au sondage. Votre réponse et l'état (Prévue, Faite…) s'affichent pour la personne dans l'app : c'est ce qui ferme la boucle.",
+        `<div class="filtres">${F.map(([k, mot]) => `<button class="filtre" data-filtreidee="${k}" ${k === filtre ? 'aria-pressed="true"' : ""}>${mot}${k !== "tous" ? ` (${ids.filter((i) => i.statut === k).length})` : ""}</button>`).join("")}</div>` +
+        liste(vis.map(ficheIdee), filtre === "recue" ? "Rien de nouveau à lire." : "Aucune idée dans cette liste.")) +
+      section("Annoncer une nouveauté", "Chaque membre la voit une fois, en haut de l'app, au prochain lancement. Annoncez les améliorations, surtout celles demandées par les membres.",
+        `<form class="invite" id="f-nouveaute"><label>Titre<input id="in-nv-titre" required maxlength="120" placeholder="ex. Le bilan accepte maintenant les grammes"></label>
+          <label>Détail (facultatif)<input id="in-nv-texte" maxlength="1000" placeholder="Une phrase sur ce qui change et où le trouver"></label>
+          <button class="btn" type="submit">Annoncer</button></form>` +
+        table([{ t: "Nouveauté" }, { t: "Annoncée" }, { t: "Geste" }], r.nouveautes.map((n) => [`<span class="nom">${esc(n.titre)}</span><small>${esc(n.texte || "")}${n.idee_id ? " · demandée par un membre" : ""}</small>`, esc(jour(n.cree)), `<div class="gestes"><button class="lien" data-nouveaute="${esc(n.id)}">Retirer</button></div>`]), "Aucune nouveauté annoncée pour l'instant.")) +
+      section("Sondage : recommanderiez-vous Le Commis?", "Posé dans l'app après 10 jours d'usage, puis tous les 3 mois. 9-10 : promoteurs (l'app leur propose d'offrir un mois). 0-6 : détracteurs (l'app leur demande ce qui accroche).",
+        table([{ t: "Note", n: 1 }, { t: "Pourquoi" }, { t: "Foyer" }, { t: "Quand" }], so.slice(0, 100).map((x) => [`<b>${x.note}</b>`, esc(x.raison || ""), esc(x.foyer || ""), esc(moment(x.cree))]), "Aucune réponse au sondage pour l'instant."));
+  }
+
   // ---------- vues
   function vueTraiter(d) {
     const a = aTraiter(d);
     const blocs = [];
     if (a.fils.length) blocs.push(section("Courriels à traiter", "Des personnes vous ont écrit. Répondez ici, ou marquez le courriel comme traité.", liste(a.fils.slice(0, 30).map(ficheCourriel), "")));
+    if (a.idees.length) blocs.push(section("Idées et commentaires à lire", "Ce que les membres du Commis vous ont envoyé. Répondez ou changez l'état : la personne le voit dans l'app.", liste(a.idees.slice(0, 20).map(ficheIdee), "")));
     blocs.push(section("Avis à approuver", "Un avis paraît sur le site seulement après votre approbation, et seulement si la personne a accepté l'affichage.",
       liste(a.avis.map((x) => ficheAvis(x, x.app)), "Aucun avis en attente. Les nouveaux avis du Commis et de Fanion arrivent ici.")));
     if (a.paiements.length) blocs.push(section("Paiements à relier", "Stripe a reçu ces paiements sans pouvoir activer un foyer. Activez le bon foyer dans l'onglet Le Commis.",
@@ -226,11 +282,12 @@
       section("Questions posées au Caddie", "Ce que les joueurs demandent à l'assistant dans l'app.",
         liste(q.map(ficheQuestion), "Aucune question notée pour l'instant. Elles s'inscrivent ici à mesure que les joueurs en posent."));
   }
-  const MOTS = { "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
-  const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée", traite: "marqué comme traité", atraiter: "remis à traiter", repondu: "réponse envoyée" };
+  const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
+  const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée", traite: "marqué comme traité", atraiter: "remis à traiter", repondu: "réponse envoyée", annoncer: "annoncée dans l'app", recue: "à lire", etudiee: "à l'étude", prevue: "prévue", faite: "faite", non: "non retenue" };
   const ROLES = { proprio: "Propriétaire", gestion: "Gestion", lecture: "Consultation" };
   const gesteJournal = (j) => { const x = j.detail || {};
     if (j.app === "console") return x.geste === "inviter" ? `accès donné (${ROLES[x.role] || ""})` : x.geste === "role" ? `rôle changé (${ROLES[x.role] || ""})` : "accès retiré";
+    if (j.action === "commis.idee") return [GESTES[x.statut] || "", x.repondu ? "réponse envoyée" : ""].filter(Boolean).join(", ");
     return GESTES[x.etat || x.geste] || ""; };
   function vueAcces(d) {
     const gens = d.acces || [];
@@ -251,16 +308,16 @@
       }), "Aucun geste pour l'instant."));
   }
 
-  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["journal", "Journal"]];
+  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["journal", "Journal"]];
   function rendre() {
     const d = etat.d; if (!d) return;
     const n = aTraiter(d).n;
     const vues = etat.role === "proprio" ? [...VUES, ["acces", "Accès"]] : VUES;
     if (!vues.some(([k]) => k === etat.vue)) etat.vue = "traiter";
     $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${k === "commis" || k === "fanion" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : vueTraiter(d);
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
-    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel]").forEach((b) => b.remove());
+    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],#f-nouveaute").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
     document.title = (n ? `(${n}) ` : "") + "Console HoldingAI";
     etat.frais = null;
@@ -269,6 +326,7 @@
     if (!silence && !etat.d) $("#page").innerHTML = `<p class="charge">Lecture des données…</p>`;
     try {
       const d = await appel({ action: "tout" });
+      try { d.retour = await rpc("console_retour"); } catch (e) { d.retour = { idees: [], sondages: [], nouveautes: [] }; }
       etat.d = d; etat.courriel = d.courriel || ""; etat.role = d.role || "lecture"; rendre();
     } catch (e) {
       if (e.code === 401) { await sb.auth.signOut(); montrerPorte("Votre session est terminée. Reconnectez-vous."); }
@@ -282,6 +340,26 @@
     catch (e) { toast(e.message, true); }
   }
 
+  // Petite fenêtre de saisie (réponse à une idée, nouveauté)
+  function saisir({ titre, info, texte, bouton, champTitre, statut, statutActuel }) {
+    return new Promise((res) => {
+      const dlg = $("#dlg-saisie");
+      $("#sa-titre").textContent = titre; $("#sa-info").textContent = info || "";
+      $("#sa-l-titre").hidden = !champTitre; $("#sa-champ-titre").value = ""; $("#sa-champ-titre").required = !!champTitre;
+      $("#sa-texte").value = texte || ""; $("#sa-ok").textContent = bouton;
+      $("#sa-l-statut").hidden = !statut;
+      if (statut) $("#sa-statut").value = statutActuel === "recue" ? "etudiee" : statutActuel;
+      $("#sa-form").onsubmit = (e) => { e.preventDefault(); dlg.close(); res({ titre: $("#sa-champ-titre").value.trim(), texte: $("#sa-texte").value.trim(), statut: statut ? $("#sa-statut").value : undefined }); };
+      $("#sa-annuler").onclick = () => { dlg.close(); res(null); };
+      dlg.showModal(); setTimeout(() => (champTitre ? $("#sa-champ-titre") : $("#sa-texte")).focus(), 30);
+    });
+  }
+  $("#page").addEventListener("submit", (e) => {
+    if (e.target.id !== "f-nouveaute") return;
+    e.preventDefault();
+    agir({ action: "commis.nouveaute", titre: $("#in-nv-titre").value, texte: $("#in-nv-texte").value }, "Nouveauté annoncée dans l'app.");
+  });
+
   // ---------- gestes
   $("#onglets").addEventListener("click", (e) => { const b = e.target.closest("[data-vue]"); if (!b) return; etat.vue = b.dataset.vue; rendre(); window.scrollTo({ top: 0 }); });
   $("#actualiser").addEventListener("click", async () => { await charger(true); toast("Données à jour."); });
@@ -290,6 +368,27 @@
     const b = e.target.closest("button"); if (!b || b.disabled) return;
     const d = etat.d;
     if (b.dataset.filtre) { etat.filtre = b.dataset.filtre; rendre(); return; }
+    if (b.dataset.filtreidee) { etat.filtreIdee = b.dataset.filtreidee; rendre(); return; }
+    if (b.dataset.nouveaute) {
+      const ok = await confirmer({ titre: "Retirer cette nouveauté ?", texte: "Les membres qui ne l'ont pas encore vue ne la verront pas.", bouton: "Retirer" });
+      if (ok) agir({ action: "commis.nouveaute", geste: "retirer", id: b.dataset.nouveaute }, "Nouveauté retirée.");
+      return;
+    }
+    if (b.dataset.idee) {
+      const i = ((d.retour || {}).idees || []).find((x) => x.id === b.dataset.idee); if (!i) return;
+      const g = b.dataset.g;
+      if (g === "statut") return agir({ action: "commis.idee", id: i.id, statut: b.dataset.statut }, `Idée marquée « ${STATUTS[b.dataset.statut]} ».`);
+      if (g === "repondre") {
+        const r = await saisir({ titre: "Répondre dans l'app", info: `« ${i.texte.slice(0, 200)} »`, texte: i.reponse || `Merci ${i.prenom || ""}! `.replace(" !", "!"), bouton: "Envoyer la réponse", statut: true, statutActuel: i.statut });
+        if (r) agir({ action: "commis.idee", id: i.id, reponse: r.texte, statut: r.statut }, "Réponse envoyée : la personne la verra dans l'app.");
+        return;
+      }
+      if (g === "annoncer") {
+        const r = await saisir({ titre: "Annoncer cette amélioration à tous", info: `Demandée : « ${i.texte.slice(0, 200)} »`, champTitre: true, texte: "", bouton: "Annoncer" });
+        if (r) agir({ action: "commis.nouveaute", titre: r.titre, texte: r.texte, idee_id: i.id }, "Nouveauté annoncée. L'idée est marquée comme faite.");
+        return;
+      }
+    }
     if (b.dataset.courriel) {
       const c = (d.courriels || []).find((x) => x.id === b.dataset.courriel), g = b.dataset.geste; if (!c) return;
       if (g === "repondre") return repondre(c);

@@ -207,7 +207,7 @@
       </ol>
       <p class="surv-etat">${c && c.derniere_verif ? `Dernière vérification : <b>${fmtDate(c.derniere_verif)}</b>${c.semaine ? ` (circulaires ${esc(c.semaine)})` : ""}.${c.resume ? ` ${esc(c.resume.split(".")[0])}.` : ""}` : "Première vérification à venir."} Prochaine : <b>jeudi ${fmtDate(jeudi)}</b>, en matinée.</p>
       <p class="hint">Vos prix changent aussi quand vous approuvez une facture (onglet Lieu) ou quand vous les tapez dans la fiche d'un produit.</p>`;
-    $("#list-spec").innerHTML = spec.length ? `<div class="deals">${spec.map((s) => {
+    $("#list-spec").innerHTML = spec.length ? `${spec.length > 1 ? `<div class="sp-tous"><button class="btn" type="button" data-spshare="tous">📤 Partager les ${spec.length} spéciaux de la semaine</button><span class="hint">Vos proches profitent des rabais, et reçoivent 60 jours gratuits avec votre lien.</span></div>` : ""}<div class="deals">${spec.map((s) => {
       const inList = state.liste.some((i) => !i.fait && norm(i.nom) === norm(s.item));
       const pr = num(s.prix), rg = num(s.prix_reg);
       return `<div class="deal">
@@ -216,6 +216,7 @@
         ${s.detail ? `<div class="detail">${esc(s.detail)}</div>` : ""}
         <div class="deal-actions">
           ${inList ? '<span class="meta">Déjà dans la liste</span>' : `<button class="link" data-addfrom="${s.id}" type="button">Ajouter à la liste</button>`}
+          <button class="link" data-spshare="${s.id}" type="button">📤 Partager</button>
           <button class="link muted" data-ignore="${s.id}" type="button">Masquer</button>
           ${/^https?:\/\//.test(s.lien || "") ? `<a href="${esc(s.lien)}" target="_blank" rel="noopener">Voir la circulaire</a>` : ""}
         </div></div>`;
@@ -1009,7 +1010,7 @@
   });
 
   // ---------- aide : guide complet
-  const fermerPanneaux = (sauf) => ["#help", "#membres", "#rappel", "#commis", "#offrir"].forEach((id) => { if (id !== sauf) $(id).hidden = true; });
+  const fermerPanneaux = (sauf) => ["#help", "#membres", "#rappel", "#commis", "#offrir", "#idee"].forEach((id) => { if (id !== sauf) $(id).hidden = true; });
   function showHelp(open) {
     $("#help").hidden = !open;
     if (open) { fermerPanneaux("#help"); $("#help").scrollIntoView({ block: "start", behavior: "smooth" }); }
@@ -1133,7 +1134,7 @@
   function renderAvis() {
     const box = $("#avis");
     if (!box) return;
-    if (!avisAMontrer()) { box.innerHTML = ""; return; }
+    if (!avisAMontrer() || ($("#retour-carte") && $("#retour-carte").innerHTML)) { box.innerHTML = ""; return; }
     const me = (state.membres || []).find(estMoi);
     box.innerHTML = `<section class="avis">
       <h2>Le Commis vous rend service?</h2>
@@ -1186,11 +1187,26 @@
     ["colocs", "Des colocs", "Parfait en coloc : une liste commune, et on voit ce qui est déjà au frigo."],
     ["chalet", "Votre chalet ou votre camp", "Ça garde aussi ce qu'on a au chalet, séparément de la maison."],
   ];
-  function lienParrain() { return parrain && parrain.code ? `${SITE_URL}?ref=${parrain.code}` : SITE_URL; }
+  let offrirSpec = null; // spéciaux à partager (mode « spécial »)
+  const b64url = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  function lienParrain() {
+    const q = [];
+    if (parrain && parrain.code) q.push("ref=" + parrain.code);
+    if (offrirSpec && offrirSpec.length) q.push("sp=" + b64url(offrirSpec.slice(0, 6).map((x) => ({ i: x.item, m: x.magasin, p: num(x.prix), r: num(x.prix_reg), f: x.fin || null }))));
+    return q.length ? `${SITE_URL}?${q.join("&")}` : SITE_URL;
+  }
+  const ligneSpec = (x) => {
+    const pr = num(x.prix), rg = num(x.prix_reg), pc = pr != null && rg ? Math.round((1 - pr / rg) * 100) : 0;
+    return `${x.item} à ${money(pr)} chez ${x.magasin}${rg ? ` (au lieu de ${money(rg)}${pc >= 5 ? `, −${pc} %` : ""})` : ""}${x.fin ? `, jusqu'au ${fmtDate(x.fin)}` : ""}`;
+  };
   function msgOffrir() {
     const dest = $("#offrir-prenom").value.trim();
     const moi = prenom((moiMembre() || {}).nom);
     const idee = IDEES.find((x) => x[0] === offrirIdee);
+    if (offrirSpec && offrirSpec.length) {
+      const un = offrirSpec.length === 1;
+      return `${dest ? "Salut " + dest + "! " : ""}🔥 ${un ? "Spécial de la semaine : " + ligneSpec(offrirSpec[0]) + "." : "Spéciaux de la semaine :\n" + offrirSpec.slice(0, 6).map((x) => "• " + ligneSpec(x)).join("\n")}\nC'est Le Commis qui me trouve ces rabais chaque jeudi, sur ce qu'on achète vraiment. Essaie-le : 60 jours gratuits avec mon lien ${lienParrain()}${moi ? "\n" + moi : ""}`;
+    }
     return `${dest ? "Salut " + dest + "!" : "Salut!"} J'utilise Le Commis pour l'épicerie de la maison : une liste partagée en temps réel, ce qu'on a au frigo et au garde-manger, et les spéciaux de la semaine sur ce qu'on achète. ${idee ? idee[2] + " " : ""}Avec mon lien, tu as 60 jours gratuits au lieu de 30 : ${lienParrain()}${moi ? "\n" + moi : ""}`;
   }
   function majLiensOffrir() {
@@ -1214,14 +1230,15 @@
   async function chargerParrain() {
     try { const { data, error } = await sb.rpc("mon_parrainage"); if (!error && data) parrain = data; } catch (e) {}
   }
-  async function ouvrirOffrir(moment) {
-    offrirMoment = moment || "";
+  async function ouvrirOffrir(moment, specs) {
+    offrirMoment = moment || ""; offrirSpec = specs || null;
+    $("#offrir-title").textContent = specs ? (specs.length > 1 ? "Partager les spéciaux" : "Partager ce spécial") : "Offrez un mois, gagnez un mois";
     fermerPanneaux("#offrir"); $("#offrir").hidden = false; renderOffrir();
     $("#offrir").scrollIntoView({ block: "start", behavior: "smooth" });
     await chargerParrain(); renderOffrir();
   }
   function notePartage(canal) {
-    sb.from("partages").insert({ canal, moment: offrirMoment || null }).then(() => {}, () => {});
+    sb.from("partages").insert({ canal, moment: (offrirSpec ? "special:" : "") + (offrirMoment || "") || null }).then(() => {}, () => {});
     lsSet("offrir.etat." + state.userId, "partage:" + Date.now());
     renderOffrirCarte();
   }
@@ -1260,11 +1277,28 @@
     }
     notePartage(canal); // texto, whatsapp, courriel : le lien s'ouvre normalement
   });
+  // Partager un spécial : d'un geste sur téléphone, sinon le panneau avec texto, WhatsApp, courriel
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-spshare]"); if (!b) return;
+    const vis = state.spec.filter((x) => !x.ignore);
+    const specs = b.dataset.spshare === "tous" ? vis : vis.filter((x) => x.id === b.dataset.spshare);
+    if (!specs.length) return;
+    if (!parrain) await chargerParrain();
+    if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+      offrirSpec = specs; offrirMoment = "speciaux";
+      const texte = (() => { const v = $("#offrir-prenom").value; $("#offrir-prenom").value = ""; const t = msgOffrir(); $("#offrir-prenom").value = v; return t; })();
+      try { await navigator.share({ title: "Spéciaux de la semaine", text: texte }); notePartage("partage"); status("Partagé! Vous gagnez 1 mois si la personne s'inscrit avec votre lien."); }
+      catch (err) { if (err && err.name !== "AbortError") ouvrirOffrir("speciaux", specs); }
+      offrirSpec = null;
+      return;
+    }
+    ouvrirOffrir("speciaux", specs);
+  });
   document.addEventListener("click", (e) => { const o = e.target.closest("[data-offrir]"); if (o && !o.closest("#offrir")) ouvrirOffrir(o.dataset.offrir); });
 
   // Une carte « Offrir un mois » aux bons moments : après des économies, ou après quelques jours d'usage
   function offrirAMontrer() {
-    if (!state.userId || $("#avis").innerHTML) return null;
+    if (!state.userId || $("#avis").innerHTML || $("#retour-carte").innerHTML) return null;
     const etat = lsGet("offrir.etat." + state.userId) || "";
     if (etat === "non") return null;
     const [k, t] = etat.split(":"), quand = Number(t || 0);
@@ -1293,8 +1327,139 @@
     renderOffrirCarte();
   });
 
+
+  // ---------- Boucle de retour : idées → équipe → réponse et nouveautés dans l'app
+  const retour = { idees: [], nouveautes: [], sondageDernier: null, charge: false };
+  let ideeType = "idee";
+  const STATUT_IDEE = { recue: ["Reçue", ""], etudiee: ["À l'étude", "etude"], prevue: ["Prévue", "prevue"], faite: ["Faite ✓", "faite"], non: ["Pas pour l'instant", "non"] };
+  const TYPE_IDEE = { idee: "💡", probleme: "🐞", aime: "❤️", autre: "💬" };
+  function vuRetour() { try { return JSON.parse(lsGet("retour.vu." + state.userId) || "{}"); } catch (e) { return {}; } }
+  function noterVu(maj) { lsSet("retour.vu." + state.userId, JSON.stringify({ ...vuRetour(), ...maj })); }
+  const cleIdee = (i) => i.statut + "|" + (i.repondu || "");
+  async function chargerRetour() {
+    if (!state.userId) return;
+    const [a, b, c] = await Promise.all([
+      sb.from("idees").select("id, cree, type, texte, statut, reponse, repondu").order("cree", { ascending: false }).limit(50),
+      sb.from("nouveautes").select("id, cree, titre, texte").order("cree", { ascending: false }).limit(10),
+      sb.from("sondages").select("cree").order("cree", { ascending: false }).limit(1),
+    ]);
+    retour.idees = (a && a.data) || []; retour.nouveautes = (b && b.data) || [];
+    retour.sondageDernier = c && c.data && c.data[0] ? c.data[0].cree : null; retour.charge = true;
+    renderRetourCarte(); renderAvis(); renderOffrirCarte();
+    if (!$("#idee").hidden) renderMiennes();
+  }
+  function renderMiennes() {
+    const l = retour.idees;
+    $("#idee-miennes").innerHTML = l.length ? `<h3 class="offrir-h">Vos envois</h3><ul class="idee-liste">${l.map((i) => {
+      const [mot, cls] = STATUT_IDEE[i.statut] || STATUT_IDEE.recue;
+      return `<li><div class="idee-tete"><span>${TYPE_IDEE[i.type] || "💬"} ${esc(new Date(i.cree).toLocaleDateString("fr-CA", { day: "numeric", month: "short" }))}</span><span class="idee-statut ${cls}">${esc(mot)}</span></div>
+        <p>${esc(i.texte)}</p>${i.reponse ? `<p class="idee-rep"><b>Réponse de l'équipe :</b> ${esc(i.reponse)}</p>` : ""}</li>`;
+    }).join("")}</ul>` : "";
+    // Ouvrir la liste vaut lecture des réponses
+    const vu = vuRetour().idees || {}; l.forEach((i) => { vu[i.id] = cleIdee(i); }); noterVu({ idees: vu });
+  }
+  function ouvrirIdee(type, texte) {
+    fermerPanneaux("#idee"); $("#idee").hidden = false;
+    if (type) { ideeType = type; document.querySelectorAll("[data-itype]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.itype === ideeType))); }
+    if (texte) $("#idee-texte").value = texte;
+    renderMiennes(); renderRetourCarte();
+    $("#idee").scrollIntoView({ block: "start", behavior: "smooth" });
+    setTimeout(() => focusIfDesktop($("#idee-texte")), 80);
+  }
+  const PLACE = { idee: "Ce serait pratique si…", probleme: "Qu'est-ce qui accroche? Sur quel écran?", aime: "Ce que vous aimez le plus…", autre: "Votre message…" };
+  $("#open-idee").addEventListener("click", () => ($("#idee").hidden ? ouvrirIdee() : ($("#idee").hidden = true)));
+  $("#close-idee").addEventListener("click", () => { $("#idee").hidden = true; });
+  $("#f-idee").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-itype]"); if (!b) return;
+    ideeType = b.dataset.itype;
+    document.querySelectorAll("[data-itype]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    $("#idee-texte").placeholder = PLACE[ideeType];
+  });
+  async function envoyerIdee({ type, texte, contact, source }) {
+    const me = moiMembre() || {};
+    return sb.from("idees").insert({ type, texte, contact_ok: !!contact, source: source || "app", prenom: prenom(me.nom) || null,
+      ecran: (ECRANS[view] || view || "").slice(0, 40), appareil: navigator.userAgent.slice(0, 200) });
+  }
+  $("#f-idee").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const texte = $("#idee-texte").value.trim(); if (texte.length < 2) return;
+    $("#idee-envoyer").disabled = true;
+    const { error } = await envoyerIdee({ type: ideeType, texte, contact: $("#idee-contact").checked });
+    $("#idee-envoyer").disabled = false;
+    if (error) { status("Le message n'a pas pu être envoyé. Vérifiez votre connexion et réessayez."); return; }
+    $("#idee-texte").value = ""; $("#idee-contact").checked = false;
+    status(ideeType === "aime" ? "Merci! Ça fait vraiment plaisir à l'équipe." : "Merci! C'est bien reçu. Vous verrez notre réponse ici.");
+    chargerRetour();
+  });
+
+  // Une seule carte à la fois en haut de l'app : réponse reçue, nouveauté, puis sondage éclair
+  let sondage = null; // { note } pendant la 2e étape
+  function carteRetour() {
+    if (!retour.charge || !state.userId) return null;
+    const vu = vuRetour(), vuI = vu.idees || {};
+    const rep = retour.idees.find((i) => (i.reponse || ["prevue", "faite", "non"].includes(i.statut)) && vuI[i.id] !== cleIdee(i));
+    if (rep) return { k: "reponse", i: rep };
+    const depuis = Math.max(new Date(state.userCreated || 0).getTime(), Number(vu.nv || 0));
+    const nv = retour.nouveautes.find((n) => new Date(n.cree).getTime() > depuis);
+    if (nv) return { k: "nouveaute", n: nv };
+    if (sondage) return { k: "sondage" };
+    const age = Date.now() - new Date(state.userCreated || Date.now()).getTime();
+    const dernier = Math.max(new Date(retour.sondageDernier || 0).getTime(), Number(vu.sondage || 0));
+    if (age >= 10 * JOUR && Date.now() - dernier >= 90 * JOUR && Date.now() - Number(vu.sondagePlusTard || 0) >= 14 * JOUR) return { k: "sondage" };
+    return null;
+  }
+  function renderRetourCarte() {
+    const box = $("#retour-carte"); if (!box) return;
+    const c = carteRetour();
+    if (!c) { box.innerHTML = ""; return; }
+    if (c.k === "reponse") {
+      const i = c.i, [mot] = STATUT_IDEE[i.statut] || STATUT_IDEE.recue;
+      box.innerHTML = `<section class="retour-carte"><b>${i.statut === "faite" ? "🎉 Votre idée est en ligne!" : "💬 L'équipe vous a répondu"}</b>
+        <p class="hint">Vous avez écrit : « ${esc(i.texte.length > 140 ? i.texte.slice(0, 140) + "…" : i.texte)} » · <b>${esc(mot)}</b></p>
+        ${i.reponse ? `<p>${esc(i.reponse)}</p>` : ""}
+        <div class="row-actions"><button class="btn" type="button" data-retour="vu-idee" data-id="${i.id}">Merci!</button><button class="link" type="button" data-retour="idee">Voir mes envois</button></div></section>`;
+    } else if (c.k === "nouveaute") {
+      const n = c.n;
+      box.innerHTML = `<section class="retour-carte"><b>✨ Nouveau : ${esc(n.titre)}</b>${n.texte ? `<p>${esc(n.texte)}</p>` : ""}
+        <div class="row-actions"><button class="btn" type="button" data-retour="vu-nv" data-t="${new Date(n.cree).getTime()}">Super</button><button class="link" type="button" data-retour="idee">Proposer une idée</button></div></section>`;
+    } else if (!sondage) {
+      box.innerHTML = `<section class="retour-carte"><b>Recommanderiez-vous Le Commis à un proche?</b>
+        <p class="hint">0 = pas du tout, 10 = sans hésiter. Une seule question.</p>
+        <div class="nps" role="group" aria-label="Note de 0 à 10">${Array.from({ length: 11 }, (_, n) => `<button type="button" class="nps-n" data-note="${n}">${n}</button>`).join("")}</div>
+        <div class="row-actions"><button class="link muted" type="button" data-retour="sondage-plus-tard">Plus tard</button></div></section>`;
+    } else {
+      const n = sondage.note;
+      const q = n >= 9 ? "Merci! Qu'est-ce que vous aimez le plus?" : n >= 7 ? "Merci! Qu'est-ce qui le rendrait parfait pour vous?" : "Merci de votre franchise. Qu'est-ce qui accroche le plus?";
+      box.innerHTML = `<section class="retour-carte"><b>${esc(q)}</b>
+        <textarea id="sondage-raison" rows="3" maxlength="2000" placeholder="Facultatif, mais ça nous aide beaucoup"></textarea>
+        <div class="row-actions"><button class="btn" type="button" data-retour="sondage-envoyer">Envoyer</button><button class="link muted" type="button" data-retour="sondage-passer">Passer</button></div></section>`;
+    }
+  }
+  async function finirSondage(raison) {
+    const n = sondage.note; sondage = null;
+    noterVu({ sondage: Date.now() });
+    await sb.from("sondages").insert({ note: n, raison: raison || null }).then(() => {}, () => {});
+    if (raison) envoyerIdee({ type: n >= 9 ? "aime" : n <= 6 ? "probleme" : "idee", texte: raison, source: "sondage" }).then(() => {}, () => {});
+    renderRetourCarte();
+    if (n >= 9) { status("Merci! Vous pouvez faire découvrir Le Commis à un proche : il reçoit 60 jours, vous gagnez un mois."); ouvrirOffrir("sondage"); }
+    else status("Merci! Votre réponse est bien reçue. L'équipe la lit.");
+  }
+  $("#retour-carte").addEventListener("click", async (e) => {
+    const nb = e.target.closest("[data-note]");
+    if (nb) { sondage = { note: Number(nb.dataset.note) }; renderRetourCarte(); setTimeout(() => focusIfDesktop($("#sondage-raison")), 50); return; }
+    const b = e.target.closest("[data-retour]"); if (!b) return;
+    const g = b.dataset.retour;
+    if (g === "vu-idee") { const i = retour.idees.find((x) => x.id === b.dataset.id); const vu = vuRetour().idees || {}; if (i) vu[i.id] = cleIdee(i); noterVu({ idees: vu }); }
+    else if (g === "vu-nv") noterVu({ nv: Number(b.dataset.t) });
+    else if (g === "idee") { ouvrirIdee(); return; }
+    else if (g === "sondage-plus-tard") noterVu({ sondagePlusTard: Date.now() });
+    else if (g === "sondage-envoyer") return finirSondage(($("#sondage-raison").value || "").trim());
+    else if (g === "sondage-passer") return finirSondage("");
+    renderRetourCarte(); renderAvis(); renderOffrirCarte();
+  });
+
   // ---------- le Commis : l'agent qui répond aux questions
-  const ECRANS = { produits: "Produits", maison: "Lieu", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet", offrir: "Offrir un mois" };
+  const ECRANS = { produits: "Produits", maison: "Lieu", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet", offrir: "Offrir un mois", idee: "Une idée?" };
   const commis = { msgs: [], busy: false };
   function allerA(k) {
     $("#commis").hidden = true;
@@ -1303,6 +1468,7 @@
     else if (k === "rappel") showRappel(true);
     else if (k === "bilan") ouvrirBilan();
     else if (k === "offrir") ouvrirOffrir("rosalie");
+    else if (k === "idee") ouvrirIdee();
     else if (k === "facture") { showView("maison"); $("#in-facture").click(); }
     else if (k === "ecran") montrerEcran();
     else if (k === "guide") showHelp(true);
@@ -2102,7 +2268,7 @@
       if (estProprio()) { location.href = lienAchat(); return; }
       status(`Seul le propriétaire du foyer peut acheter l'app. Demandez à ${prenom(((state.membres || []).find((m) => m.role === "proprio") || {}).nom || "lui")}.`);
     }
-    maybeBienvenue(); renderDemarrer(); renderAvis(); renderOffrirCarte();
+    maybeBienvenue(); renderDemarrer(); renderAvis(); renderOffrirCarte(); chargerRetour();
     accueilRosalie();
     if (location.hash === "#bilan") ouvrirBilan();
     subscribe();

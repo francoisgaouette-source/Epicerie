@@ -166,3 +166,13 @@ dialog::backdrop { background: rgb(10 15 25 / .55); }
 .invite label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; min-width: 0; }
 .invite input, .invite select { border: 1.5px solid var(--ligne); background: var(--papier); border-radius: 8px; padding: 10px; font-weight: 400; font-size: 16px; min-height: 42px; width: 100%; min-width: 0; }
 @media (max-width: 720px) { .invite { grid-template-columns: 1fr; } }
+
+/* Idées : fenêtre de saisie */
+#dlg-saisie { width: min(620px, calc(100vw - 32px)); }
+#sa-form { padding: 24px; display: grid; gap: 10px; }
+#sa-titre { font-size: 20px; font-weight: 750; font-stretch: 110%; letter-spacing: -.01em; }
+#sa-info { color: var(--gris); font-size: 14.5px; overflow-wrap: anywhere; margin: 0; }
+#sa-form label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+#sa-form input, #sa-form select, #sa-texte { font: inherit; color: inherit; border: 1.5px solid var(--ligne); background: var(--papier); border-radius: 8px; padding: 10px 12px; width: 100%; font-size: 16px; }
+#sa-texte { min-height: 140px; resize: vertical; line-height: 1.45; }
+#sa-form [hidden] { display: none; }

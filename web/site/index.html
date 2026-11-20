@@ -313,7 +313,14 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 @media (max-width: 760px) { .pour-grid { grid-template-columns: 1fr; } }
 
 .demo-titre { font-weight: 600; margin: 0 0 10px; }
-.cadeau { background: #FFF6D6; border: 1.5px solid #F2C230; border-radius: 12px; padding: 10px 14px; margin: 0 0 16px; font-size: 17px; }
+.sp-partage { color: #1F2A24; background: #fff; border: 1.5px solid var(--etiquette, #F2C230); border-radius: 14px; padding: 12px 16px; margin: 0 0 16px; }
+.sp-partage .sp-titre { margin: 0 0 6px; font-weight: 700; }
+.sp-partage ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sp-partage li { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; }
+.sp-partage .sp-prix { font-weight: 800; font-size: 20px; color: var(--epicerie, #1E5A35); }
+.sp-partage .sp-det { grid-column: 1 / -1; font-size: 15px; opacity: .8; }
+.sp-partage .sp-pied { margin: 10px 0 0; font-size: 15px; }
+.cadeau { color: #1F2A24; background: #FFF6D6; border: 1.5px solid #F2C230; border-radius: 12px; padding: 10px 14px; margin: 0 0 16px; font-size: 17px; }
 .demo-q { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; }
 .demo-q button { font: 600 15px var(--body); border: 1.5px solid var(--epicerie); color: var(--epicerie); background: var(--blanc); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
 .demo-q button:hover { background: var(--vert-pale); }
@@ -355,9 +362,11 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 <div class="hero">
   <div class="wrap">
     <div>
+      <p class="cadeau" id="cadeau" hidden></p>
+      <div class="sp-partage" id="sp-partage" hidden><p class="sp-titre">🔥 Spécial de la semaine</p><ul></ul><p class="sp-pied">Le Commis trouve ces rabais pour vous chaque jeudi dans les circulaires d'IGA, Metro, Maxi, Super C et Provigo, sur ce que vous achetez vraiment.</p></div>
       <h1>Votre commis d'épicerie, <em>à la maison.</em></h1>
       <p class="lead">Le Commis tient la liste de toute la maison, sait ce qu'il reste dans le garde-manger et trouve les spéciaux de la semaine. Fini le « on a-tu encore du lait? » texté de l'allée 4.</p>
-      <p class="cadeau" id="cadeau" hidden></p>
+
       <div class="ctas">
         <a class="btn main app-link essai" href="https://app.lecommis.ai/?essai">Essayer 30 jours gratuits</a>
         <a class="btn ghost" href="achat.html">Acheter · 19,99 $ par année</a>
@@ -721,7 +730,8 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
     }, 2000);
   }
   // Lien de parrainage : lecommis.ai/?ref=CODE → 60 jours gratuits, et le code suit jusqu'à l'app
-  var ref = null;
+  var ref = null, spBrut = null;
+  try { spBrut = new URLSearchParams(location.search).get('sp'); } catch (e) {}
   try {
     var m = (new URLSearchParams(location.search).get('ref') || '').toUpperCase();
     if (/^[A-Z0-9]{6}$/.test(m)) { ref = m; localStorage.setItem('commis.ref', m); history.replaceState(null, '', location.pathname + location.hash); }
@@ -731,10 +741,35 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
     a.href = c.appUrl + (a.classList.contains('essai') ? '?essai' + (ref ? '&ref=' + ref : '') : (ref ? '?ref=' + ref : ''));
     if (ref && /30 jours/.test(a.textContent)) a.textContent = a.textContent.replace('30 jours', '60 jours');
   });
+  // Spécial partagé : lecommis.ai/?ref=CODE&sp=… montre le rabais que la personne vous envoie
+  var spData = null;
+  try {
+    var brut = spBrut;
+    if (brut && brut.length < 3000) {
+      var j = JSON.parse(decodeURIComponent(escape(atob(brut.replace(/-/g, '+').replace(/_/g, '/')))));
+      if (Array.isArray(j)) spData = j.slice(0, 6).filter(function (x) { return x && typeof x.i === 'string' && typeof x.m === 'string'; });
+    }
+  } catch (e) {}
+  if (spData && spData.length) {
+    var argent = function (n) { return typeof n === 'number' && isFinite(n) ? n.toFixed(2).replace('.', ',') + ' $' : ''; };
+    var dateFr = function (d) { try { return d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' }) : ''; } catch (e) { return ''; } };
+    var boite = document.getElementById('sp-partage');
+    var ul = boite.querySelector('ul');
+    spData.forEach(function (x) {
+      var li = document.createElement('li');
+      var nom = document.createElement('b'); nom.textContent = x.i.slice(0, 80);
+      var prix = document.createElement('span'); prix.className = 'sp-prix'; prix.textContent = argent(x.p);
+      var detail = document.createElement('span'); detail.className = 'sp-det';
+      detail.textContent = x.m.slice(0, 40) + (x.r ? ' · régulier ' + argent(x.r) : '') + (x.f && /^\d{4}-\d{2}-\d{2}$/.test(x.f) ? ' · jusqu\'au ' + dateFr(x.f) : '');
+      li.appendChild(nom); li.appendChild(prix); li.appendChild(detail); ul.appendChild(li);
+    });
+    boite.hidden = false;
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+  }
   if (ref) {
     var bandeau = document.getElementById('cadeau');
     var montrer = function (qui) {
-      bandeau.innerHTML = '🎁 <b>' + (qui ? qui.replace(/[<>&"]/g, '') : 'Un proche') + ' vous offre 60 jours gratuits</b> au lieu de 30.';
+      bandeau.innerHTML = '🎁 <b>' + (qui ? qui.replace(/[<>&"]/g, '') : 'Un proche') + (spData && spData.length ? ' vous partage ' + (spData.length > 1 ? 'des spéciaux' : 'un spécial') + ' et vous offre 60 jours gratuits</b>.' : ' vous offre 60 jours gratuits</b> au lieu de 30.');
       bandeau.hidden = false;
     };
     montrer(null);
