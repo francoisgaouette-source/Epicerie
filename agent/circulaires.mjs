@@ -32,7 +32,7 @@ async function must(q, what) {
 }
 
 // ---------- Claude (API Messages + recherche web)
-const usage = { input: 0, output: 0, searches: 0 };
+const usage = { input: 0, output: 0, searches: 0, cacheEcrit: 0, cacheLu: 0 };
 async function claude(messages) {
   for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -58,9 +58,29 @@ async function claude(messages) {
     usage.input += body.usage?.input_tokens || 0;
     usage.output += body.usage?.output_tokens || 0;
     usage.searches += body.usage?.server_tool_use?.web_search_requests || 0;
+    usage.cacheEcrit += body.usage?.cache_creation_input_tokens || 0;
+    usage.cacheLu += body.usage?.cache_read_input_tokens || 0;
     return body;
   }
   throw new Error("API Claude indisponible après plusieurs essais.");
+}
+
+// ---------- Coût de l'agent pour un foyer (table couts_ia, lue par la console). $ US par million de jetons :
+// entrée, sortie, écriture en cache, lecture en cache. Recherche web : 0,01 $ chacune.
+const PRIX = {
+  "claude-haiku-5-5": [0.10, 0.50, 0.125, 0.01],
+  "claude-sonnet-5-5": [2, 10, 2.5, 0.10],
+  "claude-opus-5-5": [4, 20, 5, 0.20],
+};
+async function noterCout(foyer_id, avant) {
+  const d = (k) => usage[k] - avant[k];
+  const p = PRIX[MODEL] || PRIX["claude-sonnet-5-5"];
+  const ligne = { app: "commis", fonction: "circulaires", foyer_id, modele: MODEL,
+    entree: d("input"), sortie: d("output"), cache_ecrit: d("cacheEcrit"), cache_lu: d("cacheLu"), recherches: d("searches") };
+  ligne.cout_usd = (ligne.entree * p[0] + ligne.sortie * p[1] + ligne.cache_ecrit * p[2] + ligne.cache_lu * p[3]) / 1e6 + ligne.recherches * 0.01;
+  console.log(`Coût pour ce foyer : ${ligne.cout_usd.toFixed(3)} $ US (${ligne.recherches} recherches, ${ligne.entree} jetons en entrée).`);
+  const { error } = await sb.from("couts_ia").insert(ligne);
+  if (error) console.warn(`Coût non noté : ${error.message}`);
 }
 
 async function demander(prompt) {
@@ -116,7 +136,9 @@ async function main() {
   console.log(`${actifs.length} foyer(s) à traiter.`);
   for (const f of actifs) {
     console.log(`\n=== Foyer « ${f.nom} » ===`);
+    const avant = { ...usage };
     try { await traiterFoyer(f.id); } catch (e) { console.error(`Foyer ${f.nom} : ${e.message}`); }
+    await noterCout(f.id, avant);
   }
 }
 

@@ -10,6 +10,30 @@ const CORS = {
 };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 
+// ---------- Coût de l'appel (table couts_ia, lue par la console). Prix en $ US par million de jetons :
+// entrée, sortie, écriture en cache, lecture en cache. Haiku 5.5 coûte plus cher au-delà de 100 000 jetons d'entrée.
+const PRIX: Record<string, number[]> = {
+  "claude-haiku-5-5": [0.10, 0.50, 0.125, 0.01],
+  "claude-haiku-5-5+": [0.50, 2.50, 0.625, 0.05],
+  "claude-sonnet-5-5": [2, 10, 2.5, 0.10],
+  "claude-opus-5-5": [4, 20, 5, 0.20],
+};
+// deno-lint-ignore no-explicit-any
+function coutAppel(modele: string, u: any) {
+  const e = u?.input_tokens || 0, s = u?.output_tokens || 0, ce = u?.cache_creation_input_tokens || 0, cl = u?.cache_read_input_tokens || 0;
+  const r = u?.server_tool_use?.web_search_requests || 0;
+  const long = modele.startsWith("claude-haiku-5-5") && e + ce + cl > 100_000;
+  const p = PRIX[long ? "claude-haiku-5-5+" : modele] || PRIX["claude-sonnet-5-5"];
+  return { entree: e, sortie: s, cache_ecrit: ce, cache_lu: cl, recherches: r, cout_usd: (e * p[0] + s * p[1] + ce * p[2] + cl * p[3]) / 1e6 + r * 0.01 };
+}
+// deno-lint-ignore no-explicit-any
+async function noterCout(fonction: string, foyer_id: string | null, modele: string, usage: any) {
+  try {
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+    await admin.from("couts_ia").insert({ app: "commis", fonction, foyer_id, modele, ...coutAppel(modele, usage) });
+  } catch { /* la mesure ne doit jamais bloquer la réponse */ }
+}
+
 const SYSTEM = `Tu t'appelles Rosalie. Tu es la commis, l'assistante de l'app Le Commis, une app québécoise pour gérer l'épicerie d'une maison à plusieurs (jusqu'à 4 personnes).
 Tu es une jeune femme d'une trentaine d'années, très organisée : claire, précise, toujours une étape à la fois. Quand tu parles de toi, accorde au féminin (« je suis prête », « ravie de vous aider »). Tu parles un français québécois simple et chaleureux, tu vouvoies, tu réponds court : 2 à 5 phrases, ou une petite liste d'étapes numérotées. Tu accueilles les nouveaux avec patience : explique une chose à la fois, avec les mots exacts des boutons entre guillemets.
 Tu ne parles que de l'app, de l'épicerie, des spéciaux et du rangement à la maison. N'invente jamais une fonction qui n'existe pas. Si tu ne sais pas, dis-le simplement et propose de demander à la personne qui l'a invitée.
@@ -48,7 +72,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ erreur: "Méthode non permise" }, 405);
   const auth = req.headers.get("Authorization") ?? "";
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
-  const { data: m } = await sb.from("membres").select("id").limit(1);
+  const { data: m } = await sb.from("membres").select("id, foyer_id").limit(1);
   if (!m || !m.length) return json({ erreur: "Accès réservé aux membres." }, 403);
   const key = Deno.env.get("ANTHROPIC_API_KEY");
   if (!key) return json({ erreur: "Rosalie n'est pas encore configurée." }, 503);
@@ -68,12 +92,15 @@ Deno.serve(async (req: Request) => {
     `Surveillés : ${Number(c.surveilles) || 0}. Rappel activé sur ce téléphone : ${c.rappel ? "oui" : "non"}. App sur l'écran d'accueil : ${c.installee ? "oui" : "non"}. ` +
     `Onglet ouvert : ${String(c.onglet || "").slice(0, 20)}.`;
 
+  const MODELE = Deno.env.get("MODEL_COMMIS") || "claude-haiku-5-5";
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: Deno.env.get("MODEL_COMMIS") || "claude-haiku-5-5", max_tokens: 600, system: SYSTEM + ctx, messages: msgs }),
+    // Les instructions fixes de Rosalie sont mises en cache : relues à chaque échange, elles coûtent alors une fraction du prix.
+    body: JSON.stringify({ model: MODELE, max_tokens: 600, system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }, { type: "text", text: ctx }], messages: msgs }),
   });
   const out = await r.json().catch(() => ({}));
+  if (r.ok) await noterCout("rosalie", m[0].foyer_id || null, MODELE, out.usage);
   if (!r.ok) return json({ erreur: "Rosalie n'a pas pu répondre. Réessayez dans un moment." }, 502);
   const text = (out.content || []).filter((b: { type: string }) => b.type === "text").map((b: { text: string }) => b.text).join("").trim();
   return json({ text: text || "Je n'ai pas compris. Pouvez-vous reformuler ?" });

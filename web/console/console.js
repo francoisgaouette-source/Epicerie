@@ -287,6 +287,30 @@
       section("Questions posées au Caddie", "Ce que les joueurs demandent à l'assistant dans l'app.",
         liste(q.map(ficheQuestion), "Aucune question notée pour l'instant. Elles s'inscrivent ici à mesure que les joueurs en posent."));
   }
+  // ---------- coûts de l'API Claude : ce que coûte chaque fonction et chaque foyer
+  const usd = (n) => new Intl.NumberFormat("fr-CA", { style: "currency", currency: "USD", minimumFractionDigits: n < 1 ? 3 : 2, maximumFractionDigits: n < 1 ? 3 : 2 }).format(n);
+  const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires de la semaine" };
+  function vueCouts(d) {
+    const tous = d.couts || [], j30 = tous.filter((c) => Date.now() - t(c.cree) < 30 * JOUR);
+    const somme = (l) => l.reduce((s, c) => s + Number(c.cout_usd || 0), 0);
+    const grouper = (l, cle) => { const m = new Map(); for (const c of l) { const k = c[cle] || ""; if (!m.has(k)) m.set(k, []); m.get(k).push(c); } return [...m.entries()]; };
+    const foyers = new Map(((d.commis && d.commis.foyers) || []).map((f) => [f.id, f.nom]));
+    const parFoyer = grouper(j30.filter((c) => c.foyer_id), "foyer_id").map(([id, l]) => ({ id, l, n: somme(l) })).sort((a, b) => b.n - a.n);
+    const moyen = parFoyer.length ? somme(j30.filter((c) => c.foyer_id)) / parFoyer.length : 0;
+    return `<section class="section">${chiffres([[usd(somme(j30)), "dépensés en IA depuis 30 jours"], [j30.length, "appels depuis 30 jours"], [usd(moyen), "par foyer actif, en 30 jours"], [usd(moyen * 365 / 30), "par foyer, projeté sur un an"]])}</section>` +
+      section("Par fonction, depuis 30 jours", "Le prix est calculé avec les tarifs publiés d'Anthropic, en dollars américains. Une recherche web coûte 0,01 $.",
+        table([{ t: "Fonction" }, { t: "Modèle" }, { t: "Appels", n: 1 }, { t: "Jetons entrée", n: 1 }, { t: "Jetons sortie", n: 1 }, { t: "Recherches", n: 1 }, { t: "Coût", n: 1 }, { t: "Par appel", n: 1 }],
+          grouper(j30, "fonction").map(([f, l]) => ({ f, l, n: somme(l) })).sort((a, b) => b.n - a.n).map(({ f, l, n }) => [
+            `<span class="nom">${esc(NOMS_FONCTIONS[f] || f)}</span>`, esc([...new Set(l.map((c) => c.modele.replace("claude-", "")))].join(", ")), l.length,
+            l.reduce((s, c) => s + c.entree, 0).toLocaleString("fr-CA"), l.reduce((s, c) => s + c.sortie, 0).toLocaleString("fr-CA"), l.reduce((s, c) => s + c.recherches, 0), esc(usd(n)), esc(usd(n / l.length))]),
+          "Aucun appel noté pour l'instant. Chaque appel à Claude s'inscrira ici.")) +
+      section("Par foyer, depuis 30 jours", "Comparez la projection sur un an au prix de l'abonnement (19,99 $ CA, environ 19,11 $ après les frais Stripe).",
+        table([{ t: "Foyer" }, { t: "Appels", n: 1 }, { t: "Coût 30 jours", n: 1 }, { t: "Projeté sur un an", n: 1 }, { t: "Le plus coûteux" }],
+          parFoyer.map(({ id, l, n }) => {
+            const pire = grouper(l, "fonction").map(([f, x]) => [f, somme(x)]).sort((a, b) => b[1] - a[1])[0];
+            return [`<span class="nom">${esc(foyers.get(id) || "Foyer retiré")}</span>`, l.length, esc(usd(n)), esc(usd(n * 365 / 30)), esc(pire ? `${NOMS_FONCTIONS[pire[0]] || pire[0]} (${usd(pire[1])})` : "")];
+          }), "Aucun foyer n'a encore utilisé l'IA."));
+  }
   const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
   const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée", traite: "marqué comme traité", atraiter: "remis à traiter", repondu: "réponse envoyée", annoncer: "annoncée dans l'app", recue: "à lire", etudiee: "à l'étude", prevue: "prévue", faite: "faite", non: "non retenue" };
   const ROLES = { proprio: "Propriétaire", gestion: "Gestion", lecture: "Consultation" };
@@ -313,14 +337,14 @@
       }), "Aucun geste pour l'instant."));
   }
 
-  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["journal", "Journal"]];
+  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["couts", "Coûts IA"], ["journal", "Journal"]];
   function rendre() {
     const d = etat.d; if (!d) return;
     const n = aTraiter(d).n;
     const vues = etat.role === "proprio" ? [...VUES, ["acces", "Accès"]] : VUES;
     if (!vues.some(([k]) => k === etat.vue)) etat.vue = "traiter";
     $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${k === "commis" || k === "fanion" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
     if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],#f-nouveaute").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
