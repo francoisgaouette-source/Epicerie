@@ -54,7 +54,7 @@
   }
   async function appel(corps) {
     if (corps.action === "commis.idee") return rpc("console_idee", { p_id: corps.id, p_statut: corps.statut ?? null, p_reponse: corps.reponse ?? null });
-    if (corps.action === "commis.nouveaute") return rpc("console_nouveaute", corps.geste === "retirer" ? { p_retirer: corps.id } : { p_titre: corps.titre, p_texte: corps.texte || null, p_idee: corps.idee_id || null });
+    if (corps.action === "commis.nouveaute") return rpc("console_nouveaute", corps.geste === "retirer" ? { p_retirer: corps.id } : { p_titre: corps.titre, p_texte: corps.texte || null, p_idee: corps.idee_id || null, p_app: corps.app || "commis" });
     const { data: s } = await sb.auth.getSession();
     if (!s.session) throw Object.assign(new Error("Connexion requise."), { code: 401 });
     const r = await fetch(`${URL_SB}/functions/v1/console`, {
@@ -192,7 +192,7 @@
     const tamp = i.statut === "recue" ? `<span class="tampon attente">À lire</span>` : `<span class="tampon${i.statut === "non" ? " neutre" : ""}">${esc(STATUTS[i.statut])}</span>`;
     const autres = Object.keys(STATUTS).filter((k) => k !== i.statut && k !== "recue");
     return `<article class="fiche">
-      <div class="tete">${tamp}<b>${ic} ${esc(mot)}</b><span>${esc(moment(i.cree))}</span>${i.prenom ? `<span>${esc(i.prenom)}</span>` : ""}${i.foyer ? `<span>foyer ${esc(i.foyer)}</span>` : ""}${i.ecran ? `<span>écran ${esc(i.ecran)}</span>` : ""}${SOURCES[i.source] ? `<span>${esc(SOURCES[i.source])}</span>` : ""}</div>
+      <div class="tete">${tamp}${puce(i.app || "commis")}<b>${ic} ${esc(mot)}</b><span>${esc(moment(i.cree))}</span>${i.prenom ? `<span>${esc(i.prenom)}</span>` : ""}${i.foyer ? `<span>${i.app === "fanion" ? "groupe" : "foyer"} ${esc(i.foyer)}</span>` : ""}${i.ecran ? `<span>écran ${esc(i.ecran)}</span>` : ""}${SOURCES[i.source] ? `<span>${esc(SOURCES[i.source])}</span>` : ""}</div>
       <blockquote>${esc(i.texte)}</blockquote>
       ${i.contact_ok && i.contact ? `<p class="note">Accepte d'être contacté·e : <b>${esc(String(i.contact).startsWith("+") ? tel(i.contact) : i.contact)}</b></p>` : ""}
       ${i.appareil ? `<p class="note">${esc(i.appareil)}</p>` : ""}
@@ -206,13 +206,17 @@
   };
   function vueIdees(d) {
     const r = d.retour || { idees: [], sondages: [], nouveautes: [] };
-    const ids = r.idees, so = r.sondages;
+    const APPS = [["tous", "Les deux apps"], ["commis", "Le Commis"], ["fanion", "Fanion"]];
+    const appF = APPS.some(([k]) => k === etat.appIdee) ? etat.appIdee : "tous";
+    const deLapp = (x) => appF === "tous" || (x.app || "commis") === appF;
+    const ids = r.idees.filter(deLapp), so = r.sondages.filter(deLapp), nvs = r.nouveautes.filter(deLapp);
+    const nomSond = appF === "fanion" ? "Fanion" : appF === "commis" ? "Le Commis" : "l'app";
     const recents = so.filter((x) => Date.now() - t(x.cree) < 90 * JOUR);
     const nps = recents.length ? Math.round(100 * (recents.filter((x) => x.note >= 9).length - recents.filter((x) => x.note <= 6).length) / recents.length) : null;
     const F = [["recue", "À lire"], ["etudiee", "À l'étude"], ["prevue", "Prévues"], ["faite", "Faites"], ["non", "Non retenues"], ["tous", "Toutes"]];
     const filtre = F.some(([k]) => k === etat.filtreIdee) ? etat.filtreIdee : "recue";
     const vis = ids.filter((i) => filtre === "tous" || i.statut === filtre);
-    return `<section class="section">${chiffres([
+    return `<section class="section"><div class="filtres">${APPS.map(([k, mot]) => `<button class="filtre" data-appidee="${k}" ${k === appF ? 'aria-pressed="true"' : ""}>${k === "tous" ? "" : `<i class="pastille ${k}"></i>`}${mot}</button>`).join("")}</div>${chiffres([
         [ids.filter((i) => i.statut === "recue").length, "à lire"], [ids.length, "idées et commentaires"],
         [ids.filter((i) => i.statut === "faite").length, "faites"], [nps == null ? "–" : (nps > 0 ? "+" : "") + nps, "recommandation (NPS, 90 jours)"],
         [recents.length, "réponses au sondage"]])}</section>` +
@@ -222,10 +226,11 @@
       section("Annoncer une nouveauté", "Chaque membre la voit une fois, en haut de l'app, au prochain lancement. Annoncez les améliorations, surtout celles demandées par les membres.",
         `<form class="invite" id="f-nouveaute"><label>Titre<input id="in-nv-titre" required maxlength="120" placeholder="ex. Le bilan accepte maintenant les grammes"></label>
           <label>Détail (facultatif)<input id="in-nv-texte" maxlength="1000" placeholder="Une phrase sur ce qui change et où le trouver"></label>
+          <label>Dans quelle app<select id="in-nv-app"><option value="commis" ${appF === "fanion" ? "" : "selected"}>Le Commis</option><option value="fanion" ${appF === "fanion" ? "selected" : ""}>Fanion</option></select></label>
           <button class="btn" type="submit">Annoncer</button></form>` +
-        table([{ t: "Nouveauté" }, { t: "Annoncée" }, { t: "Geste" }], r.nouveautes.map((n) => [`<span class="nom">${esc(n.titre)}</span><small>${esc(n.texte || "")}${n.idee_id ? " · demandée par un membre" : ""}</small>`, esc(jour(n.cree)), `<div class="gestes"><button class="lien" data-nouveaute="${esc(n.id)}">Retirer</button></div>`]), "Aucune nouveauté annoncée pour l'instant.")) +
-      section("Sondage : recommanderiez-vous Le Commis?", "Posé dans l'app après 10 jours d'usage, puis tous les 3 mois. 9-10 : promoteurs (l'app leur propose d'offrir un mois). 0-6 : détracteurs (l'app leur demande ce qui accroche).",
-        table([{ t: "Note", n: 1 }, { t: "Pourquoi" }, { t: "Foyer" }, { t: "Quand" }], so.slice(0, 100).map((x) => [`<b>${x.note}</b>`, esc(x.raison || ""), esc(x.foyer || ""), esc(moment(x.cree))]), "Aucune réponse au sondage pour l'instant."));
+        table([{ t: "Nouveauté" }, { t: "Annoncée" }, { t: "Geste" }], nvs.map((n) => [`${puce(n.app || "commis")} <span class="nom">${esc(n.titre)}</span><small>${esc(n.texte || "")}${n.idee_id ? " · demandée par un membre" : ""}</small>`, esc(jour(n.cree)), `<div class="gestes"><button class="lien" data-nouveaute="${esc(n.id)}">Retirer</button></div>`]), "Aucune nouveauté annoncée pour l'instant.")) +
+      section(`Sondage : recommanderiez-vous ${nomSond}?`, "Posé dans l'app après 10 jours d'usage, puis tous les 3 mois. 9-10 : promoteurs (l'app leur propose de la faire découvrir). 0-6 : détracteurs (l'app leur demande ce qui accroche).",
+        table([{ t: "Note", n: 1 }, { t: "Pourquoi" }, { t: "Foyer ou groupe" }, { t: "Quand" }], so.slice(0, 100).map((x) => [`<b>${x.note}</b> ${puce(x.app || "commis")}`, esc(x.raison || ""), esc(x.foyer || ""), esc(moment(x.cree))]), "Aucune réponse au sondage pour l'instant."));
   }
 
   // ---------- vues
@@ -233,7 +238,7 @@
     const a = aTraiter(d);
     const blocs = [];
     if (a.fils.length) blocs.push(section("Courriels à traiter", "Des personnes vous ont écrit. Répondez ici, ou marquez le courriel comme traité.", liste(a.fils.slice(0, 30).map(ficheCourriel), "")));
-    if (a.idees.length) blocs.push(section("Idées et commentaires à lire", "Ce que les membres du Commis vous ont envoyé. Répondez ou changez l'état : la personne le voit dans l'app.", liste(a.idees.slice(0, 20).map(ficheIdee), "")));
+    if (a.idees.length) blocs.push(section("Idées et commentaires à lire", "Ce que les membres du Commis et de Fanion vous ont envoyé. Répondez ou changez l'état : la personne le voit dans l'app.", liste(a.idees.slice(0, 20).map(ficheIdee), "")));
     blocs.push(section("Avis à approuver", "Un avis paraît sur le site seulement après votre approbation, et seulement si la personne a accepté l'affichage.",
       liste(a.avis.map((x) => ficheAvis(x, x.app)), "Aucun avis en attente. Les nouveaux avis du Commis et de Fanion arrivent ici.")));
     if (a.paiements.length) blocs.push(section("Paiements à relier", "Stripe a reçu ces paiements sans pouvoir activer un foyer. Activez le bon foyer dans l'onglet Le Commis.",
@@ -357,7 +362,7 @@
   $("#page").addEventListener("submit", (e) => {
     if (e.target.id !== "f-nouveaute") return;
     e.preventDefault();
-    agir({ action: "commis.nouveaute", titre: $("#in-nv-titre").value, texte: $("#in-nv-texte").value }, "Nouveauté annoncée dans l'app.");
+    agir({ action: "commis.nouveaute", titre: $("#in-nv-titre").value, texte: $("#in-nv-texte").value, app: $("#in-nv-app").value }, $("#in-nv-app").value === "fanion" ? "Nouveauté annoncée dans Fanion." : "Nouveauté annoncée dans Le Commis.");
   });
 
   // ---------- gestes
@@ -369,6 +374,7 @@
     const d = etat.d;
     if (b.dataset.filtre) { etat.filtre = b.dataset.filtre; rendre(); return; }
     if (b.dataset.filtreidee) { etat.filtreIdee = b.dataset.filtreidee; rendre(); return; }
+    if (b.dataset.appidee) { etat.appIdee = b.dataset.appidee; rendre(); return; }
     if (b.dataset.nouveaute) {
       const ok = await confirmer({ titre: "Retirer cette nouveauté ?", texte: "Les membres qui ne l'ont pas encore vue ne la verront pas.", bouton: "Retirer" });
       if (ok) agir({ action: "commis.nouveaute", geste: "retirer", id: b.dataset.nouveaute }, "Nouveauté retirée.");
@@ -385,7 +391,7 @@
       }
       if (g === "annoncer") {
         const r = await saisir({ titre: "Annoncer cette amélioration à tous", info: `Demandée : « ${i.texte.slice(0, 200)} »`, champTitre: true, texte: "", bouton: "Annoncer" });
-        if (r) agir({ action: "commis.nouveaute", titre: r.titre, texte: r.texte, idee_id: i.id }, "Nouveauté annoncée. L'idée est marquée comme faite.");
+        if (r) agir({ action: "commis.nouveaute", titre: r.titre, texte: r.texte, idee_id: i.id, app: i.app || "commis" }, "Nouveauté annoncée. L'idée est marquée comme faite.");
         return;
       }
     }

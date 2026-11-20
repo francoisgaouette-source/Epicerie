@@ -1,0 +1,1 @@
+-- Appliqué sur Supabase le 2026-11-20 : boucle de retour de Fanion (tables fanion_idees, fanion_sondages, fanion_nouveautes, lues et écrites seulement par la fonction retour-fanion et la console) ; console_retour, console_idee et console_nouveaute (paramètre p_app) couvrent les deux apps.
