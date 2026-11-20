@@ -468,3 +468,15 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 [data-installer][hidden]{display:none!important}
 .chip [data-store]{min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;margin:-8px -8px -8px -2px}
 body:has(#ecran-sheet:not([hidden])) .cg-lanceur,body:has(.bienvenue:not([hidden])) .cg-lanceur{display:none}
+/* Lieu ouvert, visible dans tous les onglets */
+.lieu-global{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.lieu-global::-webkit-scrollbar{display:none}
+.lieu-global .lg-titre{flex:none}
+.lieu-global .fchip{flex:none}
+.lieu-global .fchip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.lieux-prod{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:10px 0;display:flex;flex-wrap:wrap;gap:6px 16px}
+.lieux-prod legend{font-size:.85rem;color:var(--muted);padding:0 4px}
+.lieux-prod label{display:flex;align-items:center;gap:6px;min-height:36px}
+.lieux-prod input{width:20px;height:20px}
+.ailleurs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.ailleurs .hint{width:100%;margin:0}

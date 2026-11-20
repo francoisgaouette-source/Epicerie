@@ -225,7 +225,7 @@
 
     <div class="help-item">
       <h3>Lieu</h3>
-      <p>Vous pouvez avoir plusieurs lieux, comme la Maison et le Chalet. Touchez le nom d'un lieu en haut de l'onglet pour l'ouvrir, « ＋ Lieu » pour en créer un, et « Gérer les lieux » pour les renommer, les réordonner ou les supprimer. Chaque lieu a ses espaces, ses réserves, ses minimums et ses dates de péremption. L'onglet Produits est commun et indique combien il y en a dans chaque lieu. Les factures, le bilan du soir et les articles cochés dans la liste vont dans le lieu ouvert sur votre téléphone.</p>
+      <p>Vous pouvez avoir plusieurs lieux, comme la Maison et le Chalet. Touchez le nom d'un lieu (📍 en haut de l'app) pour l'ouvrir, « ＋ Lieu » pour en créer un, et « Gérer les lieux » pour les renommer, les réordonner ou les supprimer. Chaque lieu a ses produits, ses listes d'épicerie, ses épiceries et ses spéciaux, ses espaces, ses réserves, ses minimums et ses dates de péremption. Un même produit peut être dans plusieurs lieux : cochez-les dans sa fiche, ou cherchez-le dans Produits et touchez « ＋ » sous « Dans un autre lieu ». Les factures, le bilan du soir et les articles cochés dans la liste vont dans le lieu ouvert sur votre téléphone.</p>
       <p>L'inventaire de la maison, rangé par espace (garde-manger, réfrigérateur, congélateur…).</p>
       <ul>
         <li><b>Où est… ?</b> : cherchez un produit pour savoir dans quel espace il est rangé.</li>
@@ -249,7 +249,7 @@
 
     <div class="help-item">
       <h3>Produits</h3>
-      <p>Tous vos produits, achetés ou à acheter. Il se remplit tout seul à mesure que vous ajoutez des articles ou lisez des factures.</p>
+      <p>Les produits du lieu ouvert (📍 en haut), achetés ou à acheter. Un produit peut être dans plusieurs lieux. Il se remplit tout seul à mesure que vous ajoutez des articles ou lisez des factures.</p>
       <ul>
         <li><b>Avec la caméra</b> : touchez l'appareil photo à gauche du champ, photographiez le produit, vérifiez le nom, le format et la catégorie proposés, puis touchez « Ajouter aux produits ». La photo reste jointe au produit.</li>
         <li><b>★ Surveiller</b> : touchez l'étoile d'un produit pour que l'agent cherche ses spéciaux chaque semaine. Dans le détail du produit, indiquez un prix cible pour n'être averti que sous ce prix.</li>
@@ -271,6 +271,7 @@
     <button class="btn" type="button" id="close-help-2">J'ai compris</button>
   </section>
 
+  <div class="lieu-global" id="lieu-global" hidden role="group" aria-label="Lieu ouvert"></div>
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" data-view="produits">Produits <span class="count" id="c-produits">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="maison"><span id="tab-lieu-nom">Lieu</span> <span class="count" id="c-maison">0</span></button>
@@ -332,7 +333,7 @@
       <div class="agent" id="agent-info"></div>
       <div id="list-spec"></div>
       <details>
-        <summary>Épiceries à vérifier</summary>
+        <summary id="stores-titre">Épiceries à vérifier</summary>
         <div class="inner">
           <div class="stores" id="stores"></div>
           <form class="add" id="f-store">
@@ -388,7 +389,7 @@
 
   <section id="v-produits" class="view" hidden>
     <div class="stack">
-      <p class="hint">Tous vos produits, achetés ou à acheter, avec leur prix dans chaque épicerie. Touchez l'étoile pour surveiller les spéciaux d'un produit. Touchez un produit pour voir ou corriger ses détails.</p>
+      <p class="hint">Les produits du lieu ouvert, achetés ou à acheter, avec leur prix dans chaque épicerie de ce lieu. Touchez l'étoile pour surveiller les spéciaux d'un produit. Touchez un produit pour voir ou corriger ses détails.</p>
       <div class="filters" role="group" aria-label="Filtrer les produits">
         <button class="fchip" type="button" data-filter="tous" aria-pressed="true">Tous</button>
         <button class="fchip" type="button" data-filter="surv" aria-pressed="false">★ Surveillés <span id="n-surv">0</span></button>

@@ -1,0 +1,1 @@
+-- Appliqué sur Supabase le 2026-11-20 : produits.lieux (uuid[]), listes.lieu_id, lieux.magasins ; données existantes réparties par lieu ; creer_foyer lie la liste Épicerie au lieu Maison.

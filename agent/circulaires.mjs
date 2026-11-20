@@ -144,7 +144,10 @@ async function main() {
 
 async function traiterFoyer(FOYER) {
   const config = (await must(sb.from("config").select("*").eq("foyer_id", FOYER).maybeSingle(), "config")) || {};
-  const magasins = config.magasins?.length ? config.magasins : ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
+  // Chaque lieu a ses épiceries : on vérifie toutes celles des lieux du foyer
+  const lieux = (await must(sb.from("lieux").select("magasins").eq("foyer_id", FOYER), "lieux")) || [];
+  const desLieux = [...new Set(lieux.flatMap((l) => Array.isArray(l.magasins) ? l.magasins : []))];
+  const magasins = desLieux.length ? desLieux : config.magasins?.length ? config.magasins : ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const region = config.region || "Montréal, QC";
   const produits = await must(sb.from("produits").select("*").eq("foyer_id", FOYER), "produits");
   const epicerie = await must(sb.from("epicerie").select("*").eq("foyer_id", FOYER).eq("fait", false), "epicerie");

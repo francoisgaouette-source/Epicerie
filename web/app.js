@@ -12,7 +12,7 @@
   const state = { liste: [], listes: [], lieux: [], inv: [], spec: [], prod: [], espaces: [], panier: [], eco: [], config: null, membres: [], email: null };
   let openProd = null, search = "", channel = null, filtre = "tous";
   let editListe = null, brouillonListe = null; // article de la liste en cours de correction
-  const surveilles = () => state.prod.filter((p) => p.surveiller);
+  const surveilles = () => state.prod.filter((p) => p.surveiller && dansLieu(p));
 
   // ---------- utils
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -21,7 +21,16 @@
   const money = (n) => (typeof n === "number" && isFinite(n)) ? n.toFixed(2).replace(".", ",") + " $" : "";
   const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
   const status = (m) => { $("#status").textContent = m || ""; };
-  const stores = () => (state.config && Array.isArray(state.config.magasins) && state.config.magasins.length) ? state.config.magasins : DEFAULT_STORES;
+  // Épiceries du lieu ouvert (chaque lieu a les siennes) ; à défaut, celles du foyer
+  const lieuCourant = () => state.lieux.find((x) => x.id === idLieu());
+  const stores = () => { const l = lieuCourant(); if (l && Array.isArray(l.magasins)) return l.magasins;
+    return (state.config && Array.isArray(state.config.magasins) && state.config.magasins.length) ? state.config.magasins : DEFAULT_STORES; };
+  async function majMagasins(liste) {
+    const l = lieuCourant(); if (!l) return false;
+    l.magasins = liste; render();
+    const ok = await run(sb.from("lieux").update({ magasins: liste }).eq("id", l.id));
+    if (!ok) scheduleReload("lieux"); return ok;
+  }
   function fmtDate(iso) {
     if (!iso) return "";
     const d = new Date(String(iso).length === 10 ? iso + "T12:00:00" : iso);
@@ -95,6 +104,16 @@
     for (const s of stores()) { const pr = priceAt(p, s); if (pr && (!best || pr.val < best.val)) best = { ...pr, store: s }; }
     return best;
   }
+  // Un produit appartient à un ou plusieurs lieux (p.lieux) ; sans lieu inscrit, il est partout
+  const dansLieu = (p, lid) => !Array.isArray(p.lieux) || !p.lieux.length || p.lieux.includes(lid || idLieu());
+  const prodLieu = () => state.prod.filter((p) => dansLieu(p));
+  async function ajouterAuLieu(p, lid) {
+    lid = lid || idLieu(); if (!p || !lid || dansLieu(p, lid) && Array.isArray(p.lieux) && p.lieux.length) return true;
+    p.lieux = [...new Set([...(Array.isArray(p.lieux) ? p.lieux : []), lid])];
+    const { error } = await sb.from("produits").update({ lieux: p.lieux }).eq("id", p.id);
+    if (error) { console.error(error); scheduleReload("produits"); return false; }
+    return true;
+  }
   const prodMap = () => { const m = new Map(); state.prod.forEach((p) => m.set(norm(p.nom), p)); return m; };
 
   // ---------- tabs
@@ -115,10 +134,10 @@
   // ---------- plusieurs listes
   let listeActive = null;
   try { listeActive = localStorage.getItem("liste-active"); } catch (e) {}
-  const listesTriees = () => [...state.listes].sort((a, b) => (a.ordre - b.ordre) || String(a.cree).localeCompare(String(b.cree)));
+  const listesTriees = () => state.listes.filter((l) => !l.lieu_id || l.lieu_id === idLieu() || !state.lieux.some((x) => x.id === l.lieu_id)).sort((a, b) => (a.ordre - b.ordre) || String(a.cree).localeCompare(String(b.cree)));
   const idListeActive = () => { const l = state.listes.find((x) => x.id === listeActive) || listesTriees()[0]; return l ? l.id : null; };
   const nomListe = (id) => (state.listes.find((x) => x.id === id) || {}).nom || "la liste";
-  const listeDe = (p) => (p && p.liste_id && state.listes.some((l) => l.id === p.liste_id)) ? p.liste_id : idListeActive();
+  const listeDe = (p) => (p && p.liste_id && listesTriees().some((l) => l.id === p.liste_id)) ? p.liste_id : idListeActive();
   const dansListe = (nom, lid) => state.liste.some((i) => !i.fait && i.liste_id === lid && norm(i.nom) === norm(nom));
   let listeEnEdition = false, listeASupprimer = null;
   function choisirListe(id) { listeActive = id; try { localStorage.setItem("liste-active", id); } catch (e) {} render(); }
@@ -149,7 +168,8 @@
     $("#in-liste").placeholder = `Ajouter à « ${state.listes.length ? nomListe(lid) : "la liste"} »`;
     const liste = state.liste.filter((i) => i.liste_id === lid || (!i.liste_id && lid === (listesTriees()[0] || {}).id)).sort((a, b) => (a.fait - b.fait) || (a.cree < b.cree ? -1 : 1));
     const restants = liste.filter((i) => !i.fait);
-    $("#c-liste").textContent = state.liste.filter((i) => !i.fait).length;
+    const lidsLieu = new Set(listesTriees().map((l) => l.id));
+    $("#c-liste").textContent = state.liste.filter((i) => !i.fait && lidsLieu.has(i.liste_id)).length;
     if (!liste.length) {
       $("#list-liste").innerHTML = emptyBox(`« ${esc(nomListe(lid))} » est vide`, "Ajoutez un article ci-dessus. Les autres le verront aussitôt.");
       $("#liste-actions").hidden = true;
@@ -187,7 +207,8 @@
     $("#stores").innerHTML = stores().map((m, ix) => `<span class="chip">${esc(m)}<button type="button" data-store="${ix}" aria-label="Retirer ${esc(m)}">✕</button></span>`).join("");
 
     // SPÉCIAUX
-    const spec = state.spec.filter((s) => !s.ignore)
+    const magsLieu = new Set(stores().map(norm)), pmSp = prodMap();
+    const spec = state.spec.filter((s) => !s.ignore && magsLieu.has(norm(s.magasin)) && (() => { const p = pmSp.get(norm(s.item)); return !p || dansLieu(p); })())
       .sort((a, b) => norm(a.item).localeCompare(norm(b.item)) || (num(a.prix) || 0) - (num(b.prix) || 0));
     $("#c-speciaux").textContent = spec.length;
     $("#c-speciaux").classList.toggle("hot", spec.length > 0);
@@ -201,7 +222,7 @@
         : `<p class="hint">Rien pour l'instant. Dans l'onglet Produits, touchez l'étoile ☆ d'un produit que vous achetez souvent : je guetterai ses rabais.</p>`}
       <button class="link" type="button" data-survajout>${surv.length ? "Changer ce que je surveille" : "Choisir des produits à surveiller"}</button>
       <ol class="surv-etapes">
-        <li><b>Chaque jeudi matin,</b> je lis les circulaires de ${esc(mags.join(", "))}.</li>
+        <li><b>Chaque jeudi matin,</b> je lis les circulaires de ${mags.length ? esc(mags.join(", ")) : "vos épiceries (ajoutez celles de ce lieu plus bas)"}.</li>
         <li><b>Je mets à jour vos prix :</b> jusqu'à 30 produits par semaine. Vos produits ★ d'abord, puis ceux de la liste, puis ceux dont le prix est le plus ancien.</li>
         <li><b>Je vous montre ici</b> les rabais sur vos produits ★${surv.some((p) => p.prix_cible != null) ? ", sous votre prix cible quand vous en avez mis un" : ""}.</li>
       </ol>
@@ -223,6 +244,7 @@
     }).join("")}</div>`
       : emptyBox("Aucun spécial trouvé pour l'instant", surveilles().length ? `Aucun de vos ${surveilles().length} produits surveillés n'est en rabais dans les circulaires vérifiées.` : "Touchez l'étoile ★ d'un produit dans l'onglet Produits pour surveiller ses spéciaux.");
 
+    renderLieuGlobal();
     renderEco();
     renderProducts();
     renderMaison();
@@ -264,17 +286,20 @@
   }
 
   function renderProducts() {
-    $("#c-produits").textContent = state.prod.length;
+    const ici = prodLieu();
+    $("#c-produits").textContent = ici.length;
     const q = norm(search);
-    const nSurv = state.prod.filter((p) => p.surveiller).length, nMaison = state.prod.filter((p) => Number(p.stock || 0) > 0).length;
+    const nSurv = ici.filter((p) => p.surveiller).length, nMaison = ici.filter((p) => Number(p.stock || 0) > 0).length;
     $("#n-surv").textContent = nSurv; $("#n-maison").textContent = nMaison; $("#f-lieu-nom").textContent = state.lieux.length > 1 ? nomLieu() : "En réserve";
     document.querySelectorAll("[data-filter]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filter === filtre)));
-    const list = state.prod.filter((p) => (!q || norm([p.nom, p.marque, p.format, p.categorie].join(" ")).includes(q))
+    const list = ici.filter((p) => (!q || norm([p.nom, p.marque, p.format, p.categorie].join(" ")).includes(q))
       && (filtre === "tous" || (filtre === "surv" && p.surveiller) || (filtre === "maison" && Number(p.stock || 0) > 0)));
-    if (!state.prod.length) { $("#list-prod").innerHTML = emptyBox("Aucun produit pour l'instant", "Ajoutez vos produits habituels ci-dessus, ou ajoutez simplement des articles à la liste : ils s'inscriront ici."); return; }
+    const ailleurs = q ? state.prod.filter((p) => !dansLieu(p) && norm([p.nom, p.marque, p.format].join(" ")).includes(q)) : [];
+    const blocAilleurs = ailleurs.length ? `<div class="ailleurs"><p class="hint">Dans un autre lieu :</p>${ailleurs.slice(0, 8).map((p) => `<button class="fchip" type="button" data-lieuajout="${p.id}">＋ ${esc(p.nom)} <span class="meta">${esc((p.lieux || []).map((x) => nomLieu(x)).join(", "))}</span></button>`).join("")}</div>` : "";
+    if (!ici.length && !ailleurs.length) { $("#list-prod").innerHTML = emptyBox(state.lieux.length > 1 ? `Aucun produit à « ${esc(nomLieu())} » pour l'instant` : "Aucun produit pour l'instant", "Ajoutez vos produits habituels ci-dessus, ou ajoutez simplement des articles à la liste : ils s'inscriront ici."); return; }
     if (!list.length) { $("#list-prod").innerHTML = filtre === "surv" && !q ? emptyBox("Aucun produit surveillé", "Touchez l'étoile ☆ à droite d'un produit pour que Rosalie guette ses rabais chaque jeudi.")
       : filtre === "maison" && !q ? emptyBox("Rien à la maison", "Les produits rangés dans un espace avec une réserve apparaîtront ici.")
-      : emptyBox("Aucun produit trouvé", `Rien ne correspond à « ${esc(search)} ».`); return; }
+      : emptyBox("Aucun produit trouvé", `Rien ne correspond à « ${esc(search)} »${state.lieux.length > 1 ? ` à « ${esc(nomLieu())} »` : ""}.`) + blocAilleurs; return; }
     // Don't rebuild while someone types in a product's fields.
     const act = document.activeElement;
     if (act && act.closest && act.closest("#list-prod [data-stop]")) return;
@@ -293,7 +318,7 @@
           <button class="star${p.surveiller ? " on" : ""}" type="button" data-survtoggle="${p.id}" aria-pressed="${p.surveiller ? "true" : "false"}" aria-label="${p.surveiller ? "Ne plus surveiller" : "Surveiller les spéciaux de"} ${esc(p.nom)}">${p.surveiller ? "★" : "☆"}</button>
           ${openProd === p.id ? productDetail(p, b) : ""}
         </li>`;
-      }).join("")).join("")}</ul>`;
+      }).join("")).join("")}</ul>${blocAilleurs}`;
   }
 
   // ---------- maison : espaces et réserves
@@ -310,6 +335,7 @@
   }
   async function majInv(pid, champs) {
     const lid = idLieu(); if (!lid) return false;
+    const pp = state.prod.find((x) => x.id === pid); if (pp && !dansLieu(pp, lid)) ajouterAuLieu(pp, lid);
     let r = state.inv.find((x) => x.produit_id === pid && x.lieu_id === lid);
     if (!r) { r = { produit_id: pid, lieu_id: lid, stock: 0, espace_id: null, minimum: null, peremption: null }; state.inv.push(r); }
     Object.assign(r, champs);
@@ -321,11 +347,28 @@
     ? state.inv.filter((r) => r.produit_id === p.id && Number(r.stock || 0) > 0).map((r) => `${fmtQ(r.stock)} ${nomLieu(r.lieu_id)}`).join(" · ")
     : (Number(p.stock || 0) > 0 ? fmtQ(p.stock) + " à la maison" : "");
   let lieuEnEdition = false, lieuASupprimer = null;
-  function choisirLieu(id) { lieuActif = id; try { localStorage.setItem("lieu-actif", id); } catch (e) {} appliquerLieu(); render(); }
+  function choisirLieu(id) { lieuActif = id; try { localStorage.setItem("lieu-actif", id); } catch (e) {} appliquerLieu(); render(); assurerListeLieu(); }
+  let creationListe = false;
+  async function assurerListeLieu() {
+    const lid = idLieu(); if (!lid || creationListe || !state.userId || listesTriees().length) return;
+    creationListe = true;
+    const { data } = await sb.from("listes").insert({ nom: "Épicerie", ordre: 1, lieu_id: lid }).select("*").single();
+    creationListe = false; if (data) { state.listes.push(data); render(); }
+  }
+  // Sélecteur de lieu visible dans tous les onglets : Produits, Liste et Spéciaux suivent le lieu ouvert
+  function renderLieuGlobal() {
+    const box = $("#lieu-global"); if (!box) return;
+    const ls = lieuxTries(), act = idLieu();
+    if (ls.length < 2) { box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false;
+    box.innerHTML = `<span class="lg-titre" aria-hidden="true">📍</span>${ls.map((l) => `<button class="fchip" type="button" data-lieu="${l.id}" aria-pressed="${l.id === act}">${esc(l.nom)}</button>`).join("")}`;
+    const t = $("#stores-titre"); if (t) t.textContent = `Épiceries à vérifier à « ${nomLieu()} »`;
+  }
+  $("#lieu-global").addEventListener("click", (e) => { const c = e.target.closest("[data-lieu]"); if (c) choisirLieu(c.dataset.lieu); });
   function renderLieux() {
     const act = idLieu(), ls = lieuxTries();
     $("#tab-lieu-nom").textContent = "Lieu";
-    $("#lieux-bar").innerHTML = ls.map((l) => `<button class="fchip" type="button" data-lieu="${l.id}" aria-pressed="${l.id === act}">${esc(l.nom)}</button>`).join("")
+    $("#lieux-bar").innerHTML = (ls.length > 1 ? [] : ls).map((l) => `<button class="fchip" type="button" data-lieu="${l.id}" aria-pressed="${l.id === act}">${esc(l.nom)}</button>`).join("")
       + `<button class="fchip" type="button" data-lieu-new aria-label="Nouveau lieu">＋ Lieu</button>`;
     $("#f-nouveau-lieu").hidden = !lieuEnEdition;
     const a2 = document.activeElement;
@@ -444,7 +487,7 @@
     const qte = Number(r.quantite) > 0 ? Number(r.quantite) : 1;
     let p = (r.produit_id && state.prod.find((x) => x.id === r.produit_id)) || state.prod.find((x) => norm(x.nom) === norm(nom));
     if (!p) {
-      const row = { nom, marque: r.marque || "", format: r.format || "", categorie: r.categorie || "Autre" };
+      const row = { nom, marque: r.marque || "", format: r.format || "", categorie: r.categorie || "Autre", lieux: [idLieu()].filter(Boolean) };
       const { data, error } = await sb.from("produits").insert(row).select("*").single();
       if (error) { status("L'article n'a pas pu être ajouté. Réessayez."); console.error(error); return false; }
       p = data; p.stock = 0; p.espace_id = null; p.minimum = null; p.peremption = null; state.prod.push(p);
@@ -817,6 +860,7 @@
         <label class="mf">Péremption <input type="date" id="e-per-${pid}" value="${esc(p.peremption || "")}" data-dfield="peremption" data-id="${pid}"></label>
         <label class="mf">Minimum à garder <input id="e-min-${pid}" inputmode="decimal" placeholder="Aucun" value="${p.minimum != null ? esc(fmtQ(p.minimum)) : ""}" data-nfield="minimum" data-id="${pid}"></label>
       </div>
+      ${state.lieux.length > 1 ? `<fieldset class="lieux-prod"><legend>Ce produit est à</legend>${lieuxTries().map((l) => `<label><input type="checkbox" data-plieu="${l.id}" data-id="${pid}" ${dansLieu(p, l.id) ? "checked" : ""}> ${esc(l.nom)}</label>`).join("")}</fieldset>` : ""}
       <p class="hint prix-expl">${p.surveiller ? "★ Surveillé : Rosalie vérifie ses prix chaque jeudi et vous montre ses rabais dans Spéciaux." : "Prix réguliers par épicerie. Rosalie les met à jour le jeudi (les produits ★ en premier), et vos factures aussi. Vous pouvez les taper vous-même."}</p>
       <div class="price-grid">${stores().map((s, ix) => {
         const e = (p.prix && p.prix[s]) || {}; const pr = priceAt(p, s);
@@ -829,10 +873,39 @@
       <div class="row-actions">
         <button class="link" type="button" data-tolist="${pid}">Ajouter à la liste</button>
         <button class="link" type="button" data-survtoggle="${pid}">${p.surveiller ? "★ Ne plus surveiller" : "☆ Surveiller les spéciaux"}</button>
-        <button class="link muted" type="button" data-del="produits" data-id="${pid}">Supprimer des produits</button>
+        ${state.lieux.length > 1 && dansLieu(p) && Array.isArray(p.lieux) && p.lieux.length > 1 ? `<button class="link muted" type="button" data-retirerlieu="${pid}">Retirer de « ${esc(nomLieu())} »</button>` : ""}
+        <button class="link muted" type="button" data-del="produits" data-id="${pid}">Supprimer ${state.lieux.length > 1 ? "partout" : "des produits"}</button>
       </div>
     </div>`;
   }
+
+  async function changerLieuxProduit(p, liste) {
+    if (!liste.length) { status("Un produit doit rester dans au moins un lieu. Pour l'enlever partout, touchez « Supprimer partout »."); render(); return; }
+    p.lieux = liste; render();
+    if (!(await run(sb.from("produits").update({ lieux: liste }).eq("id", p.id)))) scheduleReload("produits");
+  }
+  document.addEventListener("change", (e) => {
+    const c = e.target.closest("[data-plieu]"); if (!c) return;
+    const p = state.prod.find((x) => x.id === c.dataset.id); if (!p) return;
+    if (!c.checked && c.dataset.plieu === idLieu()) { c.blur(); openProd = null; }
+    const cur = Array.isArray(p.lieux) && p.lieux.length ? p.lieux : state.lieux.map((l) => l.id);
+    changerLieuxProduit(p, c.checked ? [...new Set([...cur, c.dataset.plieu])] : cur.filter((x) => x !== c.dataset.plieu));
+  });
+  document.addEventListener("click", async (e) => {
+    const a = e.target.closest("[data-lieuajout]");
+    if (a) {
+      const p = state.prod.find((x) => x.id === a.dataset.lieuajout); if (!p) return;
+      await ajouterAuLieu(p); search = ""; $("#in-search").value = ""; openProd = p.id; render();
+      status(`« ${p.nom} » est maintenant aussi à « ${nomLieu()} ».`); return;
+    }
+    const r = e.target.closest("[data-retirerlieu]");
+    if (r) {
+      const p = state.prod.find((x) => x.id === r.dataset.retirerlieu); if (!p) return;
+      if (document.activeElement) document.activeElement.blur();
+      openProd = null; await changerLieuxProduit(p, (p.lieux || []).filter((x) => x !== idLieu()));
+      status(`« ${p.nom} » retiré de « ${nomLieu()} ». Il reste ailleurs.`);
+    }
+  });
 
   // ---------- data
   const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier", listes: "listes", lieux: "lieux", inventaire: "inv", economies: "eco" };
@@ -898,6 +971,7 @@
     const ex = extra || {};
     const p = state.prod.find((x) => norm(x.nom) === norm(nom));
     if (p) {
+      if (!dansLieu(p)) await ajouterAuLieu(p);
       const maj = {};
       if (ex.photo && !p.photo) maj.photo = ex.photo;
       if (ex.marque && !p.marque) maj.marque = ex.marque;
@@ -906,7 +980,7 @@
       if (Object.keys(maj).length) { await run(sb.from("produits").update(maj).eq("id", p.id)); scheduleReload("produits"); }
       return;
     }
-    const row = { nom };
+    const row = { nom, lieux: [idLieu()].filter(Boolean) };
     ["marque", "format", "categorie", "photo"].forEach((k) => { if (ex[k]) row[k] = ex[k]; });
     await run(sb.from("produits").insert(row));
     scheduleReload("produits");
@@ -1724,7 +1798,7 @@
     e.preventDefault(); const m = $("#in-store").value.trim(); if (!m) return;
     const cur = stores(); $("#in-store").value = "";
     if (cur.some((x) => norm(x) === norm(m))) return;
-    if (await run(sb.from("config").update({ magasins: [...cur, m] }).eq("foyer_id", state.foyer && state.foyer.id))) scheduleReload("config");
+    await majMagasins([...cur, m]);
   });
   // Catalogue : ajout avec la caméra
   let catPhoto = null; // {preview, path, ident, busy}
@@ -1787,13 +1861,18 @@
     const format = $("#in-pformat").value.trim(), categorie = $("#in-pcat").value;
     const ph = catPhoto && catPhoto.path, id = (catPhoto && catPhoto.ident) || {};
     const existant = state.prod.find((p) => norm(p.nom) === norm(nom));
+    if (existant && !dansLieu(existant)) {
+      await ajouterAuLieu(existant); if (ph && !existant.photo) await run(sb.from("produits").update({ photo: ph }).eq("id", existant.id));
+      status(`« ${existant.nom} » ajouté aux produits de « ${nomLieu()} ». Il reste aussi à « ${(existant.lieux || []).filter((x) => x !== idLieu()).map((x) => nomLieu(x)).join(", ")} ».`);
+      showCatPhoto(null); $("#in-pnom").value = ""; $("#in-pformat").value = ""; scheduleReload("produits"); render(); return;
+    }
     if (existant) {
       if (ph && !existant.photo) {
         if (await run(sb.from("produits").update({ photo: ph }).eq("id", existant.id), `« ${nom} » était déjà dans vos produits : photo ajoutée.`)) scheduleReload("produits");
       } else status(`« ${nom} » est déjà dans vos produits.`);
       showCatPhoto(null); $("#in-pnom").value = ""; $("#in-pformat").value = ""; return;
     }
-    const row = { nom, format, categorie };
+    const row = { nom, format, categorie, lieux: [idLieu()].filter(Boolean) };
     if (ph) { row.photo = ph; if (id.marque && norm(id.nom) === norm(nom)) row.marque = id.marque; }
     $("#in-pnom").value = ""; $("#in-pformat").value = ""; $("#in-pcat").value = "Autre"; showCatPhoto(null); focusIfDesktop($("#in-pnom"));
     if (await run(sb.from("produits").insert(row), `« ${nom} » ajouté à vos produits.`)) scheduleReload("produits");
@@ -1942,7 +2021,7 @@
     const st = e.target.closest("[data-store]");
     if (st) {
       const cur = [...stores()]; cur.splice(+st.dataset.store, 1);
-      if (await run(sb.from("config").update({ magasins: cur }).eq("foyer_id", state.foyer && state.foyer.id))) scheduleReload("config"); return;
+      await majMagasins(cur); return;
     }
     const a = e.target.closest("[data-addfrom]");
     if (a) { const s = state.spec.find((x) => x.id === a.dataset.addfrom); if (s) { const p = state.prod.find((x) => norm(x.nom) === norm(s.item)); const l = listeDe(p); if (await run(sb.from("epicerie").insert({ nom: s.item, liste_id: l }), `« ${s.item} » ajouté à « ${nomListe(l)} ».`)) scheduleReload("epicerie"); } return; }
@@ -2001,14 +2080,16 @@
     e.preventDefault(); const nom = $("#in-nouveau-lieu").value.trim(); if (!nom) return;
     if (state.lieux.some((x) => norm(x.nom) === norm(nom))) { status(`Le lieu « ${nom} » existe déjà.`); return; }
     const ordre = Math.max(0, ...state.lieux.map((x) => x.ordre || 0)) + 1;
-    const { data, error } = await sb.from("lieux").insert({ nom, ordre }).select("*").single();
+    const { data, error } = await sb.from("lieux").insert({ nom, ordre, magasins: [] }).select("*").single();
     if (error) { status("Le lieu n'a pas pu être créé. Réessayez."); return; }
     state.lieux.push(data);
     const base = ["Garde-manger", "Réfrigérateur", "Congélateur"].map((n, i) => ({ nom: n, ordre: i + 1, lieu_id: data.id }));
     const { data: esp } = await sb.from("espaces").insert(base).select("*");
     if (esp) state.espaces.push(...esp);
+    const { data: li } = await sb.from("listes").insert({ nom: "Épicerie", ordre: 1, lieu_id: data.id }).select("*").single();
+    if (li) state.listes.push(li);
     $("#in-nouveau-lieu").value = ""; lieuEnEdition = false; choisirLieu(data.id);
-    status(`Lieu « ${nom} » créé avec un garde-manger, un réfrigérateur et un congélateur. Modifiez ses espaces dans « Gérer les espaces ».`);
+    status(`Lieu « ${nom} » créé avec ses espaces et sa liste « Épicerie ». Ajoutez ses produits dans l'onglet Produits, et ses épiceries dans l'onglet Spéciaux.`);
   });
 
   // Corriger un article de la liste : toucher son nom
@@ -2075,9 +2156,9 @@
   });
   $("#f-nouvelle-liste").addEventListener("submit", async (e) => {
     e.preventDefault(); const nom = $("#in-nouvelle-liste").value.trim(); if (!nom) return;
-    if (state.listes.some((x) => norm(x.nom) === norm(nom))) { status(`La liste « ${nom} » existe déjà.`); return; }
+    if (listesTriees().some((x) => norm(x.nom) === norm(nom))) { status(`La liste « ${nom} » existe déjà ici.`); return; }
     const ordre = Math.max(0, ...state.listes.map((x) => x.ordre || 0)) + 1;
-    const { data, error } = await sb.from("listes").insert({ nom, ordre }).select("*").single();
+    const { data, error } = await sb.from("listes").insert({ nom, ordre, lieu_id: idLieu() }).select("*").single();
     if (error) { status("La liste n'a pas pu être créée. Réessayez."); return; }
     state.listes.push(data); $("#in-nouvelle-liste").value = ""; listeEnEdition = false; choisirListe(data.id);
     status(`Liste « ${nom} » créée. Ajoutez-y vos articles.`);
