@@ -51,7 +51,7 @@ ul.list > li:first-child{border-top:0}
 .name{font-weight:600;overflow-wrap:anywhere}
 .meta{font-size:.82rem;color:var(--muted);overflow-wrap:anywhere}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-.check{width:22px;height:22px;accent-color:var(--accent);flex:none;cursor:pointer}
+.check{width:28px;height:28px;accent-color:var(--accent);flex:none;cursor:pointer}
 li.done .name{text-decoration:line-through;color:var(--muted)}
 .icon{appearance:none;border:0;background:transparent;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;font-size:1.1rem;line-height:1;flex:none}
 .icon:hover{color:var(--danger);background:var(--soft)}
@@ -442,3 +442,29 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 @media (max-width:420px){.nps{grid-template-columns:repeat(6,1fr)}}
 .sp-tous{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 12px}
 .sp-tous .hint{flex:1 1 220px}
+
+/* ---------- Téléphones : espacements, zones tactiles, petites largeurs ---------- */
+/* Les blocs vides ne créent plus de trous entre les onglets et le contenu */
+.wrap > div:empty{display:none}
+.wrap > .status:empty{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0}
+/* Zones tactiles d'au moins 40 px */
+.icon{min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+.onb-more{min-width:40px;min-height:40px}
+#idee-contact{width:20px;height:20px;flex:none}
+.bell{white-space:nowrap}
+@media (max-width:420px){
+  /* Bien démarrer : le bouton passe sous le texte plutôt que d'écraser la colonne */
+  .onb-list li.next{flex-wrap:wrap}
+  .onb-list li.next .main{flex:1 1 calc(100% - 32px)}
+  .onb-list li.next .btn{margin-left:32px}
+}
+@media (max-width:350px){ .bell .bell-txt{display:none} .bell{padding:6px 8px} }
+/* Installer l'app */
+.install-lien{font-weight:700}
+.login-installer{width:100%;margin-top:12px}
+.ec-icone{align-self:center;border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.ec-ico{width:20px;height:20px;vertical-align:-4px;color:#1a73e8}
+.ec-alerte{background:#FFF6D6;border:1.5px solid #F2C230;border-radius:12px;padding:10px 12px;margin:0;color:#3a2f00}
+[data-installer][hidden]{display:none!important}
+.chip [data-store]{min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;margin:-8px -8px -8px -2px}
+body:has(#ecran-sheet:not([hidden])) .cg-lanceur,body:has(.bienvenue:not([hidden])) .cg-lanceur{display:none}

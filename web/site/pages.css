@@ -64,3 +64,6 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 26px; line-height
 .foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; }
 .foot a { color: #E3ECE6; }
 .foot .links { display: flex; gap: 20px; flex-wrap: wrap; }
+/* Petits téléphones : l'en-tête tient sur une ligne */
+@media (max-width: 400px) { .mark { font-size: 22px; gap: 8px; } .top nav { gap: 12px; } .top .wrap { gap: 10px; } }
+@media (max-width: 350px) { .top nav a[href*='questions'] { display: none; } }

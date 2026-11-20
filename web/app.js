@@ -1072,27 +1072,80 @@
   function maybeBienvenue() { if (state.userId && !lsGet(cleAccueil())) montrerBienvenue(); }
 
   // Installer sur l'écran d'accueil
-  function montrerEcran() {
-    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent), box = $("#ecran-sheet");
+  // ---------- Installer l'app sur le téléphone
+  // Android et ordinateur (Chrome, Edge, Samsung) : le navigateur offre l'installation en un geste.
+  // iPhone : Apple ne le permet pas, alors on montre les 3 gestes dans Safari.
+  let promptInstall = null;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); promptInstall = e; majInstall(); });
+  window.addEventListener("appinstalled", () => {
+    promptInstall = null; lsSet("demarrer.ecran", "1"); $("#ecran-sheet").hidden = true;
+    majInstall(); renderDemarrer(); status("Le Commis est installé! Ouvrez-le depuis sa nouvelle icône.");
+  });
+  function majInstall() {
+    const montrer = !installee();
+    document.querySelectorAll("[data-installer]").forEach((b) => { b.hidden = !montrer; });
+  }
+  const UA = navigator.userAgent;
+  const IOS = /iPhone|iPad|iPod/.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const ANDROID = /Android/.test(UA);
+  const DANS_APP = /FBAN|FBAV|FB_IAB|Instagram|Messenger|Line\/|MicroMessenger|Snapchat|TikTok|LinkedInApp|GSA\//.test(UA);
+  const PAS_SAFARI = IOS && /CriOS|FxiOS|EdgiOS|OPiOS/.test(UA);
+  const PARTAGE_SVG = `<svg class="ec-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+  async function montrerEcran() {
+    if (installee()) { status("Le Commis est déjà installé sur cet appareil."); return; }
+    // Un geste : la fenêtre d'installation du navigateur
+    if (promptInstall) {
+      const e = promptInstall; promptInstall = null;
+      try {
+        await e.prompt();
+        const r = await e.userChoice;
+        if (r && r.outcome === "accepted") { lsSet("demarrer.ecran", "1"); renderDemarrer(); majInstall(); status("Installation en cours : l'icône Le Commis apparaît sur votre écran d'accueil."); return; }
+      } catch (err) {}
+      majInstall();
+    }
+    const box = $("#ecran-sheet"), lien = APP_URL;
+    let etapes, avant = "";
+    if (IOS && (DANS_APP || PAS_SAFARI)) {
+      avant = `<p class="ec-alerte">Sur iPhone, l'installation se fait seulement dans <b>Safari</b>. Cette page est ouverte dans une autre app.</p>`;
+      etapes = `<li>Touchez <b>Copier le lien</b> ci-dessous.</li><li>Ouvrez <b>Safari</b> et collez le lien dans la barre d'adresse.</li><li>Puis suivez les 3 étapes qui s'afficheront.</li>`;
+    } else if (IOS) {
+      etapes = `<li>Touchez le bouton <b>Partager</b> ${PARTAGE_SVG} en bas de l'écran (ou <b>⋯</b> puis <b>Partager</b>).</li><li>Descendez et choisissez <b>Sur l'écran d'accueil</b>.</li><li>Touchez <b>Ajouter</b>. L'icône Le Commis apparaît avec vos autres apps.</li>`;
+    } else if (ANDROID && DANS_APP) {
+      avant = `<p class="ec-alerte">Cette page est ouverte dans une autre app. Ouvrez-la dans <b>Chrome</b> pour l'installer.</p>`;
+      etapes = `<li>Touchez le menu <b>⋮</b> en haut à droite.</li><li>Choisissez <b>Ouvrir dans Chrome</b> (ou <b>Ouvrir dans le navigateur</b>).</li><li>Touchez ensuite <b>📲 Installer l'app</b>.</li>`;
+    } else if (ANDROID && /SamsungBrowser/.test(UA)) {
+      etapes = `<li>Touchez le menu <b>≡</b> en bas à droite.</li><li>Choisissez <b>Ajouter page à</b> puis <b>Écran d'accueil</b>.</li><li>Touchez <b>Ajouter</b>.</li>`;
+    } else if (ANDROID) {
+      etapes = `<li>Touchez le menu <b>⋮</b> en haut à droite.</li><li>Choisissez <b>Installer l'application</b> (ou <b>Ajouter à l'écran d'accueil</b>).</li><li>Touchez <b>Installer</b>.</li>`;
+    } else {
+      etapes = `<li><b>Sur votre téléphone</b>, ouvrez <b>${esc(lien.replace(/^https:\/\//, "").replace(/\/$/, ""))}</b> et touchez <b>📲 Installer l'app</b>.</li><li><b>Sur cet ordinateur</b> (Chrome ou Edge) : touchez l'icône d'installation à droite de la barre d'adresse.</li><li>Sur Mac avec Safari : menu <b>Fichier</b> puis <b>Ajouter au Dock</b>.</li>`;
+    }
     box.innerHTML = `<div class="bv-in">
-      <h1 id="ec-title">Le Commis sur votre écran d'accueil</h1>
-      <ol class="bv-steps">${ios
-        ? "<li>Ouvrez l'app dans <b>Safari</b>.</li><li>Touchez le bouton <b>Partager</b> (le carré avec une flèche vers le haut).</li><li>Choisissez <b>Sur l'écran d'accueil</b>, puis <b>Ajouter</b>.</li><li>Ouvrez ensuite l'app depuis sa nouvelle icône.</li>"
-        : "<li>Ouvrez l'app dans <b>Chrome</b>.</li><li>Touchez le menu <b>⋮</b> en haut à droite.</li><li>Choisissez <b>Installer l'application</b> (ou <b>Ajouter à l'écran d'accueil</b>).</li><li>Ouvrez ensuite l'app depuis sa nouvelle icône.</li>"}</ol>
-      <p class="hint">C'est nécessaire pour recevoir le rappel du soir.</p>
-      <div class="row-actions"><button class="btn" type="button" id="ec-ok">C'est fait</button><button class="link muted" type="button" id="ec-later">Plus tard</button></div>
+      <img class="ec-icone" src="icons/icon-192.png" alt="" width="72" height="72">
+      <h1 id="ec-title">Installer Le Commis</h1>
+      <p class="bv-lead">Une vraie icône sur votre écran d'accueil : l'app s'ouvre en plein écran, et le rappel du soir peut vous joindre.</p>
+      ${avant}<ol class="bv-steps">${etapes}</ol>
+      ${IOS ? `<p class="hint">Sur iPhone, connectez-vous dans l'app installée : elle garde sa propre session.</p>` : ""}
+      <div class="row-actions">${(IOS && (DANS_APP || PAS_SAFARI)) || (!IOS && !ANDROID) ? `<button class="btn" type="button" id="ec-copier">Copier le lien</button>` : ""}<button class="btn${(IOS && (DANS_APP || PAS_SAFARI)) || (!IOS && !ANDROID) ? " ghost" : ""}" type="button" id="ec-ok">C'est fait</button><button class="link muted" type="button" id="ec-later">Plus tard</button></div>
     </div>`;
     box.hidden = false;
+    const c = $("#ec-copier");
+    if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(lien + "?installer"); c.textContent = "Lien copié ✓"; } catch (err) { c.textContent = lien; } };
     $("#ec-ok").onclick = () => { lsSet("demarrer.ecran", "1"); box.hidden = true; renderDemarrer(); };
     $("#ec-later").onclick = () => { box.hidden = true; };
+    setTimeout(() => $("#ec-ok").focus(), 50);
   }
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-installer]")) montrerEcran(); });
+  if (new URLSearchParams(location.search).has("installer")) setTimeout(montrerEcran, 600);
+  majInstall();
+
 
   // ---------- Bien démarrer : les étapes, avec la prochaine en évidence
   function etapesDemarrer() {
     const nProd = state.prod.length, nMaison = state.prod.filter((p) => Number(p.stock || 0) > 0).length;
     const nListe = state.liste.length, nSurv = state.prod.filter((p) => p.surveiller).length;
     return [
-      { k: "ecran", done: installee() || lsGet("demarrer.ecran") === "1", t: "Mettez l'app sur votre écran d'accueil", d: "Elle s'ouvre comme une vraie app, et le rappel du soir peut vous joindre.", b: "Comment", act: montrerEcran },
+      { k: "ecran", done: installee() || lsGet("demarrer.ecran") === "1", t: "Mettez l'app sur votre écran d'accueil", d: "Elle s'ouvre comme une vraie app, et le rappel du soir peut vous joindre.", b: "Installer", act: montrerEcran },
       { k: "rappel", done: rappelActif, t: "Activez le rappel de 21 h", d: "Chaque soir, l'app vous demande ce qui a été consommé.", b: "Activer", act: () => activerRappel() },
       { k: "produits", done: nProd >= 5, t: "Ajoutez vos produits habituels", d: nProd ? `${nProd} produit${nProd > 1 ? "s" : ""} dans vos produits. Visez-en au moins 5. Le plus rapide : la photo.` : "Le plus rapide : touchez l'appareil photo et photographiez un produit.", b: "Photographier", act: () => { showView("produits"); $("#in-pphoto").click(); } },
       { k: "maison", done: nMaison >= 1, t: "Rangez ce que vous avez à la maison", d: "Dans l'onglet Produits, touchez un produit : choisissez son espace et mettez sa réserve avec +. Ou lisez votre dernière facture.", b: "Lieu", act: () => showView("maison") },
@@ -2077,7 +2130,7 @@
   }
   montrerCadeau();
   const entreeEssai = entree.has("essai");
-  if (entree.has("essai") || entree.has("acheter") || entree.has("ref")) history.replaceState(null, "", location.pathname + location.hash);
+  if (entree.has("essai") || entree.has("acheter") || entree.has("ref") || entree.has("installer")) history.replaceState(null, "", location.pathname + location.hash);
   $("#go-creer").addEventListener("click", () => ouvrirSms("creer"));
   $("#go-oubli").addEventListener("click", () => ouvrirSms("oubli"));
   document.querySelectorAll("[data-back-login]").forEach((b) => b.addEventListener("click", () => loginView("#f-login")));

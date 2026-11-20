@@ -62,9 +62,10 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .nav .buy:hover { color: #F6CF52; }
 .nav .login { border: 1.5px solid #4E7360; padding: 7px 14px; border-radius: 8px; color: var(--blanc); }
 .nav .login:hover { border-color: var(--blanc); }
-@media (max-width: 440px) { .nav { gap: 12px; } .nav .login { border: 0; padding: 0; font-size: 15px; } .nav .try { padding: 7px 10px; } }
-@media (max-width: 400px) { .mark-nom { display: none; } }
 @media (max-width: 820px) { .nav a:not(.try):not(.login):not(.buy) { display: none; } .nav .buy { font-size: 15px; } .nav { gap: 10px; } .nav .login, .nav .try { font-size: 15px; padding: 7px 12px; white-space: nowrap; } .mark { font-size: 24px; } }
+/* Téléphones : les règles étroites viennent après celle de 820 px pour l'emporter */
+@media (max-width: 480px) { .nav { gap: 12px; } .nav .login { border: 0; padding: 0; } .nav .try { padding: 7px 10px; } .mark-nom { display: none; } }
+@media (max-width: 340px) { .nav { gap: 9px; } .nav .login, .nav .buy, .nav .try { font-size: 14px; } }
 
 /* Ouverture */
 .hero { background: var(--vert-nuit); color: var(--blanc); padding: 56px 0 0; overflow: hidden; }
@@ -320,6 +321,8 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
 .sp-partage .sp-prix { font-weight: 800; font-size: 20px; color: var(--epicerie, #1E5A35); }
 .sp-partage .sp-det { grid-column: 1 / -1; font-size: 15px; opacity: .8; }
 .sp-partage .sp-pied { margin: 10px 0 0; font-size: 15px; }
+.installer-site { margin: 14px 0 0; font-size: 16px; color: #CFDCD3; }
+.installer-site a { color: var(--etiquette, #F2C230); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .cadeau { color: #1F2A24; background: #FFF6D6; border: 1.5px solid #F2C230; border-radius: 12px; padding: 10px 14px; margin: 0 0 16px; font-size: 17px; }
 .demo-q { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; }
 .demo-q button { font: 600 15px var(--body); border: 1.5px solid var(--epicerie); color: var(--epicerie); background: var(--blanc); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
@@ -371,6 +374,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
         <a class="btn main app-link essai" href="https://app.lecommis.ai/?essai">Essayer 30 jours gratuits</a>
         <a class="btn ghost" href="achat.html">Acheter · 19,99 $ par année</a>
       </div>
+      <p class="installer-site"><a id="lien-installer" href="https://app.lecommis.ai/?installer">📲 Installer l'app sur mon téléphone</a> <span>· gratuit, sans App Store</span></p>
       <div class="ctas visite-zone"><button type="button" class="visite" id="visite"><span class="visite-av" id="visite-av"></span>Visite guidée avec Rosalie · 1 min</button>
       </div>
       <p class="small"><a href="#economies" style="color:var(--etiquette);font-weight:600">Environ 510 $ d'économies par année</a> pour une famille, selon notre estimation. 30 jours complets, sans carte de crédit. Jusqu'à 4 personnes par foyer. Sur iPhone, Android et ordinateur. Fait au Québec, en français.</p>
@@ -737,6 +741,7 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 40em; }
     if (/^[A-Z0-9]{6}$/.test(m)) { ref = m; localStorage.setItem('commis.ref', m); history.replaceState(null, '', location.pathname + location.hash); }
     else ref = localStorage.getItem('commis.ref');
   } catch (e) {}
+  if (c.appUrl) document.getElementById('lien-installer').href = c.appUrl + '?installer' + (ref ? '&ref=' + ref : '');
   if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) {
     a.href = c.appUrl + (a.classList.contains('essai') ? '?essai' + (ref ? '&ref=' + ref : '') : (ref ? '?ref=' + ref : ''));
     if (ref && /30 jours/.test(a.textContent)) a.textContent = a.textContent.replace('30 jours', '60 jours');
