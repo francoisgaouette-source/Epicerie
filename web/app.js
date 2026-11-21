@@ -138,6 +138,8 @@
   const idListeActive = () => { const l = state.listes.find((x) => x.id === listeActive) || listesTriees()[0]; return l ? l.id : null; };
   const nomListe = (id) => (state.listes.find((x) => x.id === id) || {}).nom || "la liste";
   const listeDe = (p) => (p && p.liste_id && listesTriees().some((l) => l.id === p.liste_id)) ? p.liste_id : idListeActive();
+  // L'article non coché de ce produit dans une liste du lieu ouvert (s'il y en a un)
+  const dansListeLieu = (p) => { const ids = new Set(listesTriees().map((l) => l.id)); return state.liste.find((i) => !i.fait && ids.has(i.liste_id) && norm(i.nom) === norm(p.nom)); };
   const dansListe = (nom, lid) => state.liste.some((i) => !i.fait && i.liste_id === lid && norm(i.nom) === norm(nom));
   let listeEnEdition = false, listeASupprimer = null;
   function choisirListe(id) { listeActive = id; try { localStorage.setItem("liste-active", id); } catch (e) {} render(); }
@@ -315,6 +317,7 @@
           <div class="main"><div class="name">${esc(p.nom)}${b && b.special ? '<span class="sale">spécial</span>' : ""}</div>
           <div class="meta">${esc([p.marque, p.format, reservesAilleurs(p), p.surveiller && p.prix_cible != null ? "cible " + money(Number(p.prix_cible)) : ""].filter(Boolean).join(" · ")) || "&nbsp;"}</div></div>
           <div class="best-price">${b ? money(b.val) + `<small>${esc(b.store)}</small>` : "<small>aucun prix</small>"}</div>
+          ${(() => { const dl = dansListeLieu(p); return `<button class="cart${dl ? " on" : ""}" type="button" data-tolist="${p.id}" aria-pressed="${dl ? "true" : "false"}" aria-label="${dl ? `Retirer ${esc(p.nom)} de « ${esc(nomListe(dl.liste_id))} »` : `Ajouter ${esc(p.nom)} à la liste d'épicerie`}" title="${dl ? `Dans « ${esc(nomListe(dl.liste_id))} » · toucher pour retirer` : "Ajouter à la liste d'épicerie"}">${dl ? "✓" : "🛒"}</button>`; })()}
           <button class="star${p.surveiller ? " on" : ""}" type="button" data-survtoggle="${p.id}" aria-pressed="${p.surveiller ? "true" : "false"}" aria-label="${p.surveiller ? "Ne plus surveiller" : "Surveiller les spéciaux de"} ${esc(p.nom)}">${p.surveiller ? "★" : "☆"}</button>
           ${openProd === p.id ? productDetail(p, b) : ""}
         </li>`;
@@ -2029,10 +2032,23 @@
     if (ig) { local("speciaux", () => (state.spec = state.spec.filter((x) => x.id !== ig.dataset.ignore))); await run(sb.from("speciaux").update({ ignore: true }).eq("id", ig.dataset.ignore)); return; }
     const tl = e.target.closest("[data-tolist]");
     if (tl) {
+      e.stopPropagation();
       const p = state.prod.find((x) => x.id === tl.dataset.tolist); if (!p) return;
+      const deja = dansListeLieu(p);
+      // Sur la ligne d'un produit, le bouton 🛒 / ✓ ajoute ou retire ; dans la fiche, il ajoute seulement
+      if (deja && tl.classList.contains("cart")) {
+        local("epicerie", () => (state.liste = state.liste.filter((i) => i.id !== deja.id)));
+        // Juste ajouté, l'article n'a peut-être pas encore son vrai numéro : on retire par liste et par nom
+        const req = String(deja.id).startsWith("tmp-") ? sb.from("epicerie").delete().eq("liste_id", deja.liste_id).eq("nom", deja.nom).eq("fait", false) : sb.from("epicerie").delete().eq("id", deja.id);
+        if (await run(req, `« ${p.nom} » retiré de « ${nomListe(deja.liste_id)} ».`)) scheduleReload("epicerie"); return;
+      }
+      if (deja) { status(`« ${p.nom} » est déjà dans « ${nomListe(deja.liste_id)} ».`); return; }
       const l = listeDe(p);
-      if (dansListe(p.nom, l)) { status(`« ${p.nom} » est déjà dans « ${nomListe(l)} ».`); return; }
-      if (await run(sb.from("epicerie").insert({ nom: p.nom, liste_id: l }), `« ${p.nom} » ajouté à « ${nomListe(l)} ».`)) scheduleReload("epicerie"); return;
+      const tmp = { id: "tmp-" + Date.now(), nom: p.nom, liste_id: l, fait: false, qte: null };
+      local("epicerie", () => state.liste.push(tmp));
+      if (await run(sb.from("epicerie").insert({ nom: p.nom, liste_id: l }), `🛒 « ${p.nom} » ajouté à « ${nomListe(l)} ».`)) scheduleReload("epicerie");
+      else local("epicerie", () => (state.liste = state.liste.filter((i) => i !== tmp)));
+      return;
     }
     const tw = e.target.closest("[data-survtoggle]");
     if (tw) {
