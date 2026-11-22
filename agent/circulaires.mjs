@@ -3,7 +3,13 @@
 //
 // Variables d'environnement (secrets GitHub) :
 //   ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-// Facultatives : MODEL (défaut claude-sonnet-5-5), MAX_PRODUITS (défaut 30), TAILLE_LOT (défaut 5)
+// Facultatives : MODEL (défaut claude-sonnet-5-5), MAX_PRODUITS (défaut 30, par foyer),
+//   MAX_PRODUITS_SEMAINE (défaut 150, pour toute l'app), TAILLE_LOT (défaut 5)
+//
+// Lecture commune : les circulaires sont les mêmes pour tout le monde. L'agent rassemble les produits
+// de tous les foyers, cherche chaque produit une seule fois par semaine (table veille_prix), puis
+// applique les prix trouvés à chaque foyer, sans autre appel à l'IA. Le coût dépend du nombre de
+// produits différents, pas du nombre de foyers.
 
 import { createClient } from "@supabase/supabase-js";
 import { appendFileSync } from "node:fs";
@@ -12,6 +18,7 @@ const env = (k, d) => process.env[k] || d;
 const MODEL = env("MODEL", "claude-sonnet-5-5");
 const MAX_PRODUITS = parseInt(env("MAX_PRODUITS", "30"), 10);
 const TAILLE_LOT = parseInt(env("TAILLE_LOT", "5"), 10);
+const MAX_PRODUITS_SEMAINE = parseInt(env("MAX_PRODUITS_SEMAINE", "150"), 10);
 for (const k of ["ANTHROPIC_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) {
   if (!process.env[k]) { console.error(`Variable manquante : ${k}`); process.exit(1); }
 }
@@ -20,6 +27,10 @@ const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_R
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
 const ymd = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const TODAY = ymd(new Date());
+// Clé commune d'un produit entre foyers : nom, marque et format normalisés
+const cleProduit = (p) => [p.nom, p.marque, p.format].map(norm).join("|");
+// Semaine des circulaires au Québec : du jeudi au mercredi. On la repère par son jeudi.
+const JEUDI = (() => { const d = new Date(TODAY + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 3) % 7)); return d.toISOString().slice(0, 10); })();
 const num = (v) => { if (v == null || v === "") return null; const n = Number(String(v).replace(",", ".").replace(/[^\d.]/g, "")); return isFinite(n) && n > 0 ? n : null; };
 const isDate = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
 const CATS = ["Fruits et légumes", "Viandes et poissons", "Produits laitiers et œufs", "Boulangerie", "Épicerie sèche",
@@ -65,20 +76,21 @@ async function claude(messages) {
   throw new Error("API Claude indisponible après plusieurs essais.");
 }
 
-// ---------- Coût de l'agent pour un foyer (table couts_ia, lue par la console). $ US par million de jetons :
+// ---------- Coût de la lecture commune (table couts_ia, lue par la console). $ US par million de jetons :
 // entrée, sortie, écriture en cache, lecture en cache. Recherche web : 0,01 $ chacune.
 const PRIX = {
   "claude-haiku-5-5": [0.10, 0.50, 0.125, 0.01],
   "claude-sonnet-5-5": [2, 10, 2.5, 0.10],
   "claude-opus-5-5": [4, 20, 5, 0.20],
 };
-async function noterCout(foyer_id, avant) {
+async function noterCout(foyer_id, avant, fonction = "circulaires") {
   const d = (k) => usage[k] - avant[k];
   const p = PRIX[MODEL] || PRIX["claude-sonnet-5-5"];
-  const ligne = { app: "commis", fonction: "circulaires", foyer_id, modele: MODEL,
+  const ligne = { app: "commis", fonction, foyer_id, modele: MODEL,
     entree: d("input"), sortie: d("output"), cache_ecrit: d("cacheEcrit"), cache_lu: d("cacheLu"), recherches: d("searches") };
   ligne.cout_usd = (ligne.entree * p[0] + ligne.sortie * p[1] + ligne.cache_ecrit * p[2] + ligne.cache_lu * p[3]) / 1e6 + ligne.recherches * 0.01;
-  console.log(`Coût pour ce foyer : ${ligne.cout_usd.toFixed(3)} $ US (${ligne.recherches} recherches, ${ligne.entree} jetons en entrée).`);
+  if (!ligne.entree && !ligne.recherches) return;
+  console.log(`Coût de la lecture : ${ligne.cout_usd.toFixed(3)} $ US (${ligne.recherches} recherches, ${ligne.entree} jetons en entrée).`);
   const { error } = await sb.from("couts_ia").insert(ligne);
   if (error) console.warn(`Coût non noté : ${error.message}`);
 }
@@ -103,8 +115,8 @@ function extraireJSON(texte) {
   return null;
 }
 
-function promptLot(lot, magasins, region) {
-  return `Nous sommes le ${TODAY}. Tu aides un ménage de ${region} à suivre les prix d'épicerie.
+function promptLot(lot, magasins) {
+  return `Nous sommes le ${TODAY}. Tu aides des ménages du Québec à suivre les prix d'épicerie.
 
 Épiceries à vérifier : ${magasins.join(", ")}.
 
@@ -133,22 +145,37 @@ N'inclus une épicerie que si tu as trouvé au moins un prix pour elle.`;
 async function main() {
   const foyers = await must(sb.from("foyers").select("id, nom, essai_fin, paye_jusqua, circulaires").eq("circulaires", true), "foyers");
   const actifs = foyers.filter((f) => new Date(f.essai_fin) > new Date() || (f.paye_jusqua && new Date(f.paye_jusqua) > new Date()));
-  console.log(`${actifs.length} foyer(s) à traiter.`);
+  console.log(`${actifs.length} foyer(s) à traiter, semaine du jeudi ${JEUDI}.`);
+
+  // 1. Ce que chaque foyer veut faire vérifier
+  const ctxs = [];
   for (const f of actifs) {
-    console.log(`\n=== Foyer « ${f.nom} » ===`);
-    const avant = { ...usage };
-    try { await traiterFoyer(f.id); } catch (e) { console.error(`Foyer ${f.nom} : ${e.message}`); }
-    await noterCout(f.id, avant);
+    try { ctxs.push({ f, ...(await preparerFoyer(f.id)) }); } catch (e) { console.error(`Foyer ${f.nom} : ${e.message}`); }
   }
+
+  // 2. Lecture commune : chaque produit différent, une fois par semaine
+  const avant = { ...usage };
+  let veille = new Map();
+  try { veille = await lectureCommune(ctxs); } catch (e) { console.error(`Lecture commune : ${e.message}`); }
+  await noterCout(null, avant, "circulaires");
+
+  // 3. Appliquer à chaque foyer, sans IA
+  for (const c of ctxs) {
+    console.log(`\n=== Foyer « ${c.f.nom} » ===`);
+    try { await appliquerFoyer(c, veille); } catch (e) { console.error(`Foyer ${c.f.nom} : ${e.message}`); }
+  }
+  const total = (usage.input * (PRIX[MODEL] || PRIX["claude-sonnet-5-5"])[0] + usage.output * (PRIX[MODEL] || PRIX["claude-sonnet-5-5"])[1]) / 1e6 + usage.searches * 0.01;
+  const bilan = `\nCoût total de la semaine : ${total.toFixed(2)} $ US pour ${ctxs.length} foyer(s) (${usage.searches} recherches web, ${MODEL}).`;
+  console.log(bilan);
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, bilan + "\n");
 }
 
-async function traiterFoyer(FOYER) {
+async function preparerFoyer(FOYER) {
   const config = (await must(sb.from("config").select("*").eq("foyer_id", FOYER).maybeSingle(), "config")) || {};
   // Chaque lieu a ses épiceries : on vérifie toutes celles des lieux du foyer
   const lieux = (await must(sb.from("lieux").select("magasins").eq("foyer_id", FOYER), "lieux")) || [];
   const desLieux = [...new Set(lieux.flatMap((l) => Array.isArray(l.magasins) ? l.magasins : []))];
   const magasins = desLieux.length ? desLieux : config.magasins?.length ? config.magasins : ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
-  const region = config.region || "Montréal, QC";
   const produits = await must(sb.from("produits").select("*").eq("foyer_id", FOYER), "produits");
   const epicerie = await must(sb.from("epicerie").select("*").eq("foyer_id", FOYER).eq("fait", false), "epicerie");
   // Les produits surveillés sont ceux marqués ★ dans le catalogue.
@@ -162,20 +189,71 @@ async function traiterFoyer(FOYER) {
   const choisis = [...produits]
     .sort((a, b) => rang(a) - rang(b) || majMin(a).localeCompare(majMin(b)))
     .filter((p, i) => rang(p) === 0 || i < MAX_PRODUITS);
+  return { FOYER, magasins, epicerie, surveiller, choisis, rang };
+}
 
-  console.log(`${choisis.length} produits à vérifier (sur ${produits.length}) dans ${magasins.join(", ")}.`);
+async function lectureCommune(ctxs) {
+  // Besoins de tous les foyers, regroupés par produit : quelles épiceries, priorité, combien de foyers
+  const besoins = new Map();
+  for (const c of ctxs) for (const p of c.choisis) {
+    const k = cleProduit(p);
+    const b = besoins.get(k) || { p, magasins: new Set(), rang: 9, foyers: 0 };
+    c.magasins.forEach((m) => b.magasins.add(m));
+    b.rang = Math.min(b.rang, c.rang(p)); b.foyers++;
+    besoins.set(k, b);
+  }
+  // Ce qui a déjà été lu cette semaine (par un autre foyer ou une exécution précédente)
+  const veille = new Map();
+  const cles = [...besoins.keys()];
+  for (let i = 0; i < cles.length; i += 200) {
+    const rows = await must(sb.from("veille_prix").select("cle, resultat, magasins").eq("semaine", JEUDI).in("cle", cles.slice(i, i + 200)), "veille");
+    rows.forEach((r) => veille.set(r.cle, r));
+  }
+  const aLire = [...besoins.entries()]
+    .map(([k, b]) => ({ k, ...b, manque: [...b.magasins].filter((m) => !(veille.get(k)?.magasins || []).includes(m)) }))
+    .filter((x) => x.manque.length)
+    .sort((a, b) => a.rang - b.rang || b.foyers - a.foyers);
+  const coupes = aLire.length - MAX_PRODUITS_SEMAINE;
+  if (coupes > 0) console.log(`Limite de ${MAX_PRODUITS_SEMAINE} produits par semaine : ${coupes} produit(s) attendront.`);
+  const lus = aLire.slice(0, MAX_PRODUITS_SEMAINE);
+  console.log(`${besoins.size} produits différents pour ${ctxs.length} foyer(s); ${besoins.size - aLire.length} déjà lus cette semaine, ${lus.length} à lire.`);
+
+  for (let i = 0; i < lus.length; i += TAILLE_LOT) {
+    const lot = lus.slice(i, i + TAILLE_LOT);
+    const magasins = [...new Set(lot.flatMap((x) => x.manque))];
+    console.log(`Lot ${i / TAILLE_LOT + 1} : ${lot.map((x) => x.p.nom).join(", ")} (${magasins.join(", ")})`);
+    let r;
+    try { r = await demander(promptLot(lot.map((x) => x.p), magasins)); } catch (e) { console.error(`Lot ignoré : ${e.message}`); continue; }
+    if (!r) continue;
+    const lignes = lot.map((x) => {
+      const ancien = veille.get(x.k) || { resultat: {}, magasins: [] };
+      const trouve = (r.resultats || []).find((y) => y.id === x.p.id) || {};
+      const resultat = {
+        semaine: ancien.resultat.semaine || r.semaine || null,
+        debut: ancien.resultat.debut || (isDate(r.debut) ? r.debut : null),
+        fin: ancien.resultat.fin || (isDate(r.fin) ? r.fin : null),
+        categorie: trouve.categorie || ancien.resultat.categorie || null,
+        magasins: { ...(ancien.resultat.magasins || {}), ...Object.fromEntries(Object.entries(trouve.magasins || {}).filter(([m]) => magasins.includes(m))) },
+      };
+      const ligne = { cle: x.k, semaine: JEUDI, resultat, magasins: [...new Set([...ancien.magasins, ...x.manque])], maj: new Date().toISOString() };
+      veille.set(x.k, ligne);
+      return ligne;
+    });
+    await must(sb.from("veille_prix").upsert(lignes, { onConflict: "cle,semaine" }), "enregistrer la veille");
+  }
+  return veille;
+}
+
+async function appliquerFoyer({ FOYER, magasins, epicerie, surveiller, choisis }, veille) {
   let semaine = null, debutSem = null, finSem = null;
   const resultats = new Map();
-  for (let i = 0; i < choisis.length; i += TAILLE_LOT) {
-    const lot = choisis.slice(i, i + TAILLE_LOT);
-    console.log(`Lot ${i / TAILLE_LOT + 1} : ${lot.map((p) => p.nom).join(", ")}`);
-    try {
-      const r = await demander(promptLot(lot, magasins, region));
-      if (!r) continue;
-      semaine ||= r.semaine; debutSem ||= isDate(r.debut) ? r.debut : null; finSem ||= isDate(r.fin) ? r.fin : null;
-      for (const x of r.resultats || []) if (lot.some((p) => p.id === x.id)) resultats.set(x.id, x);
-    } catch (e) { console.error(`Lot ignoré : ${e.message}`); }
+  for (const p of choisis) {
+    const v = veille.get(cleProduit(p));
+    if (!v) continue;
+    resultats.set(p.id, v.resultat);
+    semaine ||= v.resultat.semaine; debutSem ||= v.resultat.debut; finSem ||= v.resultat.fin;
   }
+  console.log(`${resultats.size} produits sur ${choisis.length} ont une lecture cette semaine.`);
 
   // ---------- mise à jour des prix
   const ilYa30j = ymd(new Date(Date.now() - 30 * 864e5));
@@ -246,7 +324,7 @@ async function traiterFoyer(FOYER) {
 
   const lignes = nouveaux.map((n) => `- ${n.item} : ${n.prix.toFixed(2)} $ chez ${n.magasin}${n.fin ? ` (jusqu'au ${n.fin})` : ""}`);
   const rapport = [`## Circulaires ${semaine || ""}`, resume, "", ...(lignes.length ? lignes : ["Aucun article surveillé n'est en spécial cette semaine."]), "",
-    `Recherches web : ${usage.searches} · jetons : ${usage.input} entrée, ${usage.output} sortie (${MODEL}).`].join("\n");
+    ].join("\n");
   console.log(rapport);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, rapport + "\n");
 }

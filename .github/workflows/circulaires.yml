@@ -26,3 +26,4 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MODEL: ${{ vars.MODEL || 'claude-sonnet-5-5' }}
           MAX_PRODUITS: ${{ vars.MAX_PRODUITS || '30' }}
+          MAX_PRODUITS_SEMAINE: ${{ vars.MAX_PRODUITS_SEMAINE || '150' }}

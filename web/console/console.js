@@ -289,14 +289,17 @@
   }
   // ---------- coûts de l'API Claude : ce que coûte chaque fonction et chaque foyer
   const usd = (n) => new Intl.NumberFormat("fr-CA", { style: "currency", currency: "USD", minimumFractionDigits: n < 1 ? 3 : 2, maximumFractionDigits: n < 1 ? 3 : 2 }).format(n);
-  const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires de la semaine" };
+  const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)" };
   function vueCouts(d) {
     const tous = d.couts || [], j30 = tous.filter((c) => Date.now() - t(c.cree) < 30 * JOUR);
     const somme = (l) => l.reduce((s, c) => s + Number(c.cout_usd || 0), 0);
     const grouper = (l, cle) => { const m = new Map(); for (const c of l) { const k = c[cle] || ""; if (!m.has(k)) m.set(k, []); m.get(k).push(c); } return [...m.entries()]; };
     const foyers = new Map(((d.commis && d.commis.foyers) || []).map((f) => [f.id, f.nom]));
     const parFoyer = grouper(j30.filter((c) => c.foyer_id), "foyer_id").map(([id, l]) => ({ id, l, n: somme(l) })).sort((a, b) => b.n - a.n);
-    const moyen = parFoyer.length ? somme(j30.filter((c) => c.foyer_id)) / parFoyer.length : 0;
+    // Les circulaires sont lues une fois pour toute l'app (foyer vide) : leur coût est réparti entre les foyers actifs
+    const actifs = ((d.commis && d.commis.foyers) || []).filter((f) => ["essai", "paye"].includes(forfaitCommis(f).cle)).length || parFoyer.length || 1;
+    const commun = somme(j30.filter((c) => !c.foyer_id));
+    const moyen = (somme(j30.filter((c) => c.foyer_id)) + commun) / actifs;
     return `<section class="section">${chiffres([[usd(somme(j30)), "dépensés en IA depuis 30 jours"], [j30.length, "appels depuis 30 jours"], [usd(moyen), "par foyer actif, en 30 jours"], [usd(moyen * 365 / 30), "par foyer, projeté sur un an"]])}</section>` +
       section("Par fonction, depuis 30 jours", "Le prix est calculé avec les tarifs publiés d'Anthropic, en dollars américains. Une recherche web coûte 0,01 $.",
         table([{ t: "Fonction" }, { t: "Modèle" }, { t: "Appels", n: 1 }, { t: "Jetons entrée", n: 1 }, { t: "Jetons sortie", n: 1 }, { t: "Recherches", n: 1 }, { t: "Coût", n: 1 }, { t: "Par appel", n: 1 }],
@@ -304,11 +307,12 @@
             `<span class="nom">${esc(NOMS_FONCTIONS[f] || f)}</span>`, esc([...new Set(l.map((c) => c.modele.replace("claude-", "")))].join(", ")), l.length,
             l.reduce((s, c) => s + c.entree, 0).toLocaleString("fr-CA"), l.reduce((s, c) => s + c.sortie, 0).toLocaleString("fr-CA"), l.reduce((s, c) => s + c.recherches, 0), esc(usd(n)), esc(usd(n / l.length))]),
           "Aucun appel noté pour l'instant. Chaque appel à Claude s'inscrira ici.")) +
-      section("Par foyer, depuis 30 jours", "Comparez la projection sur un an au prix de l'abonnement (19,99 $ CA, environ 19,11 $ après les frais Stripe).",
+      section("Par foyer, depuis 30 jours", `Comparez la projection sur un an au prix de l'abonnement (19,99 $ CA, environ 19,11 $ après les frais Stripe). La lecture commune des circulaires (${usd(commun)}) est partagée entre les ${actifs} foyer${actifs > 1 ? "s" : ""} actif${actifs > 1 ? "s" : ""} : ${usd(commun / actifs)} chacun, ajouté ci-dessous.`,
         table([{ t: "Foyer" }, { t: "Appels", n: 1 }, { t: "Coût 30 jours", n: 1 }, { t: "Projeté sur un an", n: 1 }, { t: "Le plus coûteux" }],
           parFoyer.map(({ id, l, n }) => {
             const pire = grouper(l, "fonction").map(([f, x]) => [f, somme(x)]).sort((a, b) => b[1] - a[1])[0];
-            return [`<span class="nom">${esc(foyers.get(id) || "Foyer retiré")}</span>`, l.length, esc(usd(n)), esc(usd(n * 365 / 30)), esc(pire ? `${NOMS_FONCTIONS[pire[0]] || pire[0]} (${usd(pire[1])})` : "")];
+            const part = n + commun / actifs;
+            return [`<span class="nom">${esc(foyers.get(id) || "Foyer retiré")}</span>`, l.length, esc(usd(part)), esc(usd(part * 365 / 30)), esc(pire ? `${NOMS_FONCTIONS[pire[0]] || pire[0]} (${usd(pire[1])})` : "")];
           }), "Aucun foyer n'a encore utilisé l'IA."));
   }
   const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
