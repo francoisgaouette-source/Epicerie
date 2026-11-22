@@ -41,7 +41,7 @@
     const e = etatAvis(a), frais = etat.frais === cle ? " frais" : "";
     return e === "publie" ? `<span class="tampon${frais}">Publié</span>` : e === "ecarte" ? `<span class="tampon refus${frais}">Écarté</span>` : `<span class="tampon attente${frais}">En attente</span>`;
   };
-  const nomApp = { commis: "Le Commis", fanion: "Fanion", holdingai: "HoldingAI", console: "Console" };
+  const nomApp = { commis: "Le Commis", fanion: "Fanion", plumeau: "Le Plumeau", holdingai: "HoldingAI", console: "Console" };
   const puce = (app) => `<span class="app"><i class="pastille ${esc(app)}"></i>${esc(nomApp[app] || app)}</span>`;
 
   // ---------- serveur
@@ -206,11 +206,11 @@
   };
   function vueIdees(d) {
     const r = d.retour || { idees: [], sondages: [], nouveautes: [] };
-    const APPS = [["tous", "Les deux apps"], ["commis", "Le Commis"], ["fanion", "Fanion"]];
+    const APPS = [["tous", "Toutes les apps"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["plumeau", "Le Plumeau"]];
     const appF = APPS.some(([k]) => k === etat.appIdee) ? etat.appIdee : "tous";
     const deLapp = (x) => appF === "tous" || (x.app || "commis") === appF;
     const ids = r.idees.filter(deLapp), so = r.sondages.filter(deLapp), nvs = r.nouveautes.filter(deLapp);
-    const nomSond = appF === "fanion" ? "Fanion" : appF === "commis" ? "Le Commis" : "l'app";
+    const nomSond = appF === "fanion" ? "Fanion" : appF === "commis" ? "Le Commis" : appF === "plumeau" ? "Le Plumeau" : "l'app";
     const recents = so.filter((x) => Date.now() - t(x.cree) < 90 * JOUR);
     const nps = recents.length ? Math.round(100 * (recents.filter((x) => x.note >= 9).length - recents.filter((x) => x.note <= 6).length) / recents.length) : null;
     const F = [["recue", "À lire"], ["etudiee", "À l'étude"], ["prevue", "Prévues"], ["faite", "Faites"], ["non", "Non retenues"], ["tous", "Toutes"]];
@@ -226,7 +226,7 @@
       section("Annoncer une nouveauté", "Chaque membre la voit une fois, en haut de l'app, au prochain lancement. Annoncez les améliorations, surtout celles demandées par les membres.",
         `<form class="invite" id="f-nouveaute"><label>Titre<input id="in-nv-titre" required maxlength="120" placeholder="ex. Le bilan accepte maintenant les grammes"></label>
           <label>Détail (facultatif)<input id="in-nv-texte" maxlength="1000" placeholder="Une phrase sur ce qui change et où le trouver"></label>
-          <label>Dans quelle app<select id="in-nv-app"><option value="commis" ${appF === "fanion" ? "" : "selected"}>Le Commis</option><option value="fanion" ${appF === "fanion" ? "selected" : ""}>Fanion</option></select></label>
+          <label>Dans quelle app<select id="in-nv-app"><option value="commis" ${appF === "fanion" || appF === "plumeau" ? "" : "selected"}>Le Commis</option><option value="fanion" ${appF === "fanion" ? "selected" : ""}>Fanion</option><option value="plumeau" ${appF === "plumeau" ? "selected" : ""}>Le Plumeau</option></select></label>
           <button class="btn" type="submit">Annoncer</button></form>` +
         table([{ t: "Nouveauté" }, { t: "Annoncée" }, { t: "Geste" }], nvs.map((n) => [`${puce(n.app || "commis")} <span class="nom">${esc(n.titre)}</span><small>${esc(n.texte || "")}${n.idee_id ? " · demandée par un membre" : ""}</small>`, esc(jour(n.cree)), `<div class="gestes"><button class="lien" data-nouveaute="${esc(n.id)}">Retirer</button></div>`]), "Aucune nouveauté annoncée pour l'instant.")) +
       section(`Sondage : recommanderiez-vous ${nomSond}?`, "Posé dans l'app après 10 jours d'usage, puis tous les 3 mois. 9-10 : promoteurs (l'app leur propose de la faire découvrir). 0-6 : détracteurs (l'app leur demande ce qui accroche).",
@@ -238,7 +238,7 @@
     const a = aTraiter(d);
     const blocs = [];
     if (a.fils.length) blocs.push(section("Courriels à traiter", "Des personnes vous ont écrit. Répondez ici, ou marquez le courriel comme traité.", liste(a.fils.slice(0, 30).map(ficheCourriel), "")));
-    if (a.idees.length) blocs.push(section("Idées et commentaires à lire", "Ce que les membres du Commis et de Fanion vous ont envoyé. Répondez ou changez l'état : la personne le voit dans l'app.", liste(a.idees.slice(0, 20).map(ficheIdee), "")));
+    if (a.idees.length) blocs.push(section("Idées et commentaires à lire", "Ce que les membres de vos apps vous ont envoyé. Répondez ou changez l'état : la personne le voit dans l'app.", liste(a.idees.slice(0, 20).map(ficheIdee), "")));
     blocs.push(section("Avis à approuver", "Un avis paraît sur le site seulement après votre approbation, et seulement si la personne a accepté l'affichage.",
       liste(a.avis.map((x) => ficheAvis(x, x.app)), "Aucun avis en attente. Les nouveaux avis du Commis et de Fanion arrivent ici.")));
     if (a.paiements.length) blocs.push(section("Paiements à relier", "Stripe a reçu ces paiements sans pouvoir activer un foyer. Activez le bon foyer dans l'onglet Le Commis.",
@@ -287,9 +287,29 @@
       section("Questions posées au Caddie", "Ce que les joueurs demandent à l'assistant dans l'app.",
         liste(q.map(ficheQuestion), "Aucune question notée pour l'instant. Elles s'inscrivent ici à mesure que les joueurs en posent."));
   }
+  function vuePlumeau(d) {
+    const p = d.plumeau || { comptes: [] }, cp = p.comptes || [];
+    const q = d.commis.questions.filter((x) => x.app === "plumeau");
+    const r = d.retour || { idees: [] };
+    const idees = r.idees.filter((i) => i.app === "plumeau");
+    const somme = (k) => cp.reduce((s, c) => s + (Number(c[k]) || 0), 0);
+    const pilote = cp.filter((c) => Number(c.liens) + Number(c.archives) >= 20 && (Number(c.archives) > 0 || Number(c.sugg_gardees) > 0)).length;
+    const j30 = (d.couts || []).filter((c) => c.app === "plumeau" && Date.now() - t(c.cree) < 30 * JOUR).reduce((s, c) => s + Number(c.cout_usd || 0), 0);
+    const actifs = cp.filter((c) => c.derniere && Date.now() - t(c.derniere) < 30 * JOUR).length;
+    return (p.erreur ? `<section class="section"><div class="bandeau">Les comptes du Plumeau n'ont pas pu être lus : ${esc(p.erreur)}</div></section>` : "") +
+      `<section class="section">${chiffres([[cp.length, cp.length > 1 ? "comptes" : "compte"], [cp.filter((c) => Date.now() - t(c.cree) < 7 * JOUR).length, "nouveaux depuis 7 jours"], [somme("liens"), "liens gardés"], [somme("archives"), "liens archivés (ménage fait)"], [pilote, "ont importé et fait le ménage"], [usd(j30), "d'IA depuis 30 jours"], [actifs ? usd(j30 / actifs) : "–", "par compte actif, 30 jours"]])}</section>` +
+      section("Comptes", "Le Plumeau est gratuit : pas de forfait à gérer. Un compte « ont importé et fait le ménage » a gardé 20 liens ou plus et a archivé un lien ou gardé une suggestion de Colette.",
+        table([{ t: "Personne" }, { t: "Inscrite" }, { t: "Liens", n: 1 }, { t: "Archivés", n: 1 }, { t: "Collections", n: 1 }, { t: "Suggestions gardées", n: 1 }, { t: "Dernier lien" }],
+          cp.map((c) => [`<span class="nom">${esc(c.prenom || "Sans prénom")}</span><small>${esc(c.courriel || "")}${c.bloque ? " · IA coupée" : ""}</small>`, esc(jour(c.cree)), c.liens, c.archives, c.collections, c.sugg_gardees, c.derniere ? esc(ilYA(c.derniere)) : "aucun"]),
+          "Aucun compte pour l'instant. Les inscriptions sur leplumeau.ai s'afficheront ici.")) +
+      section("Idées et commentaires", "Répondez dans l'onglet Idées (filtre Le Plumeau) : la personne voit votre réponse dans l'app, et Colette l'avertit.",
+        liste(idees.filter((i) => i.statut === "recue").slice(0, 20).map(ficheIdee), idees.length ? "Tout est lu. Les idées traitées sont dans l'onglet Idées." : "Aucune idée reçue pour l'instant.")) +
+      section("Questions posées à Colette", "Ce que les gens demandent à Colette dans l'app. Une question qui revient souvent montre un endroit où l'app accroche.",
+        liste(q.map(ficheQuestion), "Aucune question notée pour l'instant. Elles s'inscrivent ici à mesure que les gens en posent."));
+  }
   // ---------- coûts de l'API Claude : ce que coûte chaque fonction et chaque foyer
   const usd = (n) => new Intl.NumberFormat("fr-CA", { style: "currency", currency: "USD", minimumFractionDigits: n < 1 ? 3 : 2, maximumFractionDigits: n < 1 ? 3 : 2 }).format(n);
-  const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)" };
+  const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)", colette: "Colette (questions)", ajouter: "Le Plumeau : lecture d'un lien", classer: "Le Plumeau : classement des liens", suggerer: "Le Plumeau : sites semblables" };
   function vueCouts(d) {
     const tous = d.couts || [], j30 = tous.filter((c) => Date.now() - t(c.cree) < 30 * JOUR);
     const somme = (l) => l.reduce((s, c) => s + Number(c.cout_usd || 0), 0);
@@ -298,9 +318,13 @@
     const parFoyer = grouper(j30.filter((c) => c.foyer_id), "foyer_id").map(([id, l]) => ({ id, l, n: somme(l) })).sort((a, b) => b.n - a.n);
     // Les circulaires sont lues une fois pour toute l'app (foyer vide) : leur coût est réparti entre les foyers actifs
     const actifs = ((d.commis && d.commis.foyers) || []).filter((f) => ["essai", "paye"].includes(forfaitCommis(f).cle)).length || parFoyer.length || 1;
-    const commun = somme(j30.filter((c) => !c.foyer_id));
+    const commun = somme(j30.filter((c) => !c.foyer_id && (c.app || "commis") === "commis"));
     const moyen = (somme(j30.filter((c) => c.foyer_id)) + commun) / actifs;
+    const parApp = grouper(j30, "app").map(([a, l]) => ({ a: a || "commis", l, n: somme(l) })).sort((x, y) => y.n - x.n);
     return `<section class="section">${chiffres([[usd(somme(j30)), "dépensés en IA depuis 30 jours"], [j30.length, "appels depuis 30 jours"], [usd(moyen), "par foyer actif, en 30 jours"], [usd(moyen * 365 / 30), "par foyer, projeté sur un an"]])}</section>` +
+      section("Par app, depuis 30 jours", "Le Plumeau est gratuit : son coût par compte se compare à zéro revenu. Les quotas quotidiens le gardent bas.",
+        table([{ t: "App" }, { t: "Appels", n: 1 }, { t: "Coût 30 jours", n: 1 }, { t: "Projeté sur un an", n: 1 }],
+          parApp.map(({ a, l, n }) => [puce(a), l.length, esc(usd(n)), esc(usd(n * 365 / 30))]), "Aucun appel noté pour l'instant.")) +
       section("Par fonction, depuis 30 jours", "Le prix est calculé avec les tarifs publiés d'Anthropic, en dollars américains. Une recherche web coûte 0,01 $.",
         table([{ t: "Fonction" }, { t: "Modèle" }, { t: "Appels", n: 1 }, { t: "Jetons entrée", n: 1 }, { t: "Jetons sortie", n: 1 }, { t: "Recherches", n: 1 }, { t: "Coût", n: 1 }, { t: "Par appel", n: 1 }],
           grouper(j30, "fonction").map(([f, l]) => ({ f, l, n: somme(l) })).sort((a, b) => b.n - a.n).map(({ f, l, n }) => [
@@ -315,7 +339,7 @@
             return [`<span class="nom">${esc(foyers.get(id) || "Foyer retiré")}</span>`, l.length, esc(usd(part)), esc(usd(part * 365 / 30)), esc(pire ? `${NOMS_FONCTIONS[pire[0]] || pire[0]} (${usd(pire[1])})` : "")];
           }), "Aucun foyer n'a encore utilisé l'IA."));
   }
-  const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
+  const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "fanion.idee": "Idée", "fanion.nouveaute": "Nouveauté", "plumeau.idee": "Idée", "plumeau.nouveaute": "Nouveauté", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
   const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée", traite: "marqué comme traité", atraiter: "remis à traiter", repondu: "réponse envoyée", annoncer: "annoncée dans l'app", recue: "à lire", etudiee: "à l'étude", prevue: "prévue", faite: "faite", non: "non retenue" };
   const ROLES = { proprio: "Propriétaire", gestion: "Gestion", lecture: "Consultation" };
   const gesteJournal = (j) => { const x = j.detail || {};
@@ -341,14 +365,14 @@
       }), "Aucun geste pour l'instant."));
   }
 
-  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["couts", "Coûts IA"], ["journal", "Journal"]];
+  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["plumeau", "Le Plumeau"], ["couts", "Coûts IA"], ["journal", "Journal"]];
   function rendre() {
     const d = etat.d; if (!d) return;
     const n = aTraiter(d).n;
     const vues = etat.role === "proprio" ? [...VUES, ["acces", "Accès"]] : VUES;
     if (!vues.some(([k]) => k === etat.vue)) etat.vue = "traiter";
-    $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${k === "commis" || k === "fanion" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
+    $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${k === "commis" || k === "fanion" || k === "plumeau" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
     if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],#f-nouveaute").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
@@ -360,6 +384,7 @@
     try {
       const d = await appel({ action: "tout" });
       try { d.retour = await rpc("console_retour"); } catch (e) { d.retour = { idees: [], sondages: [], nouveautes: [] }; }
+      try { d.plumeau = await rpc("console_plumeau"); } catch (e) { d.plumeau = { comptes: [], erreur: e.message }; }
       etat.d = d; etat.courriel = d.courriel || ""; etat.role = d.role || "lecture"; rendre();
     } catch (e) {
       if (e.code === 401) { await sb.auth.signOut(); montrerPorte("Votre session est terminée. Reconnectez-vous."); }
@@ -390,7 +415,7 @@
   $("#page").addEventListener("submit", (e) => {
     if (e.target.id !== "f-nouveaute") return;
     e.preventDefault();
-    agir({ action: "commis.nouveaute", titre: $("#in-nv-titre").value, texte: $("#in-nv-texte").value, app: $("#in-nv-app").value }, $("#in-nv-app").value === "fanion" ? "Nouveauté annoncée dans Fanion." : "Nouveauté annoncée dans Le Commis.");
+    agir({ action: "commis.nouveaute", titre: $("#in-nv-titre").value, texte: $("#in-nv-texte").value, app: $("#in-nv-app").value }, `Nouveauté annoncée dans ${nomApp[$("#in-nv-app").value] || "l'app"}.`);
   });
 
   // ---------- gestes

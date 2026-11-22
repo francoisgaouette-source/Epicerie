@@ -1,0 +1,7 @@
+-- Appliqué sur Supabase le 2026-11-22 : Le Plumeau dans la console HoldingAI.
+-- Migrations « console_plumeau » et « console_questions_plumeau » :
+--   console_plumeau() : comptes du Plumeau (prénom, courriel, liens, archivés, collections, suggestions gardées, dernier lien), réservé à la console.
+--   console_retour, console_idee, console_nouveaute : ajout des tables plumeau_idees et plumeau_nouveautes (app = plumeau).
+--     Une réponse à une idée du Plumeau remet « vu » à false : Colette avertit la personne dans l'app.
+--   console_questions : app permise « plumeau » (questions posées à Colette), contexte jusqu'à 1000 caractères.
+-- Le code du Plumeau (app, fonctions plumeau et plumeau-colette, tables plumeau_*) n'est pas dans ce dépôt.
