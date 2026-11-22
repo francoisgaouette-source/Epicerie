@@ -1,4 +1,4 @@
-// Le Commis sur Cloudflare : reprend les règles de netlify.toml.
+// Le Commis sur Cloudflare : sert web/ selon l'adresse (app, site, console).
 // Chaque adresse reçoit son dossier, ses en-têtes et son cache.
 
 const SITES = {

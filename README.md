@@ -39,14 +39,13 @@ Le projet **Notre épicerie** existe déjà dans votre organisation Supabase, av
 1. Créez un dépôt **privé** sur GitHub, par exemple `notre-epicerie`.
 2. Envoyez tout le dossier dans le dépôt (avec GitHub Desktop, ou par glisser-déposer sur la page du dépôt avec **Add file > Upload files**; le dossier `.github` doit être inclus).
 
-### 3. Netlify : l'application
+### 3. Cloudflare : l'application et le site
 
-1. Sur [netlify.com](https://netlify.com) : **Add new site > Import an existing project > GitHub**, puis choisissez le dépôt.
-2. Laissez les réglages tels quels (le fichier `netlify.toml` indique de publier le dossier `web`). Cliquez sur **Deploy**.
-3. Facultatif : **Site configuration > Change site name** pour une adresse comme `notre-epicerie.netlify.app`.
-4. Dans Supabase, **Authentication > URL Configuration > Site URL** : collez l'adresse Netlify.
+L'hébergement est un Worker Cloudflare (`wrangler.jsonc`, `worker/index.js`) branché sur le dépôt GitHub avec Workers Builds.
+Il sert le dossier `web/` selon l'adresse : `app.lecommis.ai` (l'app), `lecommis.ai` (le site, `web/site`) et `console.holdingai.app` (la console, `web/console`).
+Dans Supabase, **Authentication > URL Configuration** : Site URL `https://app.lecommis.ai`, Redirect URL `https://app.lecommis.ai/**`.
 
-Chaque fois que vous modifiez le code sur GitHub, Netlify republie l'app automatiquement.
+Chaque fois que le code change sur GitHub (branche main), Cloudflare republie automatiquement.
 
 ### 4. L'agent du jeudi
 
@@ -92,5 +91,6 @@ web/                  l'application (HTML, CSS, JS, icônes, manifeste, service 
 supabase/schema.sql   tables, sécurité et temps réel
 agent/                script de l'agent du jeudi
 .github/workflows/    planification de l'agent dans GitHub Actions
-netlify.toml          réglages Netlify
+wrangler.jsonc        réglages Cloudflare (Worker et domaines)
+worker/index.js       aiguillage par adresse : app, site, console
 ```
