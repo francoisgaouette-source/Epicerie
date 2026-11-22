@@ -3,14 +3,14 @@
 :root {
   --papier: #EDF0F4; --feuille: #FFFFFF; --encre: #18212E; --gris: #5A6675; --ligne: #D5DBE3;
   --tampon: #2447C8; --tampon-pale: #E4EAFB; --refus: #B5332A; --refus-pale: #F8E5E3; --attente: #8A6200; --attente-pale: #FBF0D2;
-  --commis: #1F5B3A; --fanion: #C98A00; --plumeau: #B3261E;
+  --commis: #1F5B3A; --fanion: #C98A00; --plumeau: #5B2A86;
   --f: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --papier: #10161F; --feuille: #18212E; --encre: #E8EDF4; --gris: #9AA7B8; --ligne: #2B3747;
     --tampon: #8FADFF; --tampon-pale: #1D2B52; --refus: #FF8E84; --refus-pale: #3E1E1B; --attente: #F0C155; --attente-pale: #3A2E10;
-    --commis: #6CC495; --fanion: #F0BB2A; --plumeau: #F0857A; color-scheme: dark;
+    --commis: #6CC495; --fanion: #F0BB2A; --plumeau: #C9A6EC; color-scheme: dark;
   }
 }
 * { box-sizing: border-box; }
