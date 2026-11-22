@@ -13,6 +13,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { appendFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const env = (k, d) => process.env[k] || d;
 const MODEL = env("MODEL", "claude-sonnet-5-5");
@@ -43,8 +44,8 @@ async function must(q, what) {
 }
 
 // ---------- Claude (API Messages + recherche web)
-const usage = { input: 0, output: 0, searches: 0, cacheEcrit: 0, cacheLu: 0 };
-async function claude(messages) {
+export const usage = { input: 0, output: 0, searches: 0, cacheEcrit: 0, cacheLu: 0 };
+async function claude(messages, model = MODEL) {
   for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -54,7 +55,7 @@ async function claude(messages) {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         max_tokens: 8000,
         messages,
         tools: [{
@@ -78,7 +79,7 @@ async function claude(messages) {
 
 // ---------- Coût de la lecture commune (table couts_ia, lue par la console). $ US par million de jetons :
 // entrée, sortie, écriture en cache, lecture en cache. Recherche web : 0,01 $ chacune.
-const PRIX = {
+export const PRIX = {
   "claude-haiku-5-5": [0.10, 0.50, 0.125, 0.01],
   "claude-sonnet-5-5": [2, 10, 2.5, 0.10],
   "claude-opus-5-5": [4, 20, 5, 0.20],
@@ -95,11 +96,11 @@ async function noterCout(foyer_id, avant, fonction = "circulaires") {
   if (error) console.warn(`Coût non noté : ${error.message}`);
 }
 
-async function demander(prompt) {
+export async function demander(prompt, model = MODEL) {
   const messages = [{ role: "user", content: prompt }];
   let texte = "";
   for (let tour = 0; tour < 6; tour++) {
-    const r = await claude(messages);
+    const r = await claude(messages, model);
     texte = r.content.filter((b) => b.type === "text").map((b) => b.text).join("\n");
     if (r.stop_reason !== "pause_turn") break;
     messages.push({ role: "assistant", content: r.content }); // reprendre une recherche longue
@@ -115,7 +116,7 @@ function extraireJSON(texte) {
   return null;
 }
 
-function promptLot(lot, magasins) {
+export function promptLot(lot, magasins) {
   return `Nous sommes le ${TODAY}. Tu aides des ménages du Québec à suivre les prix d'épicerie.
 
 Épiceries à vérifier : ${magasins.join(", ")}.
@@ -329,4 +330,5 @@ async function appliquerFoyer({ FOYER, magasins, epicerie, surveiller, choisis }
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, rapport + "\n");
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// Lancé directement (node circulaires.mjs) : l'agent roule. Importé (test des modèles) : rien ne roule.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((e) => { console.error(e); process.exit(1); });

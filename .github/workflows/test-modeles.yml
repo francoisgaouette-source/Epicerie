@@ -1,0 +1,39 @@
+name: Test des modèles (Sonnet ou Haiku)
+
+# Lancé à la main seulement : onglet Actions → « Test des modèles » → Run workflow.
+# Compare les modèles sur de vraies factures et un lot de circulaires. Ne modifie aucune donnée.
+# Coût d'un test : environ 1 $ US.
+on:
+  workflow_dispatch:
+    inputs:
+      modeles:
+        description: "Modèles à comparer, séparés par des virgules (le premier sert de référence)"
+        default: "claude-sonnet-5-5,claude-haiku-5-5"
+      nb_factures:
+        description: "Nombre de factures à relire"
+        default: "5"
+      nb_produits:
+        description: "Nombre de produits de circulaires à vérifier"
+        default: "5"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: node test-modeles.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MODELES: ${{ inputs.modeles }}
+          NB_FACTURES: ${{ inputs.nb_factures }}
+          NB_PRODUITS: ${{ inputs.nb_produits }}
