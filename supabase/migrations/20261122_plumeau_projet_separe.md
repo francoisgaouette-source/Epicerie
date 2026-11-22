@@ -1,0 +1,4 @@
+-- Appliqué sur Supabase le 2026-11-22 : Le Plumeau quitte le projet du Commis (migration « plumeau_quitte_le_commis »).
+-- Le Plumeau a son propre projet Supabase (« Le Plumeau », xpgpzhfmfusdenbwrpny) : comptes, mots de passe et textos séparés.
+-- Ici : tables plumeau_* et console_plumeau() retirées; console_retour, console_idee, console_nouveaute remises pour Le Commis et Fanion seulement.
+-- La console lit et gère Le Plumeau par la fonction « console-plumeau » (secret PLUMEAU_SERVICE_ROLE_KEY = clé de service du projet du Plumeau).

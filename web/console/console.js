@@ -52,7 +52,23 @@
     if (error) throw Object.assign(new Error(MSG_RPC[error.message] || error.message), { code: 400 });
     return data;
   }
+  // Le Plumeau a son propre projet Supabase : la fonction « console-plumeau » fait le pont (comptes séparés du Commis)
+  async function pont(corps) {
+    const { data: s } = await sb.auth.getSession();
+    if (!s.session) throw Object.assign(new Error("Connexion requise."), { code: 401 });
+    const r = await fetch(`${URL_SB}/functions/v1/console-plumeau`, {
+      method: "POST", headers: { "Content-Type": "application/json", apikey: CLE_SB, Authorization: `Bearer ${s.session.access_token}` }, body: JSON.stringify(corps),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(d.erreur || d.message || `Erreur ${r.status}`), { code: r.status === 401 || r.status === 403 ? 400 : r.status });
+    return d;
+  }
+  const appDe = (liste, id) => ((((etat.d || {}).retour || {})[liste] || []).find((x) => x.id === id) || {}).app;
   async function appel(corps) {
+    if (corps.action === "commis.idee" && appDe("idees", corps.id) === "plumeau") return pont({ action: "idee", id: corps.id, statut: corps.statut ?? null, reponse: corps.reponse ?? null });
+    if (corps.action === "commis.nouveaute" && (corps.geste === "retirer" ? appDe("nouveautes", corps.id) === "plumeau" : corps.app === "plumeau"))
+      return pont(corps.geste === "retirer" ? { action: "nouveaute", retirer: corps.id } : { action: "nouveaute", titre: corps.titre, texte: corps.texte || null, idee_id: corps.idee_id || null });
+    if (corps.action === "plumeau.bloquer") return pont({ action: "bloquer", user_id: corps.user_id, bloque: corps.bloque });
     if (corps.action === "commis.idee") return rpc("console_idee", { p_id: corps.id, p_statut: corps.statut ?? null, p_reponse: corps.reponse ?? null });
     if (corps.action === "commis.nouveaute") return rpc("console_nouveaute", corps.geste === "retirer" ? { p_retirer: corps.id } : { p_titre: corps.titre, p_texte: corps.texte || null, p_idee: corps.idee_id || null, p_app: corps.app || "commis" });
     const { data: s } = await sb.auth.getSession();
@@ -299,8 +315,9 @@
     return (p.erreur ? `<section class="section"><div class="bandeau">Les comptes du Plumeau n'ont pas pu être lus : ${esc(p.erreur)}</div></section>` : "") +
       `<section class="section">${chiffres([[cp.length, cp.length > 1 ? "comptes" : "compte"], [cp.filter((c) => Date.now() - t(c.cree) < 7 * JOUR).length, "nouveaux depuis 7 jours"], [somme("liens"), "liens gardés"], [somme("archives"), "liens archivés (ménage fait)"], [pilote, "ont importé et fait le ménage"], [usd(j30), "d'IA depuis 30 jours"], [actifs ? usd(j30 / actifs) : "–", "par compte actif, 30 jours"]])}</section>` +
       section("Comptes", "Le Plumeau est gratuit : pas de forfait à gérer. Un compte « ont importé et fait le ménage » a gardé 20 liens ou plus et a archivé un lien ou gardé une suggestion de Colette.",
-        table([{ t: "Personne" }, { t: "Inscrite" }, { t: "Liens", n: 1 }, { t: "Archivés", n: 1 }, { t: "Collections", n: 1 }, { t: "Suggestions gardées", n: 1 }, { t: "Dernier lien" }],
-          cp.map((c) => [`<span class="nom">${esc(c.prenom || "Sans prénom")}</span><small>${esc(c.courriel || "")}${c.bloque ? " · IA coupée" : ""}</small>`, esc(jour(c.cree)), c.liens, c.archives, c.collections, c.sugg_gardees, c.derniere ? esc(ilYA(c.derniere)) : "aucun"]),
+        table([{ t: "Personne" }, { t: "Inscrite" }, { t: "Liens", n: 1 }, { t: "Archivés", n: 1 }, { t: "Collections", n: 1 }, { t: "Suggestions gardées", n: 1 }, { t: "Dernier lien" }, { t: "Geste" }],
+          cp.map((c) => [`<span class="nom">${esc(c.prenom || "Sans prénom")}</span><small>${esc(c.courriel || "")}${c.bloque ? " · IA coupée" : ""}</small>`, esc(jour(c.cree)), c.liens, c.archives, c.collections, c.sugg_gardees, c.derniere ? esc(ilYA(c.derniere)) : "aucun",
+            `<div class="gestes"><button class="lien" data-plumeau-compte="${esc(c.user_id)}" data-bloque="${c.bloque ? "0" : "1"}">${c.bloque ? "Rendre l'IA" : "Couper l'IA"}</button></div>`]),
           "Aucun compte pour l'instant. Les inscriptions sur leplumeau.ai s'afficheront ici.")) +
       section("Idées et commentaires", "Répondez dans l'onglet Idées (filtre Le Plumeau) : la personne voit votre réponse dans l'app, et Colette l'avertit.",
         liste(idees.filter((i) => i.statut === "recue").slice(0, 20).map(ficheIdee), idees.length ? "Tout est lu. Les idées traitées sont dans l'onglet Idées." : "Aucune idée reçue pour l'instant.")) +
@@ -339,12 +356,13 @@
             return [`<span class="nom">${esc(foyers.get(id) || "Foyer retiré")}</span>`, l.length, esc(usd(part)), esc(usd(part * 365 / 30)), esc(pire ? `${NOMS_FONCTIONS[pire[0]] || pire[0]} (${usd(pire[1])})` : "")];
           }), "Aucun foyer n'a encore utilisé l'IA."));
   }
-  const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "fanion.idee": "Idée", "fanion.nouveaute": "Nouveauté", "plumeau.idee": "Idée", "plumeau.nouveaute": "Nouveauté", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
+  const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "fanion.idee": "Idée", "fanion.nouveaute": "Nouveauté", "plumeau.idee": "Idée", "plumeau.nouveaute": "Nouveauté", "plumeau.compte": "Compte", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
   const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée", traite: "marqué comme traité", atraiter: "remis à traiter", repondu: "réponse envoyée", annoncer: "annoncée dans l'app", recue: "à lire", etudiee: "à l'étude", prevue: "prévue", faite: "faite", non: "non retenue" };
   const ROLES = { proprio: "Propriétaire", gestion: "Gestion", lecture: "Consultation" };
   const gesteJournal = (j) => { const x = j.detail || {};
     if (j.app === "console") return x.geste === "inviter" ? `accès donné (${ROLES[x.role] || ""})` : x.geste === "role" ? `rôle changé (${ROLES[x.role] || ""})` : "accès retiré";
-    if (j.action === "commis.idee") return [GESTES[x.statut] || "", x.repondu ? "réponse envoyée" : ""].filter(Boolean).join(", ");
+    if (j.action === "plumeau.compte") return x.geste === "bloquer" ? "IA coupée" : "IA rendue";
+    if (j.action === "commis.idee" || j.action === "plumeau.idee") return [GESTES[x.statut] || "", x.repondu ? "réponse envoyée" : ""].filter(Boolean).join(", ");
     return GESTES[x.etat || x.geste] || ""; };
   function vueAcces(d) {
     const gens = d.acces || [];
@@ -374,7 +392,7 @@
     $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${k === "commis" || k === "fanion" || k === "plumeau" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
     $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
-    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],#f-nouveaute").forEach((b) => b.remove());
+    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],#f-nouveaute").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
     document.title = (n ? `(${n}) ` : "") + "Console HoldingAI";
     etat.frais = null;
@@ -384,7 +402,15 @@
     try {
       const d = await appel({ action: "tout" });
       try { d.retour = await rpc("console_retour"); } catch (e) { d.retour = { idees: [], sondages: [], nouveautes: [] }; }
-      try { d.plumeau = await rpc("console_plumeau"); } catch (e) { d.plumeau = { comptes: [], erreur: e.message }; }
+      // Le Plumeau (projet à part) : comptes, idées, nouveautés, questions à Colette et coûts, ajoutés aux listes communes
+      try {
+        const p = await pont({ action: "tout" });
+        d.plumeau = { comptes: p.comptes || [] };
+        d.retour.idees = [...d.retour.idees, ...(p.idees || [])].sort((a, b) => t(b.cree) - t(a.cree));
+        d.retour.nouveautes = [...(d.retour.nouveautes || []), ...(p.nouveautes || [])].sort((a, b) => t(b.cree) - t(a.cree));
+        d.commis.questions = [...(d.commis.questions || []), ...(p.questions || [])].sort((a, b) => t(b.cree) - t(a.cree));
+        d.couts = [...(d.couts || []), ...(p.couts || [])];
+      } catch (e) { d.plumeau = { comptes: [], erreur: e.message }; }
       etat.d = d; etat.courriel = d.courriel || ""; etat.role = d.role || "lecture"; rendre();
     } catch (e) {
       if (e.code === 401) { await sb.auth.signOut(); montrerPorte("Votre session est terminée. Reconnectez-vous."); }
@@ -432,6 +458,11 @@
       const ok = await confirmer({ titre: "Retirer cette nouveauté ?", texte: "Les membres qui ne l'ont pas encore vue ne la verront pas.", bouton: "Retirer" });
       if (ok) agir({ action: "commis.nouveaute", geste: "retirer", id: b.dataset.nouveaute }, "Nouveauté retirée.");
       return;
+    }
+    if (b.dataset.plumeauCompte) {
+      const bloque = b.dataset.bloque === "1";
+      if (bloque && !confirm("Couper l'IA de ce compte? Colette ne lira plus ses liens et ne répondra plus à ses questions.")) return;
+      return agir({ action: "plumeau.bloquer", user_id: b.dataset.plumeauCompte, bloque }, bloque ? "IA coupée pour ce compte." : "IA rendue à ce compte.");
     }
     if (b.dataset.idee) {
       const i = ((d.retour || {}).idees || []).find((x) => x.id === b.dataset.idee); if (!i) return;
