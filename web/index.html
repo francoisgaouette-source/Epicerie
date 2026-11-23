@@ -100,8 +100,8 @@
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path class="bell-shape" d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.4 15.5a2.5 2.5 0 0 0 4.8 0Z"/></svg>
         <span class="bell-txt">Rappel pas activé</span>
       </button>
+      <button class="compte-btn" type="button" id="open-compte" aria-label="Mon compte" title="Mon compte"><span id="compte-ini">👤</span></button>
     </div>
-    <span class="who"><span id="who"></span> · <button class="link" id="open-membres" type="button">Membres</button> · <button class="link offrir-lien" id="open-offrir" type="button">🎁 Offrir un mois</button> · <button class="link" id="open-commis" type="button">Aide</button> · <button class="link" id="open-idee" type="button">💡 Une idée?</button> · <button class="link install-lien" type="button" data-installer hidden>📲 Installer l'app</button><span class="install-sep" data-installer hidden> · </span><button class="link muted" id="logout" type="button">Se déconnecter</button></span>
   </header>
 
   <section class="help idee" id="idee" hidden aria-labelledby="idee-title">
@@ -145,6 +145,31 @@
       <button class="btn line" type="button" data-canal="copie" id="offrir-copie">Copier le lien</button>
     </div>
     <p class="hint" id="offrir-lien"></p>
+  </section>
+
+  <section class="help compte" id="compte" hidden aria-labelledby="compte-title">
+    <div class="help-head">
+      <h2 id="compte-title">Mon compte</h2>
+      <button class="icon" type="button" id="close-compte" aria-label="Fermer">✕</button>
+    </div>
+    <div class="compte-tete">
+      <span class="compte-rond" id="compte-rond" aria-hidden="true">👤</span>
+      <div><b id="who"></b><span class="hint" id="compte-info"></span></div>
+    </div>
+    <div id="compte-forfait"></div>
+    <nav class="compte-menu" aria-label="Menu du compte">
+      <button type="button" id="open-membres"><span aria-hidden="true">👥</span> Membres du foyer<span class="cm-fin" id="compte-nmembres"></span></button>
+      <button type="button" id="open-offrir"><span aria-hidden="true">🎁</span> Offrir un mois<span class="cm-fin">pour un proche</span></button>
+      <button type="button" id="open-commis"><span aria-hidden="true">💬</span> Aide · demander à Rosalie</button>
+      <button type="button" id="open-idee"><span aria-hidden="true">💡</span> Une idée? Un pépin?</button>
+      <button type="button" data-installer hidden><span aria-hidden="true">📲</span> Installer l'app sur ce téléphone</button>
+      <button type="button" id="compte-mdp"><span aria-hidden="true">🔒</span> Changer mon mot de passe</button>
+    </nav>
+    <form class="compte-mdp" id="f-compte-mdp" hidden>
+      <label class="mf"><span>Nouveau mot de passe (6 caractères ou plus)</span><input id="in-compte-mdp" type="password" autocomplete="new-password" minlength="6" required></label>
+      <div class="row-actions"><button class="btn" type="submit">Enregistrer</button><button class="link muted" type="button" id="compte-mdp-annuler">Annuler</button></div>
+    </form>
+    <button class="btn ghost danger-txt compte-logout" id="logout" type="button">Se déconnecter</button>
   </section>
 
   <section class="help" id="membres" hidden aria-labelledby="membres-title">

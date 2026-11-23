@@ -940,7 +940,7 @@
   });
 
   // Menu sous le titre : l'élément dont le panneau est ouvert devient vert
-  const MENU = [["#open-membres", "#membres"], ["#open-offrir", "#offrir"], ["#open-commis", "#commis"], ["#open-idee", "#idee"], ["#open-rappel", "#rappel"]];
+  const MENU = [["#open-compte", "#compte"], ["#open-rappel", "#rappel"]];
   function majMenu() {
     MENU.forEach(([b, pan]) => { const btn = $(b), el = $(pan); if (btn && el) btn.setAttribute("aria-expanded", String(!el.hidden)); });
   }
@@ -1125,7 +1125,7 @@
   });
 
   // ---------- aide : guide complet
-  const fermerPanneaux = (sauf) => ["#help", "#membres", "#rappel", "#commis", "#offrir", "#idee"].forEach((id) => { if (id !== sauf) $(id).hidden = true; });
+  const fermerPanneaux = (sauf) => ["#help", "#membres", "#rappel", "#commis", "#offrir", "#idee", "#compte"].forEach((id) => { if (id !== sauf) $(id).hidden = true; });
   function showHelp(open) {
     $("#help").hidden = !open;
     if (open) { fermerPanneaux("#help"); $("#help").scrollIntoView({ block: "start", behavior: "smooth" }); }
@@ -2408,6 +2408,36 @@
         : `<p class="hint">Demandez à ${esc(prenom(nomProprio))}, propriétaire du foyer, d'acheter l'app.</p>`}</div>`;
   }
 
+  // ---------- Mon compte : le rond avec les initiales, en haut à droite (comme dans Fanion)
+  function initiales(nom) { return String(nom || "").split(/[\s-]+/).filter(Boolean).slice(0, 2).map((x) => x[0].toUpperCase()).join("") || "👤"; }
+  function majCompte() {
+    const me = moiMembre() || {}, ini = initiales(me.nom);
+    $("#compte-ini").textContent = ini; $("#compte-rond").textContent = ini;
+    $("#open-compte").title = "Mon compte" + (me.nom ? " · " + me.nom : "");
+    const tel = state.userPhone ? fmtTel(state.userPhone) : state.userEmail || "";
+    $("#compte-info").textContent = [tel, state.foyer && state.foyer.nom, estProprio() ? "propriétaire" : ""].filter(Boolean).join(" · ");
+    const n = state.membres.length; $("#compte-nmembres").textContent = n ? `${n} sur 4` : "";
+    const et = etatForfait(), proprio = estProprio();
+    $("#compte-forfait").innerHTML = et.type === "paye" ? `<p class="compte-forfait ok">Forfait actif${et.fondateur ? " · membre fondateur" : ` jusqu'au ${fmtDate(String(et.jusqua).slice(0, 10))}`}.${proprio && !et.fondateur ? ` <a class="link" href="${lienAchat()}" target="_blank" rel="noopener">Renouveler</a>` : ""}</p>`
+      : et.type === "essai" ? `<p class="compte-forfait">Essai gratuit : <b>${et.jours} jour${et.jours > 1 ? "s" : ""}</b> restant${et.jours > 1 ? "s" : ""}.${proprio ? ` <a class="btn small" href="${lienAchat()}" target="_blank" rel="noopener">Acheter · ${PRIX}</a>` : ""}</p>`
+      : et.type === "termine" ? `<p class="compte-forfait fini">L'essai est terminé.${proprio ? ` <a class="btn small" href="${lienAchat()}" target="_blank" rel="noopener">Acheter · ${PRIX}</a>` : ""}</p>` : "";
+  }
+  $("#open-compte").addEventListener("click", () => {
+    const ouvrir = $("#compte").hidden; fermerPanneaux(ouvrir ? "#compte" : null);
+    $("#compte").hidden = !ouvrir; $("#f-compte-mdp").hidden = true;
+    if (ouvrir) { majCompte(); $("#compte").scrollIntoView({ block: "start", behavior: "smooth" }); }
+  });
+  $("#close-compte").addEventListener("click", () => { $("#compte").hidden = true; });
+  $("#compte-mdp").addEventListener("click", () => { $("#f-compte-mdp").hidden = false; focusIfDesktop($("#in-compte-mdp")); });
+  $("#compte-mdp-annuler").addEventListener("click", () => { $("#f-compte-mdp").hidden = true; $("#in-compte-mdp").value = ""; });
+  $("#f-compte-mdp").addEventListener("submit", async (e) => {
+    e.preventDefault(); const pw = $("#in-compte-mdp").value;
+    if (pw.length < 6) { status("Le mot de passe doit avoir au moins 6 caractères."); return; }
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) { status("Le mot de passe n'a pas pu être changé : " + (error.message || "réessayez.")); return; }
+    $("#in-compte-mdp").value = ""; $("#f-compte-mdp").hidden = true; status("Mot de passe changé.");
+  });
+
   // ---------- Rosalie toujours présente : son visage dans le coin ouvre l'aide; elle salue à chaque arrivée
   let rosalie = null;
   function messageArrivee() {
@@ -2469,6 +2499,7 @@
     state.membres = membres;
     const me = membres.find(estMoi);
     $("#who").textContent = (me && me.nom) || (state.userPhone ? fmtTel(state.userPhone) : state.userEmail);
+    majCompte();
     $("#login").hidden = true; $("#app").hidden = false;
     state.userId = session.user.id;
     state.userCreated = session.user.created_at || null;

@@ -496,3 +496,24 @@ body:has(#ecran-sheet:not([hidden])) .cg-lanceur,body:has(.bienvenue:not([hidden
 .pnom-aide{margin:-4px 0 0}
 .facture-btn .facture-sous{font-weight:500;opacity:.85}
 @media (max-width:380px){.facture-btn .facture-sous{display:none}}
+/* Mon compte : rond avec les initiales en haut à droite (comme Fanion) */
+.title-row{width:100%}
+.compte-btn{margin-left:auto;flex:none;width:42px;height:42px;border-radius:50%;border:2px solid var(--accent);background:var(--surface);color:var(--accent);font:800 .95rem var(--f-body);letter-spacing:.02em;display:grid;place-items:center;cursor:pointer;padding:0}
+.compte-btn[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink)}
+.compte-btn:focus-visible{outline:3px solid var(--tag);outline-offset:2px}
+.compte-tete{display:flex;align-items:center;gap:12px;margin:4px 0 10px}
+.compte-tete b{display:block;font-size:1.1rem}
+.compte-rond{width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:800 1.15rem var(--f-body);flex:none}
+.compte-forfait{background:var(--soft);border-radius:12px;padding:10px 12px;margin:0 0 10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.compte-forfait.fini{background:#FBE6E3}
+.compte-menu{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:0 0 12px}
+.compte-menu button{appearance:none;display:flex;align-items:center;gap:10px;text-align:left;background:var(--surface);border:0;border-top:1px solid var(--line);padding:13px 14px;font:600 1rem var(--f-body);color:var(--ink);cursor:pointer;min-height:50px}
+.compte-menu button:first-child{border-top:0}
+.compte-menu button:hover,.compte-menu button:focus-visible{background:var(--soft)}
+.compte-menu .cm-fin{margin-left:auto;white-space:nowrap;font-weight:500;font-size:.85rem;color:var(--muted)}
+.compte-menu [hidden]{display:none}
+.compte-mdp{margin:0 0 12px}
+.compte-mdp .mf{display:block;flex:none}
+.compte-mdp .mf span{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+.compte-mdp input{width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
+.compte-logout{width:100%;color:var(--danger)}
