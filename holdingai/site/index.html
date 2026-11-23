@@ -48,9 +48,11 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;pa
 .mark{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:800;font-size:20px;text-decoration:none}
 .mark svg{width:34px;height:34px;flex:none}
 .mark b{font-weight:800}.mark i{font-style:normal;font-weight:500;color:var(--muted)}
-nav{display:flex;gap:22px;flex-wrap:wrap}
+nav{display:flex;gap:10px 22px;flex-wrap:wrap;align-items:center}
 nav a{text-decoration:none;color:var(--muted);font-weight:500}
 nav a:hover{color:var(--ink)}
+nav a.console{border:1px solid var(--line);border-radius:8px;padding:4px 11px;margin-block:-5px}
+nav a.console:hover{border-color:var(--ink)}
 
 /* Héros */
 .hero{padding-block:56px 72px;display:grid;grid-template-columns:1.25fr .75fr;gap:48px;align-items:end}
@@ -205,6 +207,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;display:flex;justify-
       <a href="#apps">Nos apps</a>
       <a href="#approche">Notre approche</a>
       <a href="#contact">Contact</a>
+      <a class="console" href="https://console.holdingai.app/">Console</a>
     </nav>
   </header>
 
@@ -354,7 +357,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;display:flex;justify-
 
   <footer>
     <span>© 2026 HoldingAI, une marque de Les Stratégies Vortex Inc.<br>310, rue Cabana, condo 3, Magog (Québec) J1X 2C3 · bonjour@holdingai.app</span>
-    <span><a href="confidentialite.html">Confidentialité</a> · <a href="https://fanion.ai/" target="_blank" rel="noopener">fanion.ai</a> · <a href="https://lecommis.ai/" target="_blank" rel="noopener">lecommis.ai</a> · <a href="https://leplumeau.ai/" target="_blank" rel="noopener">leplumeau.ai</a> · <a href="https://letiroir.ai/" target="_blank" rel="noopener">letiroir.ai</a> · <a href="https://legousset.ai/" target="_blank" rel="noopener">legousset.ai</a></span>
+    <span><a href="confidentialite.html">Confidentialité</a> · <a href="https://console.holdingai.app/">Console (accès réservé)</a> · <a href="https://fanion.ai/" target="_blank" rel="noopener">fanion.ai</a> · <a href="https://lecommis.ai/" target="_blank" rel="noopener">lecommis.ai</a> · <a href="https://leplumeau.ai/" target="_blank" rel="noopener">leplumeau.ai</a> · <a href="https://letiroir.ai/" target="_blank" rel="noopener">letiroir.ai</a> · <a href="https://legousset.ai/" target="_blank" rel="noopener">legousset.ai</a></span>
   </footer>
 </div>
 
