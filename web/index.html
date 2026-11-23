@@ -45,6 +45,10 @@
     <p class="hint" id="sms-intro">Entrez votre cellulaire. Vous recevrez un code par texto, puis vous choisirez votre mot de passe.</p>
     <label class="mf" for="in-sms-prenom" id="lbl-sms-prenom">Votre prénom</label>
     <input id="in-sms-prenom" autocomplete="given-name" placeholder="Prénom">
+    <details class="code-cadeau" id="code-cadeau"><summary>J'ai un code cadeau d'un proche</summary>
+      <label class="mf" for="in-code-cadeau">Code cadeau (6 caractères)</label>
+      <input id="in-code-cadeau" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ex. K7Q3MP">
+    </details>
     <label class="mf" for="in-tel2">Cellulaire</label>
     <input id="in-tel2" type="tel" inputmode="tel" autocomplete="tel" required placeholder="514 555-1234">
     <button class="btn" type="submit">Recevoir le code par texto</button>
@@ -443,6 +447,15 @@
 <div class="lightbox" id="lightbox" hidden><img id="lightbox-img" alt=""><button class="btn ghost" type="button" id="lightbox-close">Fermer</button></div>
 <div class="bienvenue" id="bienvenue" hidden role="dialog" aria-modal="true" aria-labelledby="bv-title"></div>
 <div class="bienvenue" id="ecran-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="ec-title"></div>
+<!-- Sur cellulaire, Le Commis s'utilise installé (comme Le Gousset) : cet écran bloque tant que l'app n'est pas sur l'écran d'accueil -->
+<div class="gate" id="install-gate" hidden role="dialog" aria-modal="true" aria-labelledby="gate-title">
+  <div class="gate-in">
+    <div class="gate-av" id="gate-av" aria-hidden="true"></div>
+    <h1 id="gate-title">Installez Le Commis sur votre téléphone</h1>
+    <p class="bv-lead">Le Commis s'utilise comme une vraie app : une icône sur votre écran d'accueil, en plein écran, et le rappel du soir peut vous joindre. Ça prend 10 secondes.</p>
+    <div id="gate-body"></div>
+  </div>
+</div>
 <input id="in-prod-photo" type="file" accept="image/*" capture="environment" hidden>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>

@@ -519,3 +519,20 @@ body:has(#ecran-sheet:not([hidden])) .cg-lanceur,body:has(.bienvenue:not([hidden
 .compte-logout{width:100%;color:var(--danger)}
 .lieu-global .lg-ajout{border-style:dashed;color:var(--accent);font-weight:700}
 .lieu-global .lg-ajout[aria-pressed="true"]{border-style:solid}
+/* Installation obligatoire sur cellulaire */
+.gate{position:fixed;inset:0;z-index:200;background:var(--bg);overflow:auto;padding:28px 18px calc(28px + env(safe-area-inset-bottom))}
+.gate[hidden]{display:none}
+.gate-in{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.gate-av{width:96px;height:96px;border-radius:50%;overflow:hidden;margin:0 auto;background:#F6E9C8}
+.gate-av svg{width:100%;height:100%;display:block}
+.gate h1{font-size:1.45rem;text-align:center;margin:0}
+.gate .bv-lead{text-align:center;margin:0}
+.gate .bv-steps{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px 14px 34px;margin:0;display:flex;flex-direction:column;gap:10px;line-height:1.45}
+.gate-btn{width:100%;min-height:52px;font-size:1.05rem}
+.gate-cadeau{background:#FFF6D6;border:1.5px solid #F2C230;border-radius:12px;padding:10px 12px;margin:0;color:#3a2f00}
+.gate-ok{font-size:1.3rem;font-weight:800;color:var(--accent);text-align:center;margin:8px 0 0}
+html.gate-on body{overflow:hidden}
+html.gate-on .cg-lanceur,html.gate-on .cg-fond{display:none!important}
+.code-cadeau{margin:2px 0 6px}
+.code-cadeau summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:.92rem;padding:6px 0}
+.code-cadeau input{text-transform:uppercase;letter-spacing:.12em}

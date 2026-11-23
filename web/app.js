@@ -1261,6 +1261,56 @@
   if (new URLSearchParams(location.search).has("installer")) setTimeout(montrerEcran, 600);
   majInstall();
 
+  // ---------- Installation obligatoire sur cellulaire (comme Le Gousset) ----------
+  // Sur téléphone ou tablette, tant que Le Commis n'est pas ouvert depuis son icône, un écran plein montre comment l'installer.
+  // Sur ordinateur, rien ne change.
+  const MOBILE = IOS || ANDROID || /Mobile/.test(UA);
+  function renderGate() {
+    const g = $("#install-gate"); if (!g || g.hidden) return;
+    if (window.CommisGuide) $("#gate-av").innerHTML = CommisGuide.avatar();
+    const code = refGet();
+    const cadeau = code ? `<p class="gate-cadeau">🎁 Votre code cadeau : <b>${esc(code)}</b>. ${IOS ? "Notez-le : entrez-le à l'inscription, dans l'app installée (« J'ai un code cadeau »)." : "Il vous suivra dans l'app."}</p>` : "";
+    if (promptInstall) {
+      $("#gate-body").innerHTML = `${cadeau}<button class="btn gate-btn" type="button" id="gate-installer">📲 Installer Le Commis</button>
+        <p class="hint">Ensuite, ouvrez Le Commis depuis sa nouvelle icône.</p>`;
+      $("#gate-installer").onclick = async () => {
+        const e = promptInstall; promptInstall = null;
+        try { await e.prompt(); const r = await e.userChoice; if (r && r.outcome === "accepted") { gateInstallee(); return; } } catch (err) {}
+        renderGate();
+      };
+      return;
+    }
+    let avant = "", etapes;
+    if (IOS && (DANS_APP || PAS_SAFARI)) {
+      avant = `<p class="ec-alerte">Sur iPhone, l'installation se fait seulement dans <b>Safari</b>. Cette page est ouverte dans une autre app.</p>`;
+      etapes = `<li>Touchez <b>Copier le lien</b> ci-dessous.</li><li>Ouvrez <b>Safari</b> et collez le lien dans la barre d'adresse.</li><li>Suivez ensuite les 3 étapes qui s'afficheront.</li>`;
+    } else if (IOS) {
+      etapes = `<li>Touchez le bouton <b>Partager</b> ${PARTAGE_SVG} en bas de l'écran (ou <b>⋯</b> puis <b>Partager</b>).</li><li>Descendez et choisissez <b>Sur l'écran d'accueil</b>.</li><li>Touchez <b>Ajouter</b>, puis ouvrez Le Commis depuis sa nouvelle icône.</li>`;
+    } else if (DANS_APP) {
+      avant = `<p class="ec-alerte">Cette page est ouverte dans une autre app. Ouvrez-la dans <b>Chrome</b> pour l'installer.</p>`;
+      etapes = `<li>Touchez le menu <b>⋮</b> en haut à droite.</li><li>Choisissez <b>Ouvrir dans Chrome</b> (ou <b>Ouvrir dans le navigateur</b>).</li><li>Touchez ensuite <b>Installer Le Commis</b>.</li>`;
+    } else if (/SamsungBrowser/.test(UA)) {
+      etapes = `<li>Touchez le menu <b>≡</b> en bas à droite.</li><li>Choisissez <b>Ajouter page à</b> puis <b>Écran d'accueil</b>.</li><li>Touchez <b>Ajouter</b>, puis ouvrez Le Commis depuis sa nouvelle icône.</li>`;
+    } else {
+      etapes = `<li>Touchez le menu <b>⋮</b> en haut à droite du navigateur.</li><li>Choisissez <b>Installer l'application</b> (ou <b>Ajouter à l'écran d'accueil</b>).</li><li>Confirmez, puis ouvrez Le Commis depuis sa nouvelle icône.</li>`;
+    }
+    const copier = IOS && (DANS_APP || PAS_SAFARI);
+    $("#gate-body").innerHTML = `${cadeau}${avant}<ol class="bv-steps">${etapes}</ol>
+      ${copier ? `<button class="btn gate-btn" type="button" id="gate-copier">Copier le lien</button>` : ""}
+      ${IOS ? `<p class="hint">Dans l'app installée, connectez-vous avec votre cellulaire et votre mot de passe.</p>` : ""}`;
+    const c = $("#gate-copier");
+    if (c) c.onclick = async () => { const l = APP_URL + (code ? "?ref=" + code : ""); try { await navigator.clipboard.writeText(l); c.textContent = "Lien copié ✓"; } catch (err) { c.textContent = l; } };
+  }
+  function gateInstallee() {
+    $("#gate-body").innerHTML = `<p class="gate-ok">✓ C'est installé!</p><p>Fermez cette page et ouvrez <b>Le Commis</b> depuis sa nouvelle icône sur votre écran d'accueil.</p>`;
+  }
+  if (MOBILE && !installee()) {
+    $("#install-gate").hidden = false; document.documentElement.classList.add("gate-on");
+    setTimeout(renderGate, 0); // après le reste du script (code cadeau lu plus bas)
+    window.addEventListener("beforeinstallprompt", () => setTimeout(renderGate, 0));
+    window.addEventListener("appinstalled", gateInstallee);
+  }
+
 
   // ---------- Bien démarrer : les étapes, avec la prochaine en évidence
   function etapesDemarrer() {
@@ -2269,6 +2319,7 @@
       : "Vous recevrez un code par texto, puis vous choisirez votre mot de passe. Invité par quelqu'un? Entrez le cellulaire qu'il a inscrit.";
     const creer = mode !== "oubli";
     $("#in-sms-prenom").hidden = $("#lbl-sms-prenom").hidden = !creer;
+    $("#code-cadeau").hidden = !creer; if (refGet()) { $("#in-code-cadeau").value = refGet(); $("#code-cadeau").open = true; }
     $("#in-sms-prenom").required = creer;
     $("#sms-retour").textContent = creer ? "J'ai déjà un compte" : "Retour";
     if ($("#in-tel").value.trim()) $("#in-tel2").value = $("#in-tel").value.trim();
@@ -2320,6 +2371,8 @@
       const p = $("#in-sms-prenom").value.trim();
       if (!p) { loginStatus("Entrez votre prénom."); return; }
       ssSet("prenom", p);
+      const cc = ($("#in-code-cadeau").value || "").trim().toUpperCase();
+      if (cc) { if (!/^[A-Z0-9]{6}$/.test(cc)) { loginStatus("Le code cadeau a 6 lettres ou chiffres."); return; } refSet(cc); }
     }
     if (!pendingTel) { loginStatus("Entrez votre cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
     loginStatus("Envoi du code par texto…");
