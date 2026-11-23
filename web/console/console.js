@@ -448,13 +448,17 @@
       }), "Aucun geste pour l'instant."));
   }
 
-  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["plumeau", "Le Plumeau"], ["tiroir", "Le Tiroir"], ["gousset", "Le Gousset"], ["couts", "Coûts IA"], ["journal", "Journal"]];
+  // Menu sur deux rangées : les fonctions en haut, les apps en dessous
+  const FONCTIONS = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["couts", "Coûts IA"], ["journal", "Journal"]];
+  const APPS = [["commis", "Le Commis"], ["fanion", "Fanion"], ["plumeau", "Le Plumeau"], ["tiroir", "Le Tiroir"], ["gousset", "Le Gousset"]];
   function rendre() {
     const d = etat.d; if (!d) return;
     const n = aTraiter(d).n;
-    const vues = etat.role === "proprio" ? [...VUES, ["acces", "Accès"]] : VUES;
-    if (!vues.some(([k]) => k === etat.vue)) etat.vue = "traiter";
-    $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${nomApp[k] && k !== "console" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
+    const fonctions = etat.role === "proprio" ? [...FONCTIONS, ["acces", "Accès"]] : FONCTIONS;
+    if (![...fonctions, ...APPS].some(([k]) => k === etat.vue)) etat.vue = "traiter";
+    const bouton = (cls) => ([k, mot]) => `<button class="${cls}" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${cls === "app" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`;
+    $("#onglets").innerHTML = `<div class="rangee fonctions" role="group" aria-label="Fonctions">${fonctions.map(bouton("onglet")).join("")}</div>` +
+      `<div class="rangee apps" role="group" aria-label="Apps">${APPS.map(bouton("app")).join("")}</div>`;
     $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
     if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute").forEach((b) => b.remove());

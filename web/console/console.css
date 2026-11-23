@@ -48,10 +48,16 @@ button, input { font: inherit; color: inherit; }
 /* Barre et onglets */
 .barre { background: var(--feuille); border-bottom: 1px solid var(--ligne); position: sticky; top: 0; z-index: 5; padding-top: env(safe-area-inset-top, 0px); }
 .barre-in, .onglets, .page, .pied { max-width: 980px; margin: 0 auto; padding-inline: max(18px, env(safe-area-inset-left, 0px)); }
-.barre-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px 4px; }
+.barre-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 14px; padding-block: 12px 4px; }
 .barre-actions { display: flex; gap: 14px; white-space: nowrap; }
-.onglets { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
-.onglets::-webkit-scrollbar { display: none; }
+.onglets { display: block; }
+.rangee { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.rangee::-webkit-scrollbar { display: none; }
+/* Deuxième rangée : une puce par app, sur une bande à part */
+.rangee.apps { gap: 8px; padding-block: 9px 10px; border-top: 1px solid var(--ligne); }
+.app { appearance: none; border: 1.5px solid var(--ligne); background: transparent; border-radius: 99px; padding: 5px 13px 5px 11px; font-weight: 600; font-size: 14.5px; color: var(--gris); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
+.app:hover { color: var(--encre); border-color: var(--gris); }
+.app[aria-current="page"] { color: var(--feuille); background: var(--encre); border-color: var(--encre); }
 .onglet { appearance: none; border: 0; background: none; padding: 11px 12px 12px; font-weight: 650; font-size: 15.5px; color: var(--gris); border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
 .onglet[aria-current="page"] { color: var(--encre); border-bottom-color: var(--encre); }
 .pastille { width: 9px; height: 9px; border-radius: 50%; flex: none; }
