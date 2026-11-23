@@ -910,6 +910,15 @@
     }
   });
 
+  // Menu sous le titre : l'élément dont le panneau est ouvert devient vert
+  const MENU = [["#open-membres", "#membres"], ["#open-offrir", "#offrir"], ["#open-commis", "#commis"], ["#open-idee", "#idee"], ["#open-rappel", "#rappel"]];
+  function majMenu() {
+    MENU.forEach(([b, pan]) => { const btn = $(b), el = $(pan); if (btn && el) btn.setAttribute("aria-expanded", String(!el.hidden)); });
+  }
+  const obsMenu = new MutationObserver(majMenu);
+  MENU.forEach(([, pan]) => { const el = $(pan); if (el) obsMenu.observe(el, { attributes: true, attributeFilter: ["hidden"] }); });
+  majMenu();
+
   // ---------- data
   const TABLES = { epicerie: "liste", speciaux: "spec", produits: "prod", espaces: "espaces", panier: "panier", listes: "listes", lieux: "lieux", inventaire: "inv", economies: "eco" };
   async function load(table) {
