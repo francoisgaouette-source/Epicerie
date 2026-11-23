@@ -487,3 +487,12 @@ body:has(#ecran-sheet:not([hidden])) .cg-lanceur,body:has(.bienvenue:not([hidden
 /* Menu sous le titre : élément actif en vert */
 .who .link{border-radius:999px;padding:3px 9px;margin:0 -4px;transition:background .15s,color .15s}
 .who .link[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink);text-decoration:none}
+/* Produits : un seul champ pour chercher ou ajouter */
+#f-prod{flex-wrap:nowrap}
+#f-prod #in-pnom{flex:1 1 auto;min-width:0}
+.ajout-rapide{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:-2px 0 4px}
+.ajout-rapide .btn{flex:1 1 auto}
+.ajout-rapide .hint{width:100%;margin:0}
+.pnom-aide{margin:-4px 0 0}
+.facture-btn .facture-sous{font-weight:500;opacity:.85}
+@media (max-width:380px){.facture-btn .facture-sous{display:none}}

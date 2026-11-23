@@ -9,6 +9,37 @@
   const DEFAULT_STORES = ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const CATS = ["Fruits et légumes", "Viandes et poissons", "Produits laitiers et œufs", "Boulangerie", "Épicerie sèche",
     "Surgelés", "Boissons", "Collations", "Hygiène et beauté", "Entretien ménager", "Autre"];
+  // Ajout simple : « lait 2 % 2 L » → nom « Lait 2 % », format « 2 L » ; la catégorie est devinée d'après le nom
+  function separerFormat(txt) {
+    const t = String(txt || "").trim().replace(/\s+/g, " ");
+    const m = t.match(/\s((?:\d+\s*[x×]\s*)?\d+(?:[.,]\d+)?\s*(?:kg|g|mg|ml|cl|l|lb|lbs|oz|un|unités?|pqt|sacs?|boîtes?|douz(?:aine)?s?))$/i);
+    const nom = (m ? t.slice(0, m.index) : t).trim();
+    return { nom: nom ? nom.charAt(0).toUpperCase() + nom.slice(1) : "", format: m ? m[1].replace(/\s*([x×])\s*/i, " x ").replace(/(\d)\s*(?=[a-zA-Zé])/, "$1 ") : "" };
+  }
+  const MOTS_CAT = [
+    ["Fruits et légumes", "pomme banane orange citron lime fraise framboise bleuet raisin melon ananas mangue avocat poire peche prune kiwi tomate laitue salade epinard chou brocoli carotte celeri concombre courgette poivron oignon ail patate champignon persil coriandre basilic fruit legume radis betterave courge asperge haricot"],
+    ["Viandes et poissons", "poulet boeuf porc veau agneau dinde jambon bacon saucisse steak viande hache filet poisson saumon thon crevette morue tilapia truite pepperoni salami charcuterie cotelette"],
+    ["Produits laitiers et œufs", "lait creme beurre fromage yogourt yaourt oeuf oeufs cheddar mozzarella parmesan feta cottage kefir margarine"],
+    ["Boulangerie", "pain baguette bagel croissant muffin tortilla pita brioche gateau tarte biscuit naan"],
+    ["Surgelés", "surgele surgeles congele congeles glace frites"],
+    ["Boissons", "jus eau the biere vin boisson soda kombucha"],
+    ["Collations", "chips croustilles craquelin craquelins chocolat bonbon bonbons noix amande amandes arachides popcorn barre barres granola"],
+    ["Hygiène et beauté", "savon shampoing shampooing dentifrice brosse deodorant mouchoir mouchoirs rasoir lotion couche couches papier-hygienique"],
+    ["Entretien ménager", "detergent lessive javel nettoyant essuie-tout poubelle eponge vaisselle assouplissant aluminium pellicule"],
+    ["Épicerie sèche", "pates pate riz farine sucre sel poivre huile vinaigre cereale cereales gruau conserve soupe sauce ketchup moutarde mayonnaise epice epices levure miel confiture lentilles pois quinoa bouillon cafe spaghetti macaroni"],
+  ];
+  // Expressions qui l'emportent sur les mots seuls (« beurre d'arachide » n'est pas un produit laitier)
+  const EXPR_CAT = [["beurre d'arachide", "Épicerie sèche"], ["papier hygienique", "Hygiène et beauté"], ["creme glacee", "Surgelés"], ["lait d'amande", "Boissons"], ["lait d'avoine", "Boissons"], ["creme solaire", "Hygiène et beauté"], ["sac a poubelle", "Entretien ménager"], ["sacs a poubelle", "Entretien ménager"], ["pomme de terre", "Fruits et légumes"], ["pommes de terre", "Fruits et légumes"], ["fruits de mer", "Viandes et poissons"], ["pizza", "Surgelés"]];
+  function devinerCategorie(nom) {
+    const n = " " + String(nom || "").toLowerCase().replace(/œ/g, "oe").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z' -]/g, " ").replace(/\s+/g, " ") + " ";
+    for (const [e, cat] of EXPR_CAT) if (n.includes(" " + e)) return cat;
+    // Le premier mot reconnu l'emporte : « sauce tomate » → épicerie, « tomates cerises » → légumes
+    for (const w of n.trim().split(" ")) {
+      const formes = [w, w.replace(/s$/, ""), w.replace(/x$/, "")];
+      for (const [cat, mots] of MOTS_CAT) if (formes.some((f) => f.length > 1 && (" " + mots + " ").includes(" " + f + " "))) return cat;
+    }
+    return "Autre";
+  }
   const state = { liste: [], listes: [], lieux: [], inv: [], spec: [], prod: [], espaces: [], panier: [], eco: [], config: null, membres: [], email: null };
   let openProd = null, search = "", channel = null, filtre = "tous";
   let editListe = null, brouillonListe = null; // article de la liste en cours de correction
@@ -127,8 +158,6 @@
   }
   document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => showView(t.dataset.view)));
   showView(view);
-  $("#in-pcat").innerHTML = CATS.map((c) => `<option>${c}</option>`).join("");
-  $("#in-pcat").value = "Autre";
 
   // ---------- render
   // ---------- plusieurs listes
@@ -229,7 +258,7 @@
         <li><b>Je vous montre ici</b> les rabais sur vos produits ★${surv.some((p) => p.prix_cible != null) ? ", sous votre prix cible quand vous en avez mis un" : ""}.</li>
       </ol>
       <p class="surv-etat">${c && c.derniere_verif ? `Dernière vérification : <b>${fmtDate(c.derniere_verif)}</b>${c.semaine ? ` (circulaires ${esc(c.semaine)})` : ""}.${c.resume ? ` ${esc(c.resume.split(".")[0])}.` : ""}` : "Première vérification à venir."} Prochaine : <b>jeudi ${fmtDate(jeudi)}</b>, en matinée.</p>
-      <p class="hint">Vos prix changent aussi quand vous approuvez une facture (onglet Lieu) ou quand vous les tapez dans la fiche d'un produit.</p>`;
+      <p class="hint">Vos prix changent aussi quand vous approuvez une facture (onglet Produits) ou quand vous les tapez dans la fiche d'un produit.</p>`;
     $("#list-spec").innerHTML = spec.length ? `${spec.length > 1 ? `<div class="sp-tous"><button class="btn" type="button" data-spshare="tous">📤 Partager les ${spec.length} spéciaux de la semaine</button><span class="hint">Vos proches profitent des rabais, et reçoivent 60 jours gratuits avec votre lien.</span></div>` : ""}<div class="deals">${spec.map((s) => {
       const inList = state.liste.some((i) => !i.fait && norm(i.nom) === norm(s.item));
       const pr = num(s.prix), rg = num(s.prix_reg);
@@ -466,7 +495,7 @@
     const ceMois = annee.filter((e) => String(e.date_achat || "").startsWith(mois));
     if (!state.eco.length) {
       box.innerHTML = `<div class="eco vide"><div class="eco-titre">Économies réalisées</div>
-        <p class="hint">Lisez vos factures dans l'onglet Lieu : chaque article payé sous son prix régulier est noté ici, avec ce que vous avez économisé.</p></div>`;
+        <p class="hint">Lisez vos factures dans l'onglet Produits : chaque article payé sous son prix régulier est noté ici, avec ce que vous avez économisé.</p></div>`;
       return;
     }
     const recentes = [...state.eco].sort((a, b) => String(b.date_achat).localeCompare(String(a.date_achat)) || String(b.cree || "").localeCompare(String(a.cree || ""))).slice(0, 5);
@@ -547,7 +576,7 @@
         marque: a.marque, format: a.format, categorie: a.categorie, quantite: a.quantite, prix_unitaire: a.prix_unitaire, prix_total: a.prix_total,
         espace_id: a.espace_id, peremption: a.peremption, confiance: a.confiance, photo: paths[0] }));
       if (await run(sb.from("panier").insert(rows), `${rows.length} article${rows.length > 1 ? "s" : ""} lu${rows.length > 1 ? "s" : ""} sur la facture${data.magasin ? " de " + data.magasin : ""}. Approuvez-les ci-dessous.`)) {
-        await load("panier"); showView("maison"); render();
+        await load("panier"); showView("produits"); render();
         $("#panier").scrollIntoView({ block: "start", behavior: "smooth" });
       }
     } catch (err) {
@@ -898,7 +927,7 @@
     const a = e.target.closest("[data-lieuajout]");
     if (a) {
       const p = state.prod.find((x) => x.id === a.dataset.lieuajout); if (!p) return;
-      await ajouterAuLieu(p); search = ""; $("#in-search").value = ""; openProd = p.id; render();
+      await ajouterAuLieu(p); search = ""; $("#in-pnom").value = ""; majAjoutRapide(); openProd = p.id; render();
       status(`« ${p.nom} » est maintenant aussi à « ${nomLieu()} ».`); return;
     }
     const r = e.target.closest("[data-retirerlieu]");
@@ -1608,7 +1637,7 @@
     else if (k === "bilan") ouvrirBilan();
     else if (k === "offrir") ouvrirOffrir("rosalie");
     else if (k === "idee") ouvrirIdee();
-    else if (k === "facture") { showView("maison"); $("#in-facture").click(); }
+    else if (k === "facture") { showView("produits"); $("#in-facture").click(); }
     else if (k === "ecran") montrerEcran();
     else if (k === "guide") showHelp(true);
   }
@@ -1826,16 +1855,17 @@
     majCatBtn();
   }
   function majCatBtn() {
+    majAjoutRapide();
     if (!catPhoto) return;
     const nom = $("#in-pnom").value.trim(), b = $("#ppending-add");
     b.disabled = catPhoto.busy || !nom;
     b.textContent = catPhoto.busy ? "Identification…" : nom ? `Ajouter « ${nom} » aux produits` : "Écrivez le nom ci-dessus";
   }
-  $("#in-pnom").addEventListener("input", majCatBtn);
-  $("#ppending-add").addEventListener("click", () => $("#f-prod").requestSubmit());
+  $("#in-pnom").addEventListener("input", (e) => { search = separerFormat(e.target.value).nom || e.target.value; renderProducts(); majCatBtn(); });
+  $("#ppending-add").addEventListener("click", () => ajouterProduit(false));
   $("#ppending-cancel").addEventListener("click", () => {
     if (catPhoto && catPhoto.path) sb.storage.from("photos").remove([catPhoto.path]);
-    if (catPhoto && catPhoto.ident && $("#in-pnom").value.trim() === catPhoto.ident.nom) { $("#in-pnom").value = ""; $("#in-pformat").value = ""; }
+    if (catPhoto && catPhoto.ident && separerFormat($("#in-pnom").value).nom === catPhoto.ident.nom) { $("#in-pnom").value = ""; search = ""; }
     showCatPhoto(null);
   });
   $("#in-pphoto").addEventListener("change", async (e) => {
@@ -1853,9 +1883,7 @@
       if (catPhoto !== mine) return;
       const ok = ident && !ident.erreur && ident.nom;
       if (ok) {
-        if (!$("#in-pnom").value.trim()) $("#in-pnom").value = ident.nom;
-        if (!$("#in-pformat").value.trim() && ident.format) $("#in-pformat").value = ident.format;
-        if (ident.categorie && CATS.includes(ident.categorie)) $("#in-pcat").value = ident.categorie;
+        if (!$("#in-pnom").value.trim()) $("#in-pnom").value = ident.nom + (ident.format ? " " + ident.format : "");
       }
       showCatPhoto({ preview, path, ident: ok ? ident : null, busy: false,
         erreur: ident && ident.erreur ? "L'identification n'a pas fonctionné. Écrivez le nom; la photo y sera jointe." : "" });
@@ -1867,29 +1895,54 @@
     }
   });
 
-  $("#f-prod").addEventListener("submit", async (e) => {
-    e.preventDefault(); const nom = $("#in-pnom").value.trim(); if (!nom) return;
+  function viderAjout() { $("#in-pnom").value = ""; search = ""; showCatPhoto(null); renderProducts(); majAjoutRapide(); }
+  // Sous le champ : « ＋ Ajouter » quand le produit n'existe pas encore ici
+  function majAjoutRapide() {
+    const box = $("#ajout-rapide"); if (!box) return;
+    const brut = $("#in-pnom").value.trim(), { nom, format } = separerFormat(brut);
+    const ici = nom && prodLieu().find((p) => norm(p.nom) === norm(nom));
+    $("#pnom-aide").hidden = !!brut;
+    if (!nom || ici) { box.hidden = true; box.innerHTML = ""; return; }
+    const id = catPhoto && catPhoto.ident && norm(catPhoto.ident.nom) === norm(nom) ? catPhoto.ident : null;
+    const cat = id && CATS.includes(id.categorie) ? id.categorie : devinerCategorie(nom);
+    box.hidden = false;
+    box.innerHTML = `<button class="btn" type="button" data-ajoutrapide="">＋ Ajouter « ${esc(nom)} »</button>
+      <button class="btn ghost" type="button" data-ajoutrapide="liste">＋ Ajouter et 🛒</button>
+      <p class="hint">${format || (id && id.format) ? `Format : <b>${esc(format || id.format)}</b> · ` : ""}Catégorie : <b>${esc(cat)}</b></p>`;
+  }
+  async function ajouterProduit(versListe) {
+    const brut = $("#in-pnom").value.trim(); if (!brut) return;
     if (catPhoto && catPhoto.busy) { status("Un instant, la photo est en cours d'envoi."); return; }
-    const format = $("#in-pformat").value.trim(), categorie = $("#in-pcat").value;
+    const { nom, format } = separerFormat(brut); if (!nom) return;
     const ph = catPhoto && catPhoto.path, id = (catPhoto && catPhoto.ident) || {};
+    const memeId = id.nom && norm(id.nom) === norm(nom);
     const existant = state.prod.find((p) => norm(p.nom) === norm(nom));
-    if (existant && !dansLieu(existant)) {
-      await ajouterAuLieu(existant); if (ph && !existant.photo) await run(sb.from("produits").update({ photo: ph }).eq("id", existant.id));
-      status(`« ${existant.nom} » ajouté aux produits de « ${nomLieu()} ». Il reste aussi à « ${(existant.lieux || []).filter((x) => x !== idLieu()).map((x) => nomLieu(x)).join(", ")} ».`);
-      showCatPhoto(null); $("#in-pnom").value = ""; $("#in-pformat").value = ""; scheduleReload("produits"); render(); return;
-    }
+    const versLaListe = async (p) => {
+      if (!versListe || !p || dansListeLieu(p)) return "";
+      const l = listeDe(p);
+      if (await run(sb.from("epicerie").insert({ nom: p.nom, liste_id: l }))) { scheduleReload("epicerie"); return ` et à « ${nomListe(l)} »`; }
+      return "";
+    };
     if (existant) {
-      if (ph && !existant.photo) {
-        if (await run(sb.from("produits").update({ photo: ph }).eq("id", existant.id), `« ${nom} » était déjà dans vos produits : photo ajoutée.`)) scheduleReload("produits");
-      } else status(`« ${nom} » est déjà dans vos produits.`);
-      showCatPhoto(null); $("#in-pnom").value = ""; $("#in-pformat").value = ""; return;
+      const ailleurs = !dansLieu(existant);
+      if (ailleurs) await ajouterAuLieu(existant);
+      if (ph && !existant.photo) await run(sb.from("produits").update({ photo: ph }).eq("id", existant.id));
+      const l = await versLaListe(existant);
+      status(ailleurs ? `« ${existant.nom} » ajouté aux produits de « ${nomLieu()} »${l}.` : l ? `« ${existant.nom} » ajouté${l.replace(" et", "")}.` : `« ${existant.nom} » est déjà dans vos produits.`);
+      viderAjout(); scheduleReload("produits"); render(); return;
     }
-    const row = { nom, format, categorie, lieux: [idLieu()].filter(Boolean) };
-    if (ph) { row.photo = ph; if (id.marque && norm(id.nom) === norm(nom)) row.marque = id.marque; }
-    $("#in-pnom").value = ""; $("#in-pformat").value = ""; $("#in-pcat").value = "Autre"; showCatPhoto(null); focusIfDesktop($("#in-pnom"));
-    if (await run(sb.from("produits").insert(row), `« ${nom} » ajouté à vos produits.`)) scheduleReload("produits");
-  });
-  $("#in-search").addEventListener("input", (e) => { search = e.target.value; renderProducts(); });
+    const row = { nom, format: format || (memeId && id.format) || "", categorie: memeId && CATS.includes(id.categorie) ? id.categorie : devinerCategorie(nom), lieux: [idLieu()].filter(Boolean) };
+    if (ph) { row.photo = ph; if (id.marque && memeId) row.marque = id.marque; }
+    viderAjout(); focusIfDesktop($("#in-pnom"));
+    const { data, error } = await sb.from("produits").insert(row).select("*").single();
+    if (error) { console.error(error); status("Le produit n'a pas pu être ajouté. Vérifiez votre connexion et réessayez."); return; }
+    if (data) { state.prod.push(data); render(); }
+    const l = await versLaListe(data || row);
+    status(`« ${nom} » ajouté à vos produits${l} · ${row.categorie}. Touchez-le pour changer la catégorie ou le format.`);
+    scheduleReload("produits");
+  }
+  $("#f-prod").addEventListener("submit", (e) => { e.preventDefault(); ajouterProduit(false); });
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-ajoutrapide]"); if (b) ajouterProduit(b.dataset.ajoutrapide === "liste"); });
 
   document.addEventListener("change", async (e) => {
     const c = e.target.closest("#app .check");
@@ -2363,7 +2416,7 @@
     const exp = bientot().length, spec = state.spec.filter((s) => !s.ignore).length;
     const aAcheter = state.liste.filter((i) => !i.fait).length, panier = state.panier.length;
     let texte, bouton = null, action = null;
-    if (panier) { texte = `${panier} article${panier > 1 ? "s" : ""} de votre facture attend${panier > 1 ? "ent" : ""} d'être approuvé${panier > 1 ? "s" : ""}.`; bouton = "Voir le panier"; action = () => showView("maison"); }
+    if (panier) { texte = `${panier} article${panier > 1 ? "s" : ""} de votre facture attend${panier > 1 ? "ent" : ""} d'être approuvé${panier > 1 ? "s" : ""}.`; bouton = "Voir le panier"; action = () => showView("produits"); }
     else if (exp) { texte = `${exp} produit${exp > 1 ? "s" : ""} va${exp > 1 ? "nt" : ""} passer date d'ici 3 jours. On les mange en premier?`; bouton = "Voir lesquels"; action = () => showView("maison"); }
     else if (spec) { texte = `${spec} spécia${spec > 1 ? "ux" : "l"} sur vos produits cette semaine.`; bouton = "Voir les spéciaux"; action = () => showView("speciaux"); }
     else if (aAcheter) { texte = `${aAcheter} article${aAcheter > 1 ? "s" : ""} sur la liste d'épicerie.`; bouton = "Voir la liste"; action = () => showView("liste"); }
