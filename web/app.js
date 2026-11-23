@@ -391,17 +391,24 @@
   function renderLieuGlobal() {
     const box = $("#lieu-global"); if (!box) return;
     const ls = lieuxTries(), act = idLieu();
-    if (ls.length < 2) { box.hidden = true; box.innerHTML = ""; return; }
+    if (!ls.length) { box.hidden = true; box.innerHTML = ""; return; }
     box.hidden = false;
-    box.innerHTML = `<span class="lg-titre" aria-hidden="true">📍</span>${ls.map((l) => `<button class="fchip" type="button" data-lieu="${l.id}" aria-pressed="${l.id === act}">${esc(l.nom)}</button>`).join("")}`;
+    box.innerHTML = `<span class="lg-titre" aria-hidden="true">📍</span>${ls.map((l) => `<button class="fchip" type="button" data-lieu="${l.id}" aria-pressed="${ls.length > 1 && l.id === act}">${esc(l.nom)}</button>`).join("")}<button class="fchip lg-ajout" type="button" data-lieu-new aria-label="Ajouter un lieu" aria-pressed="${lieuEnEdition}">＋ Lieu</button>`;
     const t = $("#stores-titre"); if (t) t.textContent = `Épiceries à vérifier à « ${nomLieu()} »`;
   }
-  $("#lieu-global").addEventListener("click", (e) => { const c = e.target.closest("[data-lieu]"); if (c) choisirLieu(c.dataset.lieu); });
+  $("#lieu-global").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-lieu]"); if (c) return choisirLieu(c.dataset.lieu);
+    if (e.target.closest("[data-lieu-new]")) {
+      lieuEnEdition = !lieuEnEdition;
+      if (lieuEnEdition) showView("maison");
+      render();
+      if (lieuEnEdition) setTimeout(() => { const i = $("#in-nouveau-lieu"); i.focus(); i.scrollIntoView({ block: "center", behavior: "smooth" }); }, 50);
+    }
+  });
   function renderLieux() {
     const act = idLieu(), ls = lieuxTries();
     $("#tab-lieu-nom").textContent = "Lieu";
-    $("#lieux-bar").innerHTML = (ls.length > 1 ? [] : ls).map((l) => `<button class="fchip" type="button" data-lieu="${l.id}" aria-pressed="${l.id === act}">${esc(l.nom)}</button>`).join("")
-      + `<button class="fchip" type="button" data-lieu-new aria-label="Nouveau lieu">＋ Lieu</button>`;
+    $("#lieux-bar").innerHTML = ""; $("#lieux-bar").hidden = true; // le choix du lieu et « ＋ Lieu » sont dans la barre 📍 en haut
     $("#f-nouveau-lieu").hidden = !lieuEnEdition;
     const a2 = document.activeElement;
     if (a2 && a2.closest && a2.closest("#list-lieux")) return;

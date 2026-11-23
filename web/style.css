@@ -458,7 +458,7 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
   .onb-list li.next .main{flex:1 1 calc(100% - 32px)}
   .onb-list li.next .btn{margin-left:32px}
 }
-@media (max-width:350px){ .bell .bell-txt{display:none} .bell{padding:6px 8px} }
+@media (max-width:440px){ .bell .bell-txt{display:none} .bell{padding:6px 8px} }
 /* Installer l'app */
 .install-lien{font-weight:700}
 .login-installer{width:100%;margin-top:12px}
@@ -517,3 +517,5 @@ body:has(#ecran-sheet:not([hidden])) .cg-lanceur,body:has(.bienvenue:not([hidden
 .compte-mdp .mf span{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
 .compte-mdp input{width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
 .compte-logout{width:100%;color:var(--danger)}
+.lieu-global .lg-ajout{border-style:dashed;color:var(--accent);font-weight:700}
+.lieu-global .lg-ajout[aria-pressed="true"]{border-style:solid}
