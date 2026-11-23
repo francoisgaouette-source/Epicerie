@@ -1,0 +1,2 @@
+-- Notes : déjà appliqué. Projet du Commis : console_suis_admin() et console_noter(app, action, cible, detail).
+-- Projets du Tiroir et du Gousset : console_donnees() (réservée à service_role), lue par la fonction console-pont.

@@ -3,14 +3,14 @@
 :root {
   --papier: #EDF0F4; --feuille: #FFFFFF; --encre: #18212E; --gris: #5A6675; --ligne: #D5DBE3;
   --tampon: #2447C8; --tampon-pale: #E4EAFB; --refus: #B5332A; --refus-pale: #F8E5E3; --attente: #8A6200; --attente-pale: #FBF0D2;
-  --commis: #1F5B3A; --fanion: #C98A00; --plumeau: #5B2A86;
+  --commis: #1F5B3A; --fanion: #C98A00; --plumeau: #5B2A86; --tiroir: #B4532A; --gousset: #B23A6E;
   --f: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --papier: #10161F; --feuille: #18212E; --encre: #E8EDF4; --gris: #9AA7B8; --ligne: #2B3747;
     --tampon: #8FADFF; --tampon-pale: #1D2B52; --refus: #FF8E84; --refus-pale: #3E1E1B; --attente: #F0C155; --attente-pale: #3A2E10;
-    --commis: #6CC495; --fanion: #F0BB2A; --plumeau: #C9A6EC; color-scheme: dark;
+    --commis: #6CC495; --fanion: #F0BB2A; --plumeau: #C9A6EC; --tiroir: #E89A75; --gousset: #EE8FB8; color-scheme: dark;
   }
 }
 * { box-sizing: border-box; }
@@ -58,6 +58,8 @@ button, input { font: inherit; color: inherit; }
 .pastille.commis { background: var(--commis); }
 .pastille.fanion { background: var(--fanion); }
 .pastille.plumeau { background: var(--plumeau); }
+.pastille.tiroir { background: var(--tiroir); }
+.pastille.gousset { background: var(--gousset); }
 .pastille.holdingai { background: var(--tampon); }
 .compte { background: var(--tampon); color: var(--feuille); border-radius: 99px; font-size: 12.5px; font-weight: 750; padding: 1px 8px; font-variant-numeric: tabular-nums; }
 

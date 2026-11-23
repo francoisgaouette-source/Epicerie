@@ -41,7 +41,7 @@
     const e = etatAvis(a), frais = etat.frais === cle ? " frais" : "";
     return e === "publie" ? `<span class="tampon${frais}">Publié</span>` : e === "ecarte" ? `<span class="tampon refus${frais}">Écarté</span>` : `<span class="tampon attente${frais}">En attente</span>`;
   };
-  const nomApp = { commis: "Le Commis", fanion: "Fanion", plumeau: "Le Plumeau", holdingai: "HoldingAI", console: "Console" };
+  const nomApp = { commis: "Le Commis", fanion: "Fanion", plumeau: "Le Plumeau", tiroir: "Le Tiroir", gousset: "Le Gousset", holdingai: "HoldingAI", console: "Console" };
   const puce = (app) => `<span class="app"><i class="pastille ${esc(app)}"></i>${esc(nomApp[app] || app)}</span>`;
 
   // ---------- serveur
@@ -63,11 +63,23 @@
     if (!r.ok) throw Object.assign(new Error(d.erreur || d.message || `Erreur ${r.status}`), { code: r.status === 401 || r.status === 403 ? 400 : r.status });
     return d;
   }
+  // Le Tiroir et Le Gousset : une fonction « console-pont » dans chaque projet vérifie l'accès auprès du Commis
+  const PROJETS = { tiroir: "https://inhheqccvhwybmcdboip.supabase.co", gousset: "https://jdgflxesnaiumxodrkzd.supabase.co" };
+  async function pontApp(app, corps) {
+    const { data: s } = await sb.auth.getSession();
+    if (!s.session) throw Object.assign(new Error("Connexion requise."), { code: 401 });
+    const r = await fetch(`${PROJETS[app]}/functions/v1/console-pont`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${s.session.access_token}` }, body: JSON.stringify(corps) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(d.erreur || d.message || `Erreur ${r.status}`), { code: r.status === 401 || r.status === 403 ? 400 : r.status });
+    return d;
+  }
   const appDe = (liste, id) => ((((etat.d || {}).retour || {})[liste] || []).find((x) => x.id === id) || {}).app;
   async function appel(corps) {
     if (corps.action === "commis.idee" && appDe("idees", corps.id) === "plumeau") return pont({ action: "idee", id: corps.id, statut: corps.statut ?? null, reponse: corps.reponse ?? null });
     if (corps.action === "commis.nouveaute" && (corps.geste === "retirer" ? appDe("nouveautes", corps.id) === "plumeau" : corps.app === "plumeau"))
       return pont(corps.geste === "retirer" ? { action: "nouveaute", retirer: corps.id } : { action: "nouveaute", titre: corps.titre, texte: corps.texte || null, idee_id: corps.idee_id || null });
+    if (corps.action === "tiroir.foyer") return pontApp("tiroir", { action: "foyer", id: corps.id, geste: corps.geste, paiement: corps.paiement || null });
+    if (corps.action === "gousset.demande") return pontApp("gousset", { action: "demande", id: corps.id, statut: corps.statut });
     if (corps.action === "plumeau.bloquer") return pont({ action: "bloquer", user_id: corps.user_id, bloque: corps.bloque });
     if (corps.action === "commis.idee") return rpc("console_idee", { p_id: corps.id, p_statut: corps.statut ?? null, p_reponse: corps.reponse ?? null });
     if (corps.action === "commis.nouveaute") return rpc("console_nouveaute", corps.geste === "retirer" ? { p_retirer: corps.id } : { p_titre: corps.titre, p_texte: corps.texte || null, p_idee: corps.idee_id || null, p_app: corps.app || "commis" });
@@ -105,7 +117,9 @@
     const essais = d.commis.foyers.map((f) => ({ f, e: forfaitCommis(f) })).filter((x) => x.e.cle === "essai" && x.e.jours <= 7);
     const fils = filsCourriels(d).filter((f) => f.attente);
     const idees = ((d.retour || {}).idees || []).filter((i) => i.statut === "recue");
-    return { avis, paiements, essais, fils, idees, demandes: d.fanion.demandes, n: avis.length + paiements.length + d.fanion.demandes.length + fils.length + idees.length };
+    const acces = ((d.gousset || {}).demandes || []).filter((x) => x.statut === "pending");
+    const paiementsTiroir = (d.tiroir || {}).paiements || [];
+    return { avis, paiements, essais, fils, idees, acces, paiementsTiroir, demandes: d.fanion.demandes, n: avis.length + paiements.length + d.fanion.demandes.length + fils.length + idees.length + acces.length + paiementsTiroir.length };
   }
 
   // ---------- courriels : les messages d'un même échange forment un fil
@@ -259,6 +273,9 @@
       liste(a.avis.map((x) => ficheAvis(x, x.app)), "Aucun avis en attente. Les nouveaux avis du Commis et de Fanion arrivent ici.")));
     if (a.paiements.length) blocs.push(section("Paiements à relier", "Stripe a reçu ces paiements sans pouvoir activer un foyer. Activez le bon foyer dans l'onglet Le Commis.",
       table([{ t: "Client" }, { t: "Reçu" }, { t: "Montant", n: 1 }], a.paiements.map((p) => [`<span class="nom">${esc(p.nom || p.courriel || "Inconnu")}</span><small>${esc(p.courriel || "")}</small>`, esc(moment(p.cree)), esc(argent(p.montant, p.devise))]), "")));
+    if (a.acces.length) blocs.push(section("Demandes d'accès au Gousset", "Le Gousset est en accès restreint : ces personnes attendent votre réponse.", ficheDemandesGousset(a.acces)));
+    if (a.paiementsTiroir.length) blocs.push(section("Paiements du Tiroir à relier", "Stripe a reçu ces paiements sans pouvoir activer un foyer. Activez le bon foyer dans l'onglet Le Tiroir.",
+      table([{ t: "Client" }, { t: "Reçu" }, { t: "Montant", n: 1 }], a.paiementsTiroir.map((p) => [`<span class="nom">${esc(p.nom || p.courriel || "Inconnu")}</span><small>${esc(p.courriel || "")}</small>`, esc(moment(p.cree)), esc(argent(p.montant, p.devise))]), "")));
     if (d.fanion.pret) blocs.push(section("Demandes de jeux", "Des groupes Fanion demandent l'ajout d'un jeu.", liste(a.demandes.map(ficheDemande), "Aucune demande de jeu en attente.")));
     if (a.essais.length) blocs.push(section("Essais qui se terminent cette semaine", "Rien à faire, sauf si vous voulez donner plus de temps à un foyer.",
       table([{ t: "Foyer" }, { t: "Essai" }, { t: "Geste" }], a.essais.map(({ f, e }) => [celluleFoyer(f), `${tamponForfait(e)}<small>${esc(e.detail)}</small>`, `<div class="gestes"><button class="lien" data-foyer="${esc(f.id)}" data-geste="essai">Prolonger l'essai de 30 jours</button></div>`]), "")));
@@ -324,6 +341,53 @@
       section("Questions posées à Colette", "Ce que les gens demandent à Colette dans l'app. Une question qui revient souvent montre un endroit où l'app accroche.",
         liste(q.map(ficheQuestion), "Aucune question notée pour l'instant. Elles s'inscrivent ici à mesure que les gens en posent."));
   }
+  // ---------- Le Tiroir : foyers, fiches, rappels (5 fiches gratuites, puis 29 $ par année)
+  function forfaitTiroir(f) {
+    const paye = t(f.paye_jusqua);
+    if (paye > Date.now()) return { cle: "paye", mot: "Payé", detail: `jusqu'au ${jour(paye)}` };
+    if (paye) return { cle: "fini", mot: "Terminé", detail: `le ${jour(paye)}` };
+    return { cle: "gratuit", mot: "Gratuit", detail: `${Math.min(f.fiches, 5)} / 5 fiches` };
+  }
+  const bandeauErreur = (x, nom) => (x && x.erreur ? `<section class="section"><div class="bandeau">Les données de ${nom} n'ont pas pu être lues : ${esc(x.erreur)}</div></section>` : "");
+  function vueTiroir(d) {
+    const x = d.tiroir || { foyers: [], paiements: [] }, fo = (x.foyers || []).map((f) => ({ f, e: forfaitTiroir(f) }));
+    const somme = (k) => fo.reduce((s, { f }) => s + (Number(f[k]) || 0), 0);
+    const j30 = (d.couts || []).filter((c) => c.app === "tiroir" && Date.now() - t(c.cree) < 30 * JOUR).reduce((s, c) => s + Number(c.cout_usd || 0), 0);
+    const contact = (f) => [f.prenom, tel(f.telephone), f.courriel].filter(Boolean).join(", ");
+    return bandeauErreur(x, "Le Tiroir") +
+      `<section class="section">${chiffres([[fo.length, fo.length > 1 ? "foyers inscrits" : "foyer inscrit"], [fo.filter((y) => y.e.cle === "paye").length, "avec forfait"], [fo.filter((y) => y.e.cle === "gratuit" && y.f.fiches >= 5).length, "au plafond gratuit"], [somme("fiches"), "fiches"], [somme("documents"), "documents"], [somme("rappels"), "rappels à venir"], [fo.filter((y) => y.f.pilote).length, "foyers pilotes réussis"], [usd(j30), "d'IA depuis 30 jours"]])}</section>` +
+      section("Foyers et forfaits", "5 fiches gratuites, puis 29 $ par année par foyer. Un foyer pilote réussi a créé des fiches et noté un entretien dans ses 30 premiers jours.",
+        table([{ t: "Foyer" }, { t: "Inscrit" }, { t: "Forfait" }, { t: "Membres", n: 1 }, { t: "Fiches", n: 1 }, { t: "Documents", n: 1 }, { t: "Rappels", n: 1 }, { t: "Dernière activité" }, { t: "Gestes" }],
+          fo.map(({ f, e }) => [`<span class="nom">${esc(f.nom || "Sans nom")}</span><small>${esc(contact(f))}</small>`, esc(jour(f.cree)), `${tamponForfait(e)}<small>${esc(e.detail)}</small>`, f.membres, f.fiches, f.documents,
+            `${f.rappels}${f.rappels_retard ? `<small>${f.rappels_retard} en retard</small>` : ""}`, f.derniere ? esc(ilYA(f.derniere)) : "aucune",
+            `<div class="gestes"><button class="lien" data-tiroir="${esc(f.id)}" data-geste="activer">${e.cle === "paye" ? "Ajouter 12 mois" : "Activer 12 mois"}</button>${e.cle === "paye" ? `<button class="lien" data-tiroir="${esc(f.id)}" data-geste="retirer">Retirer le forfait</button>` : ""}</div>`]),
+          "Aucun foyer inscrit pour l'instant. Les inscriptions sur letiroir.ai s'afficheront ici.")) +
+      ((x.paiements || []).length ? section("Paiements à relier", "Activez le foyer qui correspond au paiement : le paiement sera marqué comme relié.",
+        table([{ t: "Client" }, { t: "Reçu" }, { t: "Montant", n: 1 }, { t: "Relier à" }], x.paiements.map((p) => [`<span class="nom">${esc(p.nom || p.courriel || "Inconnu")}</span><small>${esc(p.courriel || "")}</small>`, esc(moment(p.cree)), esc(argent(p.montant, p.devise)),
+          `<div class="gestes">${fo.map(({ f }) => `<button class="lien" data-tiroir="${esc(f.id)}" data-geste="activer" data-paiement="${esc(p.id)}">${esc(f.nom || "Foyer")}</button>`).join("")}</div>`]), "")) : "");
+  }
+  // ---------- Le Gousset : comptes Gmail, offres, abonnements, demandes d'accès
+  const ETATS_DEMANDE = { pending: ["En attente", "attente"], approved: ["Approuvée", ""], declined: ["Refusée", "refus"] };
+  function ficheDemandesGousset(ds) {
+    return table([{ t: "Personne" }, { t: "Demandé" }, { t: "État" }, { t: "Gestes" }], ds.map((a) => {
+      const [mot, cl] = ETATS_DEMANDE[a.statut] || [a.statut, "neutre"];
+      return [`<span class="nom">${esc(a.prenom || a.courriel)}</span><small>${esc([a.courriel, a.parrain ? `invitée par ${a.parrain}` : ""].filter(Boolean).join(", "))}</small>`, esc(jour(a.cree)), `<span class="tampon ${cl}">${esc(mot)}</span>`,
+        `<div class="gestes">${a.statut !== "approved" ? `<button class="lien" data-gousset="${esc(a.id)}" data-statut="approved">Approuver</button>` : ""}${a.statut !== "declined" ? `<button class="lien" data-gousset="${esc(a.id)}" data-statut="declined">Refuser</button>` : ""}${a.statut !== "pending" ? `<button class="lien" data-gousset="${esc(a.id)}" data-statut="pending">Remettre en attente</button>` : ""}</div>`];
+    }), "Aucune demande d'accès pour l'instant.");
+  }
+  function vueGousset(d) {
+    const x = d.gousset || { comptes: [], demandes: [] }, cp = x.comptes || [];
+    const somme = (k) => cp.reduce((s, c) => s + (Number(c[k]) || 0), 0);
+    const actifs = cp.filter((c) => c.sync && Date.now() - t(c.sync) < 7 * JOUR).length;
+    return bandeauErreur(x, "Le Gousset") +
+      `<section class="section">${chiffres([[cp.length, cp.length > 1 ? "comptes" : "compte"], [cp.filter((c) => c.gmail).length, "Gmail connecté"], [actifs, "synchronisés depuis 7 jours"], [somme("aubaines"), "offres en cours"], [somme("codes"), "codes promo"], [somme("abonnements"), "abonnements suivis"], [argent(Math.round(somme("economies") * 100), "cad"), "d'économies notées"], [(x.demandes || []).filter((a) => a.statut === "pending").length, "demandes d'accès en attente"]])}</section>` +
+      section("Comptes", "Le Gousset lit l'onglet Promotions de Gmail. Une synchronisation récente montre que Margaux travaille pour ce compte.",
+        table([{ t: "Personne" }, { t: "Inscrite" }, { t: "Gmail" }, { t: "Dernière synchro" }, { t: "Offres", n: 1 }, { t: "Codes", n: 1 }, { t: "Abonnements", n: 1 }, { t: "Achats", n: 1 }, { t: "Économies", n: 1 }, { t: "Parrainages", n: 1 }],
+          cp.map((c) => [`<span class="nom">${esc(c.prenom || "Sans prénom")}</span><small>${esc([c.courriel, c.ville].filter(Boolean).join(", "))}</small>`, esc(jour(c.cree)), c.gmail ? `<span class="tampon">Connecté</span>` : `<span class="tampon refus">Non</span>`,
+            `${c.sync ? esc(ilYA(c.sync)) : "jamais"}${c.sync_etat ? `<small>${esc(c.sync_etat)}</small>` : ""}`, c.aubaines, c.codes, c.abonnements, c.achats, esc(argent(Math.round(Number(c.economies || 0) * 100), "cad")), c.parrainages]),
+          "Aucun compte pour l'instant. Les inscriptions sur legousset.ai s'afficheront ici.")) +
+      section("Demandes d'accès", "Les personnes qui demandent à essayer Le Gousset, souvent par le lien d'invitation d'un membre.", ficheDemandesGousset(x.demandes || []));
+  }
   // ---------- coûts de l'API Claude : ce que coûte chaque fonction et chaque foyer
   const usd = (n) => new Intl.NumberFormat("fr-CA", { style: "currency", currency: "USD", minimumFractionDigits: n < 1 ? 3 : 2, maximumFractionDigits: n < 1 ? 3 : 2 }).format(n);
   const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)", colette: "Colette (questions)", ajouter: "Le Plumeau : lecture d'un lien", classer: "Le Plumeau : classement des liens", suggerer: "Le Plumeau : sites semblables" };
@@ -356,11 +420,12 @@
             return [`<span class="nom">${esc(foyers.get(id) || "Foyer retiré")}</span>`, l.length, esc(usd(part)), esc(usd(part * 365 / 30)), esc(pire ? `${NOMS_FONCTIONS[pire[0]] || pire[0]} (${usd(pire[1])})` : "")];
           }), "Aucun foyer n'a encore utilisé l'IA."));
   }
-  const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "fanion.idee": "Idée", "fanion.nouveaute": "Nouveauté", "plumeau.idee": "Idée", "plumeau.nouveaute": "Nouveauté", "plumeau.compte": "Compte", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
+  const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "fanion.idee": "Idée", "fanion.nouveaute": "Nouveauté", "plumeau.idee": "Idée", "plumeau.nouveaute": "Nouveauté", "plumeau.compte": "Compte", "tiroir.foyer": "Foyer", "gousset.demande": "Demande d'accès", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
   const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée", traite: "marqué comme traité", atraiter: "remis à traiter", repondu: "réponse envoyée", annoncer: "annoncée dans l'app", recue: "à lire", etudiee: "à l'étude", prevue: "prévue", faite: "faite", non: "non retenue" };
   const ROLES = { proprio: "Propriétaire", gestion: "Gestion", lecture: "Consultation" };
   const gesteJournal = (j) => { const x = j.detail || {};
     if (j.app === "console") return x.geste === "inviter" ? `accès donné (${ROLES[x.role] || ""})` : x.geste === "role" ? `rôle changé (${ROLES[x.role] || ""})` : "accès retiré";
+    if (j.action === "gousset.demande") return (ETATS_DEMANDE[x.statut] || [x.statut])[0].toLowerCase();
     if (j.action === "plumeau.compte") return x.geste === "bloquer" ? "IA coupée" : "IA rendue";
     if (j.action === "commis.idee" || j.action === "plumeau.idee") return [GESTES[x.statut] || "", x.repondu ? "réponse envoyée" : ""].filter(Boolean).join(", ");
     return GESTES[x.etat || x.geste] || ""; };
@@ -383,16 +448,16 @@
       }), "Aucun geste pour l'instant."));
   }
 
-  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["plumeau", "Le Plumeau"], ["couts", "Coûts IA"], ["journal", "Journal"]];
+  const VUES = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["plumeau", "Le Plumeau"], ["tiroir", "Le Tiroir"], ["gousset", "Le Gousset"], ["couts", "Coûts IA"], ["journal", "Journal"]];
   function rendre() {
     const d = etat.d; if (!d) return;
     const n = aTraiter(d).n;
     const vues = etat.role === "proprio" ? [...VUES, ["acces", "Accès"]] : VUES;
     if (!vues.some(([k]) => k === etat.vue)) etat.vue = "traiter";
-    $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${k === "commis" || k === "fanion" || k === "plumeau" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
+    $("#onglets").innerHTML = vues.map(([k, mot]) => `<button class="onglet" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${nomApp[k] && k !== "console" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`).join("");
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
-    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],#f-nouveaute").forEach((b) => b.remove());
+    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
     document.title = (n ? `(${n}) ` : "") + "Console HoldingAI";
     etat.frais = null;
@@ -411,6 +476,11 @@
         d.commis.questions = [...(d.commis.questions || []), ...(p.questions || [])].sort((a, b) => t(b.cree) - t(a.cree));
         d.couts = [...(d.couts || []), ...(p.couts || [])];
       } catch (e) { d.plumeau = { comptes: [], erreur: e.message }; }
+      // Le Tiroir et Le Gousset (projets à part), lus en parallèle
+      const [ti, go] = await Promise.allSettled([pontApp("tiroir", { action: "tout" }), pontApp("gousset", { action: "tout" })]);
+      d.tiroir = ti.status === "fulfilled" ? ti.value : { foyers: [], paiements: [], erreur: ti.reason.message };
+      d.gousset = go.status === "fulfilled" ? go.value : { comptes: [], demandes: [], erreur: go.reason.message };
+      d.couts = [...(d.couts || []), ...((d.tiroir || {}).couts || [])];
       etat.d = d; etat.courriel = d.courriel || ""; etat.role = d.role || "lecture"; rendre();
     } catch (e) {
       if (e.code === 401) { await sb.auth.signOut(); montrerPorte("Votre session est terminée. Reconnectez-vous."); }
@@ -458,6 +528,15 @@
       const ok = await confirmer({ titre: "Retirer cette nouveauté ?", texte: "Les membres qui ne l'ont pas encore vue ne la verront pas.", bouton: "Retirer" });
       if (ok) agir({ action: "commis.nouveaute", geste: "retirer", id: b.dataset.nouveaute }, "Nouveauté retirée.");
       return;
+    }
+    if (b.dataset.tiroir) {
+      const f = ((d.tiroir || {}).foyers || []).find((x) => x.id === b.dataset.tiroir); if (!f) return;
+      if (b.dataset.geste === "retirer" && !confirm(`Retirer le forfait du foyer « ${f.nom} »? Il retombe à 5 fiches.`)) return;
+      return agir({ action: "tiroir.foyer", id: f.id, geste: b.dataset.geste, paiement: b.dataset.paiement || null }, b.dataset.geste === "activer" ? `Forfait de 12 mois activé pour « ${f.nom} ».` : "Forfait retiré.");
+    }
+    if (b.dataset.gousset) {
+      const mots = { approved: "Demande approuvée.", declined: "Demande refusée.", pending: "Demande remise en attente." };
+      return agir({ action: "gousset.demande", id: b.dataset.gousset, statut: b.dataset.statut }, mots[b.dataset.statut]);
     }
     if (b.dataset.plumeauCompte) {
       const bloque = b.dataset.bloque === "1";
