@@ -276,10 +276,10 @@ body:has(.cg-fond) .cg-lanceur{display:none}
 
   // Les concepts du Commis, communs au site et à l'app
   const CONCEPTS = [
+    { puce: "Onglet Espace", icone: "lieu", titre: "Ce que vous avez, là où c'est rangé",
+      texte: "Frigo, garde-manger, congélateur : je sais ce qui reste et où. À la Maison comme au Chalet. Ce qui va passer date monte en haut, en rouge." },
     { puce: "Onglet Produits", icone: "produits", titre: "Tout ce que vous achetez, une seule fois",
       texte: "Vos produits habituels ont chacun leur fiche : photo, marque, format et prix dans chaque épicerie. Une photo suffit pour en ajouter un. L'étoile ★ me dit lesquels surveiller." },
-    { puce: "Onglet Lieu", icone: "lieu", titre: "Ce que vous avez, là où c'est rangé",
-      texte: "Frigo, garde-manger, congélateur : je sais ce qui reste et où. À la Maison comme au Chalet. Ce qui va passer date monte en haut, en rouge." },
     { puce: "Onglet Liste épicerie", icone: "liste", titre: "Une liste pour toute la maison",
       texte: "La même liste sur chaque téléphone, à jour en direct. Quand un produit passe sous son minimum, je l'ajoute moi-même. À l'épicerie, on coche." },
     { puce: "Onglet Spéciaux", icone: "speciaux", titre: "Je lis les circulaires pour vous",

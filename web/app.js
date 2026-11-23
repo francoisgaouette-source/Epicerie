@@ -407,7 +407,7 @@
   });
   function renderLieux() {
     const act = idLieu(), ls = lieuxTries();
-    $("#tab-lieu-nom").textContent = "Lieu";
+    $("#tab-lieu-nom").textContent = "Espace";
     $("#lieux-bar").innerHTML = ""; $("#lieux-bar").hidden = true; // le choix du lieu et « ＋ Lieu » sont dans la barre 📍 en haut
     $("#f-nouveau-lieu").hidden = !lieuEnEdition;
     const a2 = document.activeElement;
@@ -699,7 +699,7 @@
   $("#bilan").addEventListener("click", async (e) => {
     if (e.target.closest("#bilan-go")) return ouvrirBilan();
     if (e.target.closest("#bilan-rien")) { await marquerBilanFait(); render(); status("Noté : rien consommé aujourd'hui."); return; }
-    if (e.target.closest("#bilan-fermer")) { bilanOuvert = false; render(); status("D'accord. Vos choix sont gardés : le bilan reste en haut de l'onglet Lieu pour continuer quand vous voulez."); return; }
+    if (e.target.closest("#bilan-fermer")) { bilanOuvert = false; render(); status("D'accord. Vos choix sont gardés : le bilan reste en haut de l'onglet Espace pour continuer quand vous voulez."); return; }
     if (e.target.closest("#bilan-ok")) return enregistrerBilan();
     const b = e.target.closest("[data-conso]"); if (!b) return;
     const p = state.prod.find((x) => x.id === b.dataset.id); if (!p) return;
@@ -1270,7 +1270,7 @@
       { k: "ecran", done: installee() || lsGet("demarrer.ecran") === "1", t: "Mettez l'app sur votre écran d'accueil", d: "Elle s'ouvre comme une vraie app, et le rappel du soir peut vous joindre.", b: "Installer", act: montrerEcran },
       { k: "rappel", done: rappelActif, t: "Activez le rappel de 21 h", d: "Chaque soir, l'app vous demande ce qui a été consommé.", b: "Activer", act: () => activerRappel() },
       { k: "produits", done: nProd >= 5, t: "Ajoutez vos produits habituels", d: nProd ? `${nProd} produit${nProd > 1 ? "s" : ""} dans vos produits. Visez-en au moins 5. Le plus rapide : la photo.` : "Le plus rapide : touchez l'appareil photo et photographiez un produit.", b: "Photographier", act: () => { showView("produits"); $("#in-pphoto").click(); } },
-      { k: "maison", done: nMaison >= 1, t: "Rangez ce que vous avez à la maison", d: "Dans l'onglet Produits, touchez un produit : choisissez son espace et mettez sa réserve avec +. Ou lisez votre dernière facture.", b: "Lieu", act: () => showView("maison") },
+      { k: "maison", done: nMaison >= 1, t: "Rangez ce que vous avez à la maison", d: "Dans l'onglet Produits, touchez un produit : choisissez son espace et mettez sa réserve avec +. Ou lisez votre dernière facture.", b: "Espace", act: () => showView("maison") },
       { k: "liste", done: nListe >= 1, t: "Commencez la liste d'épicerie", d: "Ajoutez ce qui manque. Les autres le voient aussitôt.", b: "Liste", act: () => { showView("liste"); setTimeout(() => $("#in-liste").focus(), 50); } },
       { k: "surv", done: nSurv >= 1, t: "Surveillez un spécial", d: "Dans l'onglet Produits, touchez l'étoile ☆ d'un produit que vous achetez souvent.", b: "Produits", act: () => { showView("produits"); filtre = "tous"; renderProducts(); } },
     ];
@@ -1634,7 +1634,7 @@
   });
 
   // ---------- le Commis : l'agent qui répond aux questions
-  const ECRANS = { produits: "Produits", maison: "Lieu", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet", idee: "Une idée?" };
+  const ECRANS = { produits: "Produits", maison: "Espace", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet", idee: "Une idée?" };
   const commis = { msgs: [], busy: false };
   function allerA(k) {
     $("#commis").hidden = true;
