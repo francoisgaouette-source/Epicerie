@@ -1400,7 +1400,8 @@
   }
   async function ouvrirOffrir(moment, specs) {
     offrirMoment = moment || ""; offrirSpec = specs || null;
-    $("#offrir-title").textContent = specs ? (specs.length > 1 ? "Partager les spéciaux" : "Partager ce spécial") : "Offrez un mois, gagnez un mois";
+    $("#offrir-title").textContent = specs ? (specs.length > 1 ? "Partager les spéciaux" : "Partager ce spécial") : "Offrez 60 jours gratuits à un proche";
+    $("#offrir-intro").innerHTML = specs ? "Vos proches voient le rabais, et peuvent essayer Le Commis <b>60 jours gratuits</b> avec votre lien." : "Vos proches reçoivent <b>60 jours gratuits</b> pour essayer Le Commis avec votre lien.";
     fermerPanneaux("#offrir"); $("#offrir").hidden = false; renderOffrir();
     $("#offrir").scrollIntoView({ block: "start", behavior: "smooth" });
     await chargerParrain(); renderOffrir();
@@ -1479,13 +1480,12 @@
   }
   function renderOffrirCarte() {
     const box = $("#offrir-carte"); if (!box) return;
-    box.innerHTML = ""; return; // « Offrir un mois » retiré de l'app (le partage des spéciaux reste)
     const m = offrirAMontrer();
     if (!m) { box.innerHTML = ""; return; }
     box.innerHTML = `<section class="offrir-carte">
       <div class="offrir-carte-txt"><b>${m.eco ? `Vous avez économisé ${money(m.eco)} ce mois-ci. Qui d'autre aimerait ça?` : "Le Commis vous simplifie l'épicerie? Qui d'autre aimerait ça?"}</b>
-        <span class="hint">Offrez 60 jours gratuits à un proche. Vous gagnez 1 mois pour chaque foyer qui s'inscrit.</span></div>
-      <div class="row-actions"><button class="btn" type="button" data-offrir="${m.eco ? "economies" : "carte"}">🎁 Offrir un mois</button>
+        <span class="hint">Offrez 60 jours gratuits à un proche.</span></div>
+      <div class="row-actions"><button class="btn" type="button" data-offrir="${m.eco ? "economies" : "carte"}">🎁 Offrir 60 jours</button>
         <button class="link" type="button" data-offrir-carte="plus-tard">Plus tard</button><button class="link muted" type="button" data-offrir-carte="non">Non merci</button></div>
     </section>`;
   }
