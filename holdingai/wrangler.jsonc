@@ -1,0 +1,15 @@
+// Site vitrine de HoldingAI (holdingai.app), publié par Cloudflare Workers Builds à chaque modification de main.
+// Dans Cloudflare, le Worker « holdingai » est relié à ce dépôt avec le dossier racine « holdingai ».
+// Les fichiers du site sont dans holdingai/site/ : il n'y a aucune étape de compilation.
+{
+  "name": "holdingai",
+  "compatibility_date": "2026-10-23",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "holdingai.app", "custom_domain": true },
+    { "pattern": "www.holdingai.app/*", "zone_name": "holdingai.app" }
+  ],
+  "assets": {
+    "directory": "./site"
+  }
+}

@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="HoldingAI, studio québécois d’applications simples en français : Fanion, Le Commis, Le Plumeau, Le Tiroir et Le Gousset.">
+<meta property="og:title" content="HoldingAI">
+<meta property="og:description" content="On fait des apps pour la vraie vie. Fait au Québec, en français.">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>HoldingAI</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: une colonne éditoriale; logo HoldingAI (un H qui tient une tuile d'app); l'app vedette en grande carte « carte de pointage ». */
+:root{
+  --bg:#F4F5F9; --surface:#FFFFFF; --ink:#141C33; --muted:#59617A; --line:#D9DCE6; --soft:#E8EBF3;
+  --brand:#1C2A52; --brand-ink:#FFFFFF; --amber:#F4B23E; --amber-ink:#2A1C02; --mint:#2E9C7A;
+  --fanion:#1E5A3A; --fanion-soft:#E3EDE6; --amber-text:#9A6400;
+  --f-display:"Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --f-body:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1222; --surface:#161C31; --ink:#EAEDF6; --muted:#A2A9C0; --line:#2A3250; --soft:#1D2440;
+  --brand:#8EA2E8; --brand-ink:#0E1222; --amber:#F6BE55; --amber-ink:#241802; --mint:#5CC9A4;
+  --fanion:#6CC793; --fanion-soft:#1B2B25; --amber-text:#F6BE55; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1222; --surface:#161C31; --ink:#EAEDF6; --muted:#A2A9C0; --line:#2A3250; --soft:#1D2440;
+  --brand:#8EA2E8; --brand-ink:#0E1222; --amber:#F6BE55; --amber-ink:#241802; --mint:#5CC9A4;
+  --fanion:#6CC793; --fanion-soft:#1B2B25; --amber-text:#F6BE55; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto}
+a{color:inherit}
+a:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-offset:3px;border-radius:6px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.05;letter-spacing:-.02em}
+p{margin:0}
+.label{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* En-tête */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:24px;flex-wrap:wrap}
+.mark{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:800;font-size:20px;text-decoration:none}
+.mark svg{width:34px;height:34px;flex:none}
+.mark b{font-weight:800}.mark i{font-style:normal;font-weight:500;color:var(--muted)}
+nav{display:flex;gap:22px;flex-wrap:wrap}
+nav a{text-decoration:none;color:var(--muted);font-weight:500}
+nav a:hover{color:var(--ink)}
+
+/* Héros */
+.hero{padding-block:56px 72px;display:grid;grid-template-columns:1.25fr .75fr;gap:48px;align-items:end}
+.hero h1{font-size:clamp(44px,7.4vw,92px);font-weight:800}
+.hero h1 em{font-style:normal;color:var(--brand);position:relative;white-space:nowrap}
+.hero h1 em::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.14em;background:var(--amber);z-index:-1;border-radius:2px}
+.hero h1{position:relative;z-index:0}
+.hero .side{display:flex;flex-direction:column;gap:20px;min-width:0}
+.hero .side p{color:var(--muted);font-size:19px;max-width:36ch}
+.btn{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;background:var(--ink);color:var(--bg);
+  text-decoration:none;font-weight:600;padding:13px 20px;border-radius:999px;transition:transform .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn.accent{background:var(--amber);color:var(--amber-ink)}
+
+section{padding-block:64px;border-top:1px solid var(--line)}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:32px}
+.sec-head h2{font-size:clamp(30px,4vw,44px);font-weight:700}
+
+/* App vedette */
+.feature{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:clamp(22px,4vw,44px);
+  display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.feature > *{min-width:0}
+.pill{display:inline-block;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  padding:5px 10px;border-radius:999px;background:var(--soft);color:var(--brand)}
+.feature .pill{background:var(--fanion-soft);color:var(--fanion)}
+.feature h3{font-size:clamp(34px,4.6vw,54px);font-weight:800;margin-block:14px 6px}
+.feature .sub{font-family:var(--f-display);font-weight:500;font-size:20px;color:var(--fanion);margin-bottom:16px}
+.feature p.desc{color:var(--muted);max-width:52ch}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-block:26px}
+.facts div{border-top:2px solid var(--ink);padding-top:8px}
+.facts b{display:block;font-family:var(--f-display);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.facts span{font-size:14px;color:var(--muted)}
+.actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.actions a.link{font-weight:600;text-decoration-thickness:2px;text-underline-offset:4px;text-decoration-color:var(--amber)}
+
+/* Carte de pointage */
+.card{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:18px;font-variant-numeric:tabular-nums}
+.card-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.card-top strong{font-family:var(--f-display);font-size:22px}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+.team{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:middle}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ink);margin-left:3px;vertical-align:middle}
+.pos{color:var(--fanion);font-weight:600}
+.card-foot{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;font-size:14px;color:var(--muted);gap:12px;flex-wrap:wrap}
+.card-foot b{color:var(--ink)}
+
+/* Prochaine app */
+.next{margin-top:20px;display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;
+  padding:24px clamp(22px,4vw,44px);border:1.5px dashed var(--line);border-radius:22px}
+.next > *{min-width:0}
+.next h3{font-size:30px;font-weight:700}
+.next p{color:var(--muted)}
+.basket{width:52px;height:52px}
+.feature + .feature{margin-top:20px}
+.feature.commis .pill{background:var(--soft);color:var(--mint)}
+.feature.commis .sub{color:var(--mint)}
+.minis{margin-top:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.mini{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mini .pill{align-self:flex-start;background:var(--soft);color:var(--brand)}
+.mini h3{font-size:32px;font-weight:800}
+.mini .sub{font-family:var(--f-display);font-weight:500;font-size:18px;color:var(--brand);line-height:1.25;margin-top:-4px}
+.mini p{color:var(--muted);font-size:16px}
+.mini ul{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:15px}
+.mini li{padding-left:18px;position:relative}
+.mini li::before{content:"";position:absolute;left:0;top:.6em;width:8px;height:8px;border-radius:2px;background:var(--amber)}
+.mini .go{margin-top:auto;padding-top:8px;font-weight:600;text-decoration-thickness:2px;text-underline-offset:4px;text-decoration-color:var(--amber)}
+@media (max-width:900px){.minis{grid-template-columns:1fr}}
+.warn{color:var(--amber-text);font-weight:600}
+
+/* Approche */
+.principles{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+.principles h3{font-size:22px;font-weight:700;margin-bottom:10px}
+.principles p{color:var(--muted)}
+.principles svg{width:28px;height:28px;margin-bottom:14px;color:var(--brand)}
+
+/* Contact */
+.contact{display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end}
+.contact h2{font-size:clamp(34px,5vw,60px);font-weight:800;max-width:16ch}
+.contact p{color:var(--muted);margin-top:14px;max-width:48ch}
+.mail{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 6px 6px 18px}
+.mail span{font-weight:600;user-select:all}
+.mail button{font:inherit;font-weight:600;font-size:14px;border:0;background:var(--amber);color:var(--amber-ink);border-radius:999px;padding:9px 14px;cursor:pointer}
+
+footer{border-top:1px solid var(--line);padding-block:28px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+
+@media (max-width:820px){
+  .hero,.feature,.contact{grid-template-columns:1fr}
+  .hero{padding-block:32px 48px;gap:28px}
+  .principles{grid-template-columns:1fr;gap:28px}
+  .next{grid-template-columns:auto 1fr}
+  .next .pill{grid-column:1/-1;justify-self:start}
+}
+@media (max-width:420px){
+  .facts{grid-template-columns:1fr 1fr}
+  nav{gap:14px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>body{margin:0} img{max-width:100%}</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="mark" href="#top" aria-label="HoldingAI, accueil">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--brand)"/><rect x="9" y="9" width="5" height="22" rx="2.5" fill="var(--brand-ink)"/><rect x="26" y="9" width="5" height="22" rx="2.5" fill="var(--brand-ink)"/><rect x="15.5" y="15.5" width="9" height="9" rx="2.5" fill="var(--amber)"/></svg>
+      <span><b>Holding</b><i>AI</i></span>
+    </a>
+    <nav aria-label="Navigation principale">
+      <a href="#apps">Nos apps</a>
+      <a href="#approche">Notre approche</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <div class="hero" id="top">
+    <h1>On fait des apps pour la <em>vraie vie</em>.</h1>
+    <div class="side">
+      <p>Petite équipe québécoise. On bâtit des applications simples qui règlent un problème précis, en français d’abord.</p>
+      <a class="btn accent" href="#apps">Voir nos apps ↓</a>
+    </div>
+  </div>
+
+  <section id="apps" aria-labelledby="apps-h">
+    <div class="sec-head">
+      <h2 id="apps-h">Nos apps</h2>
+      <span class="label">5 apps</span>
+    </div>
+
+    <article class="feature">
+      <div>
+        <span class="pill">● En ligne</span>
+        <h3>Fanion</h3>
+        <div class="sub">Le 19e · le golf entre amis, organisé</div>
+        <p class="desc">Fanion offre les dates, recueille les disponibilités, forme les quatuors, compte les points pendant la partie et dit qui doit quoi à la fin. Fini les 40 textos du jeudi soir. Ça marche aussi l’hiver, en simulateur.</p>
+        <div class="facts">
+          <div><b>7</b><span>jeux inclus, du Nassau au Wolf</span></div>
+          <div><b>0 $</b><span>jusqu’à 4 joueurs</span></div>
+          <div><b>49 $</b><span>par groupe, par saison (prix fondateur)</span></div>
+        </div>
+        <div class="actions">
+          <a class="btn" href="https://fanion.ai/" target="_blank" rel="noopener">Découvrir Fanion ↗</a>
+          <a class="link" href="https://app.fanion.ai/" target="_blank" rel="noopener">Essayer gratuitement</a>
+        </div>
+      </div>
+
+      <figure class="card" aria-label="Exemple de carte de pointage dans Fanion" style="margin:0">
+        <div class="card-top"><strong>Trou 8 · Normale 4</strong><span class="label">Game à Pelland</span></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Joueur</th><th>Brut</th><th>Coups</th><th>Net</th><th>Pts</th></tr></thead>
+            <tbody>
+              <tr><td><span class="team" style="background:#3B6FD8"></span>Marc</td><td>5</td><td><span class="dot"></span></td><td>4</td><td class="pos">+2</td></tr>
+              <tr><td><span class="team" style="background:#3B6FD8"></span>Julie</td><td>4</td><td></td><td>4</td><td></td></tr>
+              <tr><td><span class="team" style="background:#D8483B"></span>Steve</td><td>6</td><td><span class="dot"></span></td><td>5</td><td></td></tr>
+              <tr><td><span class="team" style="background:#D8483B"></span>Pat</td><td>7</td><td><span class="dot"></span></td><td>6</td><td>−2</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-foot"><span>Bleus mènent de <b>6 pts</b></span><span>Skin reportée au 9</span></div>
+      </figure>
+    </article>
+
+    <article class="feature commis">
+      <div>
+        <span class="pill">● Nouveau</span>
+        <h3>Le Commis</h3>
+        <div class="sub">L’épicerie de la maison, bien tenue</div>
+        <p class="desc">Le Commis garde votre liste d’épicerie et ce qu’il reste à la maison. Photographiez votre facture : les articles entrent dans l’inventaire, avec leur date de péremption. Il compare le coût de votre liste chez IGA, Metro, Maxi, Super C et Provigo. Toute la maison partage la même liste.</p>
+        <div class="facts">
+          <div><b>5</b><span>épiceries du Québec comparées</span></div>
+          <div><b>4</b><span>personnes par foyer</span></div>
+          <div><b>19,99 $</b><span>par année, après 30 jours gratuits</span></div>
+        </div>
+        <div class="actions">
+          <a class="btn" href="https://lecommis.ai/" target="_blank" rel="noopener">Découvrir Le Commis ↗</a>
+          <a class="link" href="https://app.lecommis.ai/" target="_blank" rel="noopener">Essayer 30 jours gratuits</a>
+        </div>
+      </div>
+
+      <figure class="card" aria-label="Exemple de liste d’épicerie dans Le Commis" style="margin:0">
+        <div class="card-top"><strong>Liste de la semaine</strong><span class="label">Exemple</span></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Article</th><th>Qté</th><th>À la maison</th></tr></thead>
+            <tbody>
+              <tr><td>Lait 2 % 4 L</td><td>1</td><td>0</td></tr>
+              <tr><td>Œufs (12)</td><td>2</td><td>3 restants</td></tr>
+              <tr><td>Pommes Cortland</td><td>1 sac</td><td>0</td></tr>
+              <tr><td>Yogourt grec</td><td>1</td><td class="warn">périme mardi</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-foot"><span>Moins cher chez <b>Maxi</b></span><span><b>Économie : 6,40 $</b></span></div>
+      </figure>
+    </article>
+    <div class="minis">
+      <article class="mini">
+        <span class="pill">● Nouveau</span>
+        <h3>Le Plumeau</h3>
+        <div class="sub">Vos favoris, enfin en ordre</div>
+        <p>Importez vos favoris ou collez un lien : Colette, l’assistante, les classe en collections, repère ceux qui ne servent plus et vous en suggère de nouveaux.</p>
+        <ul><li>Import de vos favoris en un geste</li><li>Ménage guidé des vieux liens</li><li>Gratuit</li></ul>
+        <a class="go" href="https://leplumeau.ai/" target="_blank" rel="noopener">Ouvrir Le Plumeau ↗</a>
+      </article>
+      <article class="mini">
+        <span class="pill">● Nouveau</span>
+        <h3>Le Tiroir</h3>
+        <div class="sub">La fiche de chaque appareil de la maison</div>
+        <p>Une photo de la facture suffit : Le Tiroir note le modèle, le numéro de série et la garantie, puis vous rappelle la date de retour et l’entretien. Tout est prêt le jour d’un bris.</p>
+        <ul><li>Lecture automatique des factures</li><li>Rappels de garantie et d’entretien</li><li>5 fiches gratuites, puis 29 $ par année</li></ul>
+        <a class="go" href="https://letiroir.ai/" target="_blank" rel="noopener">Ouvrir Le Tiroir ↗</a>
+      </article>
+      <article class="mini">
+        <span class="pill">● Nouveau</span>
+        <h3>Le Gousset</h3>
+        <div class="sub">Vos soldes et vos abonnements, avec Margaux</div>
+        <p>Margaux lit l’onglet Promotions de votre Gmail et garde les offres qui comptent, vos codes promo et vos abonnements. Elle vous écrit seulement quand c’est utile.</p>
+        <ul><li>Offres et codes promo au même endroit</li><li>Alerte avant la fin d’un essai gratuit</li><li>Baisses de prix sur votre liste</li></ul>
+        <a class="go" href="https://legousset.ai/" target="_blank" rel="noopener">Ouvrir Le Gousset ↗</a>
+      </article>
+    </div>
+  </section>
+
+  <section id="approche" aria-labelledby="approche-h">
+    <div class="sec-head"><h2 id="approche-h">Notre approche</h2></div>
+    <div class="principles">
+      <div>
+        <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M5 3v22" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4l16 5-16 6z" fill="var(--amber)"/></svg>
+        <h3>Fait au Québec, en français</h3>
+        <p>Nos apps parlent comme vous. Pas de traduction approximative, pas de jargon.</p>
+      </div>
+      <div>
+        <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="10" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="14" cy="14" r="3.5" fill="var(--amber)"/></svg>
+        <h3>Une app, un problème</h3>
+        <p>Chaque app fait une chose et la fait bien. Elle s’ouvre sur votre téléphone, sans rien télécharger.</p>
+      </div>
+      <div>
+        <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="4" y="7" width="20" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M4 12h20" stroke="var(--amber)" stroke-width="3"/></svg>
+        <h3>Un prix clair</h3>
+        <p>Gratuit pour essayer. Ensuite, un prix simple, sans renouvellement automatique et remboursable 30 jours.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" aria-labelledby="contact-h">
+    <div class="contact">
+      <div>
+        <h2 id="contact-h">Une idée d’app? Écrivez-nous.</h2>
+        <p>Une question sur une de nos apps, une suggestion ou une idée d’app : on répond à tous les courriels.</p>
+      </div>
+      <div class="mail">
+        <span id="email">bonjour@holdingai.app</span>
+        <button type="button" id="copy">Copier</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>© 2026 HoldingAI, une marque de Les Stratégies Vortex Inc.<br>310, rue Cabana, condo 3, Magog (Québec) J1X 2C3 · bonjour@holdingai.app</span>
+    <span><a href="confidentialite.html">Confidentialité</a> · <a href="https://fanion.ai/" target="_blank" rel="noopener">fanion.ai</a> · <a href="https://lecommis.ai/" target="_blank" rel="noopener">lecommis.ai</a> · <a href="https://leplumeau.ai/" target="_blank" rel="noopener">leplumeau.ai</a> · <a href="https://letiroir.ai/" target="_blank" rel="noopener">letiroir.ai</a> · <a href="https://legousset.ai/" target="_blank" rel="noopener">legousset.ai</a></span>
+  </footer>
+</div>
+
+<script>
+document.getElementById('copy').addEventListener('click', function(){
+  var btn=this, txt=document.getElementById('email').textContent;
+  function done(){btn.textContent='Copié';setTimeout(function(){btn.textContent='Copier'},1800)}
+  function fallback(){var r=document.createRange();r.selectNodeContents(document.getElementById('email'));var s=getSelection();s.removeAllRanges();s.addRange(r);btn.textContent='Sélectionné'}
+  try{navigator.clipboard.writeText(txt).then(done,fallback)}catch(e){fallback()}
+});
+</script>
+</body>
+</html>
