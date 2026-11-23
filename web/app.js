@@ -510,7 +510,7 @@
         <span>${esc(e.nom)}${e.magasin ? ` <span class="meta">· ${esc(e.magasin)}</span>` : ""}<br><span class="meta">${e.source === "special" ? "en spécial" : "sous le prix habituel"} · payé ${money(num(e.prix_paye))} au lieu de ${money(num(e.prix_ref))}${num(e.quantite) > 1 ? ` × ${fmtQ(e.quantite)}` : ""}</span></span>
         <span class="eco-plus">−${money(num(e.montant))}</span></li>`).join("")}</ul>
         <p class="hint">Calcul : prix régulier du spécial, ou prix habituel connu dans ce magasin, moins le prix payé sur la facture.</p></details>
-      <button class="link eco-partage" type="button" data-offrir="economies">🎁 Faites économiser un proche : offrez-lui un mois</button>
+
     </div>`;
   }
 
@@ -1410,7 +1410,6 @@
     lsSet("offrir.etat." + state.userId, "partage:" + Date.now());
     renderOffrirCarte();
   }
-  $("#open-offrir").addEventListener("click", () => ($("#offrir").hidden ? ouvrirOffrir("entete") : ($("#offrir").hidden = true)));
   $("#close-offrir").addEventListener("click", () => { $("#offrir").hidden = true; });
   $("#offrir-prenom").addEventListener("input", () => { $("#offrir-msg").value = msgOffrir(); majLiensOffrir(); });
   $("#offrir-msg").addEventListener("input", majLiensOffrir);
@@ -1455,7 +1454,7 @@
     if (navigator.share && matchMedia("(pointer: coarse)").matches) {
       offrirSpec = specs; offrirMoment = "speciaux";
       const texte = (() => { const v = $("#offrir-prenom").value; $("#offrir-prenom").value = ""; const t = msgOffrir(); $("#offrir-prenom").value = v; return t; })();
-      try { await navigator.share({ title: "Spéciaux de la semaine", text: texte }); notePartage("partage"); status("Partagé! Vous gagnez 1 mois si la personne s'inscrit avec votre lien."); }
+      try { await navigator.share({ title: "Spéciaux de la semaine", text: texte }); notePartage("partage"); status("Partagé!"); }
       catch (err) { if (err && err.name !== "AbortError") ouvrirOffrir("speciaux", specs); }
       offrirSpec = null;
       return;
@@ -1480,6 +1479,7 @@
   }
   function renderOffrirCarte() {
     const box = $("#offrir-carte"); if (!box) return;
+    box.innerHTML = ""; return; // « Offrir un mois » retiré de l'app (le partage des spéciaux reste)
     const m = offrirAMontrer();
     if (!m) { box.innerHTML = ""; return; }
     box.innerHTML = `<section class="offrir-carte">
@@ -1609,7 +1609,7 @@
     await sb.from("sondages").insert({ note: n, raison: raison || null }).then(() => {}, () => {});
     if (raison) envoyerIdee({ type: n >= 9 ? "aime" : n <= 6 ? "probleme" : "idee", texte: raison, source: "sondage" }).then(() => {}, () => {});
     renderRetourCarte();
-    if (n >= 9) { status("Merci! Vous pouvez faire découvrir Le Commis à un proche : il reçoit 60 jours, vous gagnez un mois."); ouvrirOffrir("sondage"); }
+    if (n >= 9) status("Merci! Ça nous fait vraiment plaisir.");
     else status("Merci! Votre réponse est bien reçue. L'équipe la lit.");
   }
   $("#retour-carte").addEventListener("click", async (e) => {
@@ -1627,7 +1627,7 @@
   });
 
   // ---------- le Commis : l'agent qui répond aux questions
-  const ECRANS = { produits: "Produits", maison: "Lieu", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet", offrir: "Offrir un mois", idee: "Une idée?" };
+  const ECRANS = { produits: "Produits", maison: "Lieu", liste: "Liste épicerie", speciaux: "Spéciaux", membres: "Membres", rappel: "Rappel du soir", bilan: "Bilan du soir", facture: "Lire une facture", ecran: "Écran d'accueil", guide: "Guide complet", idee: "Une idée?" };
   const commis = { msgs: [], busy: false };
   function allerA(k) {
     $("#commis").hidden = true;
@@ -1635,7 +1635,6 @@
     else if (k === "membres") showMembres(true);
     else if (k === "rappel") showRappel(true);
     else if (k === "bilan") ouvrirBilan();
-    else if (k === "offrir") ouvrirOffrir("rosalie");
     else if (k === "idee") ouvrirIdee();
     else if (k === "facture") { showView("produits"); $("#in-facture").click(); }
     else if (k === "ecran") montrerEcran();

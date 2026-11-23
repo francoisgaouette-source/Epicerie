@@ -130,8 +130,8 @@
       <h2 id="offrir-title">Offrez un mois, gagnez un mois</h2>
       <button class="icon" type="button" id="close-offrir" aria-label="Fermer">✕</button>
     </div>
-    <p>Vos proches reçoivent <b>60 jours gratuits</b> au lieu de 30. Pour chaque foyer qui s'inscrit avec votre lien, <b>vous gagnez 1 mois gratuit</b> (jusqu'à 12).</p>
-    <div class="offrir-score" id="offrir-score"></div>
+    <p>Vos proches voient le rabais, et peuvent essayer Le Commis <b>60 jours gratuits</b> avec votre lien.</p>
+    <div class="offrir-score" id="offrir-score" hidden></div>
     <h3 class="offrir-h">À qui pensez-vous?</h3>
     <div class="offrir-idees" id="offrir-idees"></div>
     <label class="mf offrir-pour"><span>Prénom de la personne (facultatif)</span><input id="offrir-prenom" maxlength="40" autocomplete="off" placeholder="ex. Julie"></label>
@@ -159,9 +159,8 @@
     <div id="compte-forfait"></div>
     <nav class="compte-menu" aria-label="Menu du compte">
       <button type="button" id="open-membres"><span aria-hidden="true">👥</span> Membres du foyer<span class="cm-fin" id="compte-nmembres"></span></button>
-      <button type="button" id="open-offrir"><span aria-hidden="true">🎁</span> Offrir un mois<span class="cm-fin">pour un proche</span></button>
-      <button type="button" id="open-commis"><span aria-hidden="true">💬</span> Aide · demander à Rosalie</button>
-      <button type="button" id="open-idee"><span aria-hidden="true">💡</span> Une idée? Un pépin?</button>
+      <button type="button" hidden id="open-commis"><span aria-hidden="true">💬</span> Aide · demander à Rosalie</button>
+      <button type="button" hidden id="open-idee"><span aria-hidden="true">💡</span> Une idée? Un pépin?</button>
       <button type="button" data-installer hidden><span aria-hidden="true">📲</span> Installer l'app sur ce téléphone</button>
       <button type="button" id="compte-mdp"><span aria-hidden="true">🔒</span> Changer mon mot de passe</button>
     </nav>
@@ -184,7 +183,6 @@
       <input id="in-mtel" type="tel" inputmode="tel" placeholder="Cellulaire" autocomplete="off" aria-label="Cellulaire de la personne invitée" required>
       <button class="btn" type="submit" id="btn-inviter">Inviter</button>
     </form>
-    <p class="hint">Quelqu'un d'autre aimerait l'app pour sa propre maison? <button class="link" type="button" data-offrir="membres">🎁 Lui offrir un mois</button></p>
     <p class="hint" id="membres-plein" hidden>La limite de 4 membres est atteinte. Retirez quelqu'un pour inviter une autre personne.</p>
     <div class="invite-share" id="invite-share" hidden>
       <p id="invite-text"></p>
