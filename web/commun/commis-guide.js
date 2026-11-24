@@ -108,7 +108,10 @@ body:has(.cg-fond) .cg-lanceur{display:none}
 
   // ---------- La voix de Rosalie : synthèse vocale du téléphone (gratuite), une voix féminine française, québécoise si possible
   const VOIX_CLE = "rosalie.voix";
-  const peutParler = typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined";
+  // Voix retirée à la demande de Francois (24 nov. 2026) : Rosalie ne parle plus, sa bouche bouge seulement.
+  // Pour la remettre : VOIX_ACTIVE = true.
+  const VOIX_ACTIVE = false;
+  const peutParler = VOIX_ACTIVE && typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined";
   const HOMMES = /thomas|claude|jean|alain|r[ée]my|nicolas|daniel|f[ée]lix|jacques|henri|paul|mathieu|antoine|guillaume|yannick|olivier|male|homme/i;
   const FEMMES = /am[ée]lie|aur[ée]lie|audrey|marie|julie|sylvie|chantal|caroline|claire|c[ée]line|virginie|denise|hortense|sandrine|ava|femme|female|google fran[cç]ais canadien/i;
   let voixChoisie = null, parleEnCours = [], numLot = 0;
