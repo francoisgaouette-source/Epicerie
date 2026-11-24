@@ -388,36 +388,67 @@
           "Aucun compte pour l'instant. Les inscriptions sur legousset.ai s'afficheront ici.")) +
       section("Demandes d'accès", "Les personnes qui demandent à essayer Le Gousset, souvent par le lien d'invitation d'un membre.", ficheDemandesGousset(x.demandes || []));
   }
-  // ---------- coûts de l'API Claude : ce que coûte chaque fonction et chaque foyer
-  const usd = (n) => new Intl.NumberFormat("fr-CA", { style: "currency", currency: "USD", minimumFractionDigits: n < 1 ? 3 : 2, maximumFractionDigits: n < 1 ? 3 : 2 }).format(n);
+  // ---------- coûts : frais fixes mensuels + coûts de l'API Claude, tout en dollars canadiens
+  // Taux utilisé pour les services facturés en $ US : taux du marché (≈ 1,37) + ≈ 2,5 % de frais de la carte.
+  const TAUX = 1.40;
+  // Frais fixes en $ US par mois. À tenir à jour quand un forfait, un projet ou un domaine change.
+  const FRAIS_FIXES = [
+    { poste: "Supabase Pro", detail: "25 $ + 6 projets × 10 $ − 10 $ de crédit", usd: 75 },
+    { poste: "Claude Pro", detail: "abonnement pour le développement", usd: 20 },
+    { poste: "Domaines .ai (5)", detail: "lecommis, fanion, letiroir, leplumeau, legousset · 80 $ par an chacun", usd: 5 * 80 / 12 },
+    { poste: "Domaine holdingai.app", detail: "≈ 15 $ par an", usd: 15 / 12 },
+    { poste: "Cloudflare", detail: "forfait gratuit (5 $ si on active la réponse aux courriels)", usd: 0 },
+    { poste: "GitHub", detail: "forfait gratuit, 2 000 minutes d'Actions par mois", usd: 0 },
+  ];
+  const PRIX_COMMIS_MOIS = 19.99 / 12, STRIPE_MOIS = (19.99 * 0.029 + 0.30) / 12; // en $ CA
+  const cad = (n) => new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  const cadUsd = (usd) => cad(usd * TAUX);
+  const usd = cadUsd; // les autres onglets (Plumeau, Tiroir) affichent aussi en $ CA
+  const MOIS = 365 / 12 / 30; // ramène 30 jours à un mois moyen
   const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)", colette: "Colette (questions)", ajouter: "Le Plumeau : lecture d'un lien", classer: "Le Plumeau : classement des liens", suggerer: "Le Plumeau : sites semblables" };
   function vueCouts(d) {
     const tous = d.couts || [], j30 = tous.filter((c) => Date.now() - t(c.cree) < 30 * JOUR);
-    const somme = (l) => l.reduce((s, c) => s + Number(c.cout_usd || 0), 0);
+    const somme = (l) => l.reduce((s, c) => s + Number(c.cout_usd || 0), 0) * MOIS; // $ US par mois
     const grouper = (l, cle) => { const m = new Map(); for (const c of l) { const k = c[cle] || ""; if (!m.has(k)) m.set(k, []); m.get(k).push(c); } return [...m.entries()]; };
     const foyers = new Map(((d.commis && d.commis.foyers) || []).map((f) => [f.id, f.nom]));
     const parFoyer = grouper(j30.filter((c) => c.foyer_id), "foyer_id").map(([id, l]) => ({ id, l, n: somme(l) })).sort((a, b) => b.n - a.n);
     // Les circulaires sont lues une fois pour toute l'app (foyer vide) : leur coût est réparti entre les foyers actifs
     const actifs = ((d.commis && d.commis.foyers) || []).filter((f) => ["essai", "paye"].includes(forfaitCommis(f).cle)).length || parFoyer.length || 1;
     const commun = somme(j30.filter((c) => !c.foyer_id && (c.app || "commis") === "commis"));
-    const moyen = (somme(j30.filter((c) => c.foyer_id)) + commun) / actifs;
+    const parFoyerMoyen = parFoyer.length ? parFoyer.reduce((s, x) => s + x.n, 0) / parFoyer.length : 0; // $ US par mois, sans les circulaires
     const parApp = grouper(j30, "app").map(([a, l]) => ({ a: a || "commis", l, n: somme(l) })).sort((x, y) => y.n - x.n);
-    return `<section class="section">${chiffres([[usd(somme(j30)), "dépensés en IA depuis 30 jours"], [j30.length, "appels depuis 30 jours"], [usd(moyen), "par foyer actif, en 30 jours"], [usd(moyen * 365 / 30), "par foyer, projeté sur un an"]])}</section>` +
-      section("Par app, depuis 30 jours", "Le Plumeau est gratuit : son coût par compte se compare à zéro revenu. Les quotas quotidiens le gardent bas.",
-        table([{ t: "App" }, { t: "Appels", n: 1 }, { t: "Coût 30 jours", n: 1 }, { t: "Projeté sur un an", n: 1 }],
-          parApp.map(({ a, l, n }) => [puce(a), l.length, esc(usd(n)), esc(usd(n * 365 / 30))]), "Aucun appel noté pour l'instant.")) +
-      section("Par fonction, depuis 30 jours", "Le prix est calculé avec les tarifs publiés d'Anthropic, en dollars américains. Une recherche web coûte 0,01 $.",
-        table([{ t: "Fonction" }, { t: "Modèle" }, { t: "Appels", n: 1 }, { t: "Jetons entrée", n: 1 }, { t: "Jetons sortie", n: 1 }, { t: "Recherches", n: 1 }, { t: "Coût", n: 1 }, { t: "Par appel", n: 1 }],
+    const fixes = FRAIS_FIXES.reduce((s, f) => s + f.usd, 0), ia = somme(j30);
+
+    // Seuil de rentabilité de Le Commis : ce que laisse un foyer chaque mois, après Stripe et son coût d'IA
+    const laisse = PRIX_COMMIS_MOIS - STRIPE_MOIS - parFoyerMoyen * TAUX;
+    const seuil = laisse > 0 ? Math.ceil(((fixes + commun) * TAUX) / laisse) : null;
+
+    return `<section class="section">${chiffres([[cadUsd(fixes + ia), "par mois, tout compris"], [cadUsd(fixes), "frais fixes par mois"], [cadUsd(ia), "Claude à l'utilisation, par mois"], [seuil ? `${seuil} foyers` : "—", "pour que Le Commis couvre tout"]])}</section>` +
+      section("Frais fixes mensuels", `Montants en dollars canadiens, au taux de ${TAUX.toFixed(2).replace(".", ",")} $ CA pour 1 $ US (frais de carte compris). Ils servent à toutes les apps.`,
+        table([{ t: "Poste" }, { t: "Détail" }, { t: "Par mois", n: 1 }],
+          [...FRAIS_FIXES.map((f) => [`<span class="nom">${esc(f.poste)}</span>`, esc(f.detail), esc(cadUsd(f.usd))]),
+            [`<span class="nom">Total fixe</span>`, "", `<b>${esc(cadUsd(fixes))}</b>`]], "")) +
+      section("Le Commis : ce que laisse un foyer chaque mois", "L'abonnement de 19,99 $ par an, ramené au mois, moins les frais Stripe et le coût d'IA moyen d'un foyer.",
+        table([{ t: "" }, { t: "Par mois", n: 1 }],
+          [["Abonnement (19,99 $ ÷ 12)", esc(cad(PRIX_COMMIS_MOIS))], ["Frais Stripe", esc("− " + cad(STRIPE_MOIS))],
+            ["Claude, moyenne par foyer actif", esc("− " + cadUsd(parFoyerMoyen))], [`<span class="nom">Il reste</span>`, `<b>${esc(cad(laisse))}</b>`],
+            ["Frais à couvrir (fixes + circulaires)", esc(cadUsd(fixes + commun))],
+            [`<span class="nom">Foyers payants nécessaires</span>`, `<b>${seuil ?? "—"}</b>`]], "")) +
+      section("Claude par app, par mois", "Calculé sur les 30 derniers jours. Le Plumeau est gratuit : son coût se compare à zéro revenu.",
+        table([{ t: "App" }, { t: "Appels", n: 1 }, { t: "Par mois", n: 1 }],
+          parApp.map(({ a, l, n }) => [puce(a), l.length, esc(cadUsd(n))]), "Aucun appel noté pour l'instant.")) +
+      section("Claude par fonction, par mois", "Calculé sur les 30 derniers jours avec les tarifs publiés d'Anthropic. Une recherche web coûte 0,01 $ US (≈ 0,014 $ CA).",
+        table([{ t: "Fonction" }, { t: "Modèle" }, { t: "Appels", n: 1 }, { t: "Jetons entrée", n: 1 }, { t: "Jetons sortie", n: 1 }, { t: "Recherches", n: 1 }, { t: "Par mois", n: 1 }, { t: "Par appel", n: 1 }],
           grouper(j30, "fonction").map(([f, l]) => ({ f, l, n: somme(l) })).sort((a, b) => b.n - a.n).map(({ f, l, n }) => [
             `<span class="nom">${esc(NOMS_FONCTIONS[f] || f)}</span>`, esc([...new Set(l.map((c) => c.modele.replace("claude-", "")))].join(", ")), l.length,
-            l.reduce((s, c) => s + c.entree, 0).toLocaleString("fr-CA"), l.reduce((s, c) => s + c.sortie, 0).toLocaleString("fr-CA"), l.reduce((s, c) => s + c.recherches, 0), esc(usd(n)), esc(usd(n / l.length))]),
+            l.reduce((s, c) => s + c.entree, 0).toLocaleString("fr-CA"), l.reduce((s, c) => s + c.sortie, 0).toLocaleString("fr-CA"), l.reduce((s, c) => s + c.recherches, 0), esc(cadUsd(n)),
+            esc(new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 4, maximumFractionDigits: 4 }).format((n / MOIS / l.length) * TAUX))]),
           "Aucun appel noté pour l'instant. Chaque appel à Claude s'inscrira ici.")) +
-      section("Par foyer, depuis 30 jours", `Comparez la projection sur un an au prix de l'abonnement (19,99 $ CA, environ 19,11 $ après les frais Stripe). La lecture commune des circulaires (${usd(commun)}) est partagée entre les ${actifs} foyer${actifs > 1 ? "s" : ""} actif${actifs > 1 ? "s" : ""} : ${usd(commun / actifs)} chacun, ajouté ci-dessous.`,
-        table([{ t: "Foyer" }, { t: "Appels", n: 1 }, { t: "Coût 30 jours", n: 1 }, { t: "Projeté sur un an", n: 1 }, { t: "Le plus coûteux" }],
+      section("Le Commis : Claude par foyer, par mois", `Comparez au prix de l'abonnement : ${cad(PRIX_COMMIS_MOIS)} par mois. La lecture commune des circulaires (${cadUsd(commun)} par mois) est partagée entre les ${actifs} foyer${actifs > 1 ? "s" : ""} actif${actifs > 1 ? "s" : ""} : ${cadUsd(commun / actifs)} chacun, ajouté ci-dessous.`,
+        table([{ t: "Foyer" }, { t: "Appels", n: 1 }, { t: "Par mois", n: 1 }, { t: "Le plus coûteux" }],
           parFoyer.map(({ id, l, n }) => {
             const pire = grouper(l, "fonction").map(([f, x]) => [f, somme(x)]).sort((a, b) => b[1] - a[1])[0];
-            const part = n + commun / actifs;
-            return [`<span class="nom">${esc(foyers.get(id) || "Foyer retiré")}</span>`, l.length, esc(usd(part)), esc(usd(part * 365 / 30)), esc(pire ? `${NOMS_FONCTIONS[pire[0]] || pire[0]} (${usd(pire[1])})` : "")];
+            return [`<span class="nom">${esc(foyers.get(id) || "Foyer retiré")}</span>`, l.length, esc(cadUsd(n + commun / actifs)), esc(pire ? `${NOMS_FONCTIONS[pire[0]] || pire[0]} (${cadUsd(pire[1])})` : "")];
           }), "Aucun foyer n'a encore utilisé l'IA."));
   }
   const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "fanion.idee": "Idée", "fanion.nouveaute": "Nouveauté", "plumeau.idee": "Idée", "plumeau.nouveaute": "Nouveauté", "plumeau.compte": "Compte", "tiroir.foyer": "Foyer", "gousset.demande": "Demande d'accès", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
@@ -449,7 +480,7 @@
   }
 
   // Menu sur deux rangées : les fonctions en haut, les apps en dessous
-  const FONCTIONS = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["couts", "Coûts IA"], ["journal", "Journal"]];
+  const FONCTIONS = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["couts", "Coûts"], ["journal", "Journal"]];
   const APPS = [["commis", "Le Commis"], ["fanion", "Fanion"], ["plumeau", "Le Plumeau"], ["tiroir", "Le Tiroir"], ["gousset", "Le Gousset"]];
   function rendre() {
     const d = etat.d; if (!d) return;
