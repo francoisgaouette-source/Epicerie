@@ -2,9 +2,13 @@
   "use strict";
   const $ = (s) => document.querySelector(s);
   const cfg = window.EPICERIE_CONFIG || {};
-  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-  });
+  // Compte HoldingAI : la base du Commis reconnaît le jeton HoldingAI (Third-Party Auth). Plus de connexion propre au Commis.
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { accessToken: async () => (await HoldingAI.jeton()) || null });
+  async function sessionHAI() {
+    const s = await HoldingAI.session(); if (!s || !s.uid) return null;
+    return { user: { id: s.uid, email: s.email || null, phone: s.phone || null, nom: s.nom || "", created_at: null } };
+  }
+  async function deconnecter() { HoldingAI.deconnexion(); current = null; await onSession(null); }
 
   const DEFAULT_STORES = ["IGA", "Metro", "Maxi", "Super C", "Provigo"];
   const CATS = ["Fruits et légumes", "Viandes et poissons", "Produits laitiers et œufs", "Boulangerie", "Épicerie sèche",
@@ -1087,7 +1091,7 @@
     if (error) { status(msgErreurMembre(error, fmtTel(tel))); return; }
     $("#in-mtel").value = ""; $("#in-mnom").value = "";
     const moi = (state.membres.find(estMoi) || {}).nom || "";
-    inviteMsg = `${nom ? "Salut " + nom + "! " : ""}${moi ? prenom(moi) + " t'invite" : "Je t'invite"} dans notre foyer sur Le Commis : la liste d'épicerie, ce qu'on a à la maison et les spéciaux, partagés en temps réel. Ouvre ${APP_URL}?essai et entre ton cellulaire ${fmtTel(tel)} : tu recevras un code par texto, puis tu choisiras ton mot de passe.`;
+    inviteMsg = `${nom ? "Salut " + nom + "! " : ""}${moi ? prenom(moi) + " t'invite" : "Je t'invite"} dans notre foyer sur Le Commis : la liste d'épicerie, ce qu'on a à la maison et les spéciaux, partagés en temps réel. Ouvre ${APP_URL}, touche « Continuer avec HoldingAI » et utilise ton cellulaire ${fmtTel(tel)} : si tu n'as pas encore de compte HoldingAI, tu le crées avec un code par texto.`;
     inviteTel = e164(tel);
     $("#invite-text").textContent = `${nom || fmtTel(tel)} a accès. Envoyez-lui ce message pour qu'elle ou il crée son compte :\n\n« ${inviteMsg} »`;
     $("#invite-send").hidden = !navigator.share;
@@ -1116,7 +1120,7 @@
     const cible = state.membres.find((x) => x.id === id);
     const { error } = await sb.from("membres").delete().eq("id", id);
     if (error) { status(String(error.message || "").includes("dernier_membre") ? "Il faut garder au moins un membre." : "Le retrait n'a pas fonctionné. Réessayez."); renderMembres(); return; }
-    if (estMoi(cible)) { await sb.auth.signOut(); return; }
+    if (estMoi(cible)) { await deconnecter(); return; }
     status(`${(cible && (cible.nom || fmtTel(cible.telephone) || cible.email)) || "Ce membre"} n'a plus accès.`);
     await load("membres");
   });
@@ -1297,7 +1301,7 @@
     const copier = IOS && (DANS_APP || PAS_SAFARI);
     $("#gate-body").innerHTML = `${cadeau}${avant}<ol class="bv-steps">${etapes}</ol>
       ${copier ? `<button class="btn gate-btn" type="button" id="gate-copier">Copier le lien</button>` : ""}
-      ${IOS ? `<p class="hint">Dans l'app installée, connectez-vous avec votre cellulaire et votre mot de passe.</p>` : ""}`;
+      ${IOS ? `<p class="hint">Dans l'app installée, touchez « Continuer avec HoldingAI » pour vous connecter.</p>` : ""}`;
     const c = $("#gate-copier");
     if (c) c.onclick = async () => { const l = APP_URL + (code ? "?ref=" + code : ""); try { await navigator.clipboard.writeText(l); c.textContent = "Lien copié ✓"; } catch (err) { c.textContent = l; } };
   }
@@ -2307,28 +2311,15 @@
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.email) loadAll(); });
 
-  // ---------- auth (comme Le 19e : cellulaire + code texto pour créer le compte, puis mot de passe)
-  let pendingEmail = "", pendingTel = "";
+  // ---------- connexion : le compte HoldingAI (compte.holdingai.app), le même pour toutes les apps HoldingAI.
+  // Albert, le majordome de HoldingAI, accueille sur compte.holdingai.app puis annonce Rosalie.
   const loginStatus = (m) => { $("#login-status").textContent = m || ""; };
-  const loginForms = ["#f-login", "#f-sms", "#f-smscode", "#f-foyer"];
-  function loginView(id) { loginForms.forEach((f) => ($(f).hidden = f !== id)); $("#alt-login").hidden = id !== "#f-login"; loginStatus(""); }
-  function ouvrirSms(mode) {
-    $("#sms-title").textContent = mode === "oubli" ? "Nouveau mot de passe" : "Créer mon compte";
-    $("#sms-intro").textContent = mode === "oubli"
-      ? "Entrez votre cellulaire. Vous recevrez un code par texto pour choisir un nouveau mot de passe."
-      : "Vous recevrez un code par texto, puis vous choisirez votre mot de passe. Invité par quelqu'un? Entrez le cellulaire qu'il a inscrit.";
-    const creer = mode !== "oubli";
-    $("#in-sms-prenom").hidden = $("#lbl-sms-prenom").hidden = !creer;
-    $("#code-cadeau").hidden = !creer; if (refGet()) { $("#in-code-cadeau").value = refGet(); $("#code-cadeau").open = true; }
-    $("#in-sms-prenom").required = creer;
-    $("#sms-retour").textContent = creer ? "J'ai déjà un compte" : "Retour";
-    if ($("#in-tel").value.trim()) $("#in-tel2").value = $("#in-tel").value.trim();
-    loginView("#f-sms"); (creer ? $("#in-sms-prenom") : $("#in-tel2")).focus();
-  }
+  const loginForms = ["#f-login", "#f-foyer"];
+  function loginView(id) { loginForms.forEach((f) => ($(f).hidden = f !== id)); loginStatus(""); }
   // Mémoire de la visite (onglet seulement) : prénom saisi à l'inscription, achat demandé depuis le site
   const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
   const ssSet = (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} };
-  // Liens du site : ?essai ouvre « Créer mon compte » ; ?acheter mène au paiement après la connexion
+  // Liens du site : ?acheter mène au paiement après la connexion
   const entree = new URLSearchParams(location.search);
   if (entree.has("acheter")) ssSet("apres", "acheter");
   // Lien de parrainage (?ref=CODE) : gardé sur l'appareil jusqu'à la création du foyer
@@ -2338,90 +2329,18 @@
   if (/^[A-Za-z0-9]{6}$/.test(entree.get("ref") || "")) refSet(entree.get("ref").toUpperCase());
   async function montrerCadeau() {
     const code = refGet(); if (!code) return;
-    $("#go-creer").textContent = "Créer mon compte · 60 jours gratuits";
     let qui = null;
     try { const { data } = await sb.rpc("parrain_prenom", { p_code: code }); qui = data; } catch (e) {}
-    $("#login-cadeau").innerHTML = `🎁 <b>${esc(qui || "Un proche")} vous offre 60 jours gratuits</b> au lieu de 30. Créez votre compte ci-dessous.`;
+    $("#login-cadeau").innerHTML = `🎁 <b>${esc(qui || "Un proche")} vous offre 60 jours gratuits</b> au lieu de 30. Connectez-vous, puis créez votre foyer.`;
     $("#login-cadeau").hidden = false;
   }
   montrerCadeau();
-  const entreeEssai = entree.has("essai");
   if (entree.has("essai") || entree.has("acheter") || entree.has("ref") || entree.has("installer")) history.replaceState(null, "", location.pathname + location.hash);
-  $("#go-creer").addEventListener("click", () => ouvrirSms("creer"));
-  $("#go-oubli").addEventListener("click", () => ouvrirSms("oubli"));
-  document.querySelectorAll("[data-back-login]").forEach((b) => b.addEventListener("click", () => loginView("#f-login")));
-
-  $("#f-login").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const phone = e164($("#in-tel").value), password = $("#in-pw").value;
-    if (!phone) { loginStatus("Entrez votre cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
-    loginStatus("Connexion…");
-    const { error } = await sb.auth.signInWithPassword({ phone, password });
-    if (error) {
-      loginStatus(/rate|too many/i.test(error.message || "") ? "Trop d'essais. Réessayez dans quelques minutes, ou touchez « Mot de passe oublié ? »."
-        : "Cellulaire ou mot de passe incorrect. Première fois ? Touchez « Créer mon compte ».");
-      return;
-    }
-    $("#in-pw").value = ""; loginStatus("");
+  $("#hai").addEventListener("click", async (e) => {
+    e.target.disabled = true; loginStatus("");
+    try { await HoldingAI.connecter(); } catch (err) { loginStatus("La connexion HoldingAI n'a pas pu démarrer. Réessayez."); e.target.disabled = false; }
   });
-  $("#f-sms").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    pendingTel = e164($("#in-tel2").value);
-    if (!$("#in-sms-prenom").hidden) {
-      const p = $("#in-sms-prenom").value.trim();
-      if (!p) { loginStatus("Entrez votre prénom."); return; }
-      ssSet("prenom", p);
-      const cc = ($("#in-code-cadeau").value || "").trim().toUpperCase();
-      if (cc) { if (!/^[A-Z0-9]{6}$/.test(cc)) { loginStatus("Le code cadeau a 6 lettres ou chiffres."); return; } refSet(cc); }
-    }
-    if (!pendingTel) { loginStatus("Entrez votre cellulaire à 10 chiffres, par exemple 514 555-1234."); return; }
-    loginStatus("Envoi du code par texto…");
-    const { error } = await sb.auth.signInWithOtp({ phone: pendingTel, options: { shouldCreateUser: true, channel: "sms" } });
-    if (error) {
-      console.error(error);
-      loginStatus(/provider|sms|twilio|disabled|unsupported/i.test(error.message || "") ? "L'envoi de textos n'est pas encore configuré. Utilisez « Se connecter avec un code par courriel » en attendant."
-        : /rate|seconds/i.test(error.message || "") ? "Un code vient d'être envoyé. Attendez une minute avant d'en demander un autre."
-        : "Le texto n'a pas pu être envoyé. Réessayez dans une minute.");
-      return;
-    }
-    $("#smscode-hint").textContent = `Entrez le code envoyé par texto au ${fmtTel(pendingTel)}.`;
-    loginView("#f-smscode"); $("#in-smscode").focus();
-  });
-  $("#f-smscode").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const token = chiffres($("#in-smscode").value), pw = $("#in-newpw").value;
-    if (token.length !== 6) { loginStatus("Entrez le code à 6 chiffres reçu par texto."); return; }
-    if (pw.length < 6) { loginStatus("Le mot de passe doit avoir au moins 6 caractères."); return; }
-    loginStatus("Vérification…");
-    const { error } = await sb.auth.verifyOtp({ phone: pendingTel, token, type: "sms" });
-    if (error) { loginStatus("Ce code ne fonctionne pas ou a expiré. Vérifiez-le ou touchez « Retour » pour en demander un autre."); return; }
-    const { error: e2 } = await sb.auth.updateUser({ password: pw });
-    if (e2) { status("Vous êtes connecté, mais le mot de passe n'a pas été enregistré. Utilisez « Mot de passe oublié ? » plus tard."); }
-    else status("Compte prêt : la prochaine fois, connectez-vous avec votre cellulaire et ce mot de passe.");
-    $("#in-smscode").value = ""; $("#in-newpw").value = ""; $("#in-tel").value = fmtTel(pendingTel); loginStatus("");
-  });
-
-  // Secours : code par courriel
-  $("#f-email").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    pendingEmail = $("#in-email").value.trim().toLowerCase(); if (!pendingEmail) return;
-    loginStatus("Envoi du code…");
-    const { error } = await sb.auth.signInWithOtp({ email: pendingEmail, options: { shouldCreateUser: true } });
-    if (error) { loginStatus("Le code n'a pas pu être envoyé. Attendez une minute et réessayez."); console.error(error); return; }
-    loginStatus("");
-    $("#code-hint").textContent = `Entrez le code envoyé à ${pendingEmail}.`;
-    $("#f-email").hidden = true; $("#f-code").hidden = false; $("#in-code").focus();
-  });
-  $("#f-code").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const token = $("#in-code").value.replace(/\s/g, "");
-    loginStatus("Vérification…");
-    const { error } = await sb.auth.verifyOtp({ email: pendingEmail, token, type: "email" });
-    if (error) { loginStatus("Ce code ne fonctionne pas ou a expiré. Vérifiez-le ou demandez-en un nouveau."); return; }
-    loginStatus("");
-  });
-  $("#back-email").addEventListener("click", () => { $("#f-code").hidden = true; $("#f-email").hidden = false; $("#in-code").value = ""; loginStatus(""); });
-  $("#logout").addEventListener("click", () => sb.auth.signOut());
+  $("#logout").addEventListener("click", () => deconnecter());
 
   // ---------- créer son foyer (essai de 30 jours)
   $("#f-foyer").addEventListener("submit", async (e) => {
@@ -2429,16 +2348,17 @@
     const nom = $("#in-foyer-nom").value.trim(), prenom = $("#in-foyer-prenom").value.trim();
     if (!prenom) { loginStatus("Entrez votre prénom."); return; }
     loginStatus("Création de votre foyer…");
+    const cc = ($("#in-code-cadeau").value || "").trim().toUpperCase();
+    if (cc) { if (!/^[A-Z0-9]{6}$/.test(cc)) { loginStatus("Le code cadeau a 6 lettres ou chiffres."); return; } refSet(cc); }
     const ref = refGet();
     const { error } = await sb.rpc("creer_foyer", { p_nom: nom || "Mon foyer", p_prenom: prenom, p_ref: ref });
     if (error) { console.error(error); loginStatus(String(error.message || "").includes("deja_membre") ? "Vous faites déjà partie d'un foyer. Reconnectez-vous." : "Le foyer n'a pas pu être créé. Réessayez dans un moment."); return; }
     loginStatus("");
-    const { data } = await sb.auth.getSession();
-    current = null; await onSession(data && data.session);
+    current = null; await onSession(await sessionHAI());
     refSet(null);
     status(`Votre foyer est créé. L'essai gratuit dure ${ref ? "60" : "30"} jours : tout est ouvert.`);
   });
-  $("#foyer-annuler").addEventListener("click", () => sb.auth.signOut());
+  $("#foyer-annuler").addEventListener("click", () => deconnecter());
 
   // ---------- forfait : essai, payé, terminé
   const PRIX = "19,99 $ par année";
@@ -2483,20 +2403,10 @@
   }
   $("#open-compte").addEventListener("click", () => {
     const ouvrir = $("#compte").hidden; fermerPanneaux(ouvrir ? "#compte" : null);
-    $("#compte").hidden = !ouvrir; $("#f-compte-mdp").hidden = true;
+    $("#compte").hidden = !ouvrir;
     if (ouvrir) { majCompte(); $("#compte").scrollIntoView({ block: "start", behavior: "smooth" }); }
   });
   $("#close-compte").addEventListener("click", () => { $("#compte").hidden = true; });
-  $("#compte-mdp").addEventListener("click", () => { $("#f-compte-mdp").hidden = false; focusIfDesktop($("#in-compte-mdp")); });
-  $("#compte-mdp-annuler").addEventListener("click", () => { $("#f-compte-mdp").hidden = true; $("#in-compte-mdp").value = ""; });
-  $("#f-compte-mdp").addEventListener("submit", async (e) => {
-    e.preventDefault(); const pw = $("#in-compte-mdp").value;
-    if (pw.length < 6) { status("Le mot de passe doit avoir au moins 6 caractères."); return; }
-    const { error } = await sb.auth.updateUser({ password: pw });
-    if (error) { status("Le mot de passe n'a pas pu être changé : " + (error.message || "réessayez.")); return; }
-    $("#in-compte-mdp").value = ""; $("#f-compte-mdp").hidden = true; status("Mot de passe changé.");
-  });
-
   // ---------- Rosalie toujours présente : son visage dans le coin ouvre l'aide; elle salue à chaque arrivée
   let rosalie = null;
   function messageArrivee() {
@@ -2529,15 +2439,13 @@
       if (rosalie) rosalie.cacher(true);
       if (channel) { sb.removeChannel(channel); channel = null; }
       $("#app").hidden = true; $("#login").hidden = false;
-      $("#f-code").hidden = true; $("#f-email").hidden = false;
-      if ($("#f-smscode").hidden && $("#f-sms").hidden) loginView("#f-login");
-      if (entreeEssai && $("#f-smscode").hidden) ouvrirSms("creer");
+      loginView("#f-login"); $("#hai").disabled = false;
       return;
     }
     state.userEmail = session.user.email || null;
     state.userPhone = session.user.phone || null;
     state.email = state.userEmail || state.userPhone;
-    const { data: membres } = await sb.from("membres").select("id, email, telephone, nom, invite_par, role");
+    const { data: membres } = await sb.from("membres").select("id, email, telephone, nom, invite_par, role, cree");
     if (!membres || !membres.length) {
       // Nouveau compte avec un prénom saisi à l'inscription : on crée son foyer tout de suite (essai de 30 jours)
       const p = ssGet("prenom");
@@ -2550,6 +2458,8 @@
       }
       // Sinon : on propose de créer un foyer
       $("#login").hidden = false; $("#app").hidden = true; loginView("#f-foyer");
+      if (!$("#in-foyer-prenom").value && session.user.nom) $("#in-foyer-prenom").value = session.user.nom;
+      if (refGet()) { $("#in-code-cadeau").value = refGet(); $("#code-cadeau").open = true; }
       $("#foyer-intro").textContent = `${state.userPhone ? "Le " + fmtTel(state.userPhone) : "L'adresse " + state.userEmail} n'appartient à aucun foyer. Créez le vôtre : l'essai est gratuit pendant 30 jours. Si quelqu'un vous a invité, demandez-lui de vérifier le cellulaire inscrit dans « Membres ».`;
       return;
     }
@@ -2561,7 +2471,7 @@
     majCompte();
     $("#login").hidden = true; $("#app").hidden = false;
     state.userId = session.user.id;
-    state.userCreated = session.user.created_at || null;
+    state.userCreated = (me && me.cree) || session.user.created_at || null;
     renderForfait();
     await loadAll();
     await etatRappel().catch(() => {});
@@ -2575,14 +2485,18 @@
     if (location.hash === "#bilan") ouvrirBilan();
     subscribe();
   }
-  let current, started = false;
-  sb.auth.onAuthStateChange((evt, session) => {
-    const ident = (session && session.user && (session.user.id)) || null;
-    if (started && ident === current && evt !== "SIGNED_OUT") return;
-    started = true;
-    current = ident;
-    setTimeout(() => onSession(session), 0);
-  });
+  let current = null;
+  // Démarrage : au retour de compte.holdingai.app, échanger le code contre les jetons, puis ouvrir la session.
+  (async () => {
+    let erreur = "";
+    try { await HoldingAI.retour(); } catch (e) { erreur = e.message || "La connexion HoldingAI n'a pas fonctionné."; }
+    const session = await sessionHAI();
+    // Première connexion HoldingAI : reprendre ce qui était lié à l'ancien compte du Commis (propriétaire, idées…)
+    if (session) { try { await sb.rpc("reprendre_compte"); } catch (e) { /* rien */ } }
+    current = session ? session.user.id : null;
+    await onSession(session);
+    if (erreur) loginStatus(erreur);
+  })();
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));

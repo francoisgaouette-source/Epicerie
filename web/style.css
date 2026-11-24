@@ -510,6 +510,8 @@ body:has(#ecran-sheet:not([hidden])) .cg-lanceur,body:has(.bienvenue:not([hidden
 .compte-menu button{appearance:none;display:flex;align-items:center;gap:10px;text-align:left;background:var(--surface);border:0;border-top:1px solid var(--line);padding:13px 14px;font:600 1rem var(--f-body);color:var(--ink);cursor:pointer;min-height:50px}
 .compte-menu button:first-child{border-top:0}
 .compte-menu button:hover,.compte-menu button:focus-visible{background:var(--soft)}
+.compte-menu a.compte-lien{display:flex;align-items:center;gap:10px;background:var(--surface);border-top:1px solid var(--line);padding:13px 14px;font:600 1rem var(--f-body);color:var(--ink);text-decoration:none;min-height:50px}
+.compte-menu a.compte-lien:hover,.compte-menu a.compte-lien:focus-visible{background:var(--soft)}
 .compte-menu .cm-fin{margin-left:auto;white-space:nowrap;font-weight:500;font-size:.85rem;color:var(--muted)}
 .compte-menu [hidden]{display:none}
 .compte-mdp{margin:0 0 12px}

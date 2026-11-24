@@ -25,44 +25,10 @@
   <h1>Le Commis</h1>
   <p class="slogan">Votre commis d'épicerie, à la maison.</p>
   <form id="f-login" class="login-form">
-    <p class="hint">Connectez-vous avec votre cellulaire et votre mot de passe.</p>
-    <label class="mf" for="in-tel">Cellulaire</label>
-    <input id="in-tel" type="tel" inputmode="tel" autocomplete="tel" required placeholder="514 555-1234">
-    <label class="mf" for="in-pw">Mot de passe</label>
-    <input id="in-pw" type="password" autocomplete="current-password" required placeholder="Mot de passe">
-    <button class="btn" type="submit">Se connecter</button>
-    <button class="link login-oubli" type="button" id="go-oubli">Mot de passe oublié ?</button>
+    <button class="btn" type="button" id="hai">Continuer avec HoldingAI</button>
+    <p class="hint">Un seul compte pour toutes les apps HoldingAI : Le Commis, Le Tiroir, Le Fanion… Première fois? Vous le créerez en un instant avec votre cellulaire. Invité par quelqu'un? Utilisez le cellulaire qu'il a inscrit.</p>
     <p class="login-cadeau" id="login-cadeau" hidden></p>
-    <div class="login-nouveau">
-      <span>Nouveau ici?</span>
-      <button class="btn ghost" type="button" id="go-creer">Créer mon compte · 30 jours gratuits</button>
-    </div>
     <button class="btn ghost login-installer" type="button" data-installer hidden>📲 Installer l'app sur ce téléphone</button>
-  </form>
-
-  <form id="f-sms" class="login-form" hidden>
-    <h2 id="sms-title">Créer mon compte</h2>
-    <p class="hint" id="sms-intro">Entrez votre cellulaire. Vous recevrez un code par texto, puis vous choisirez votre mot de passe.</p>
-    <label class="mf" for="in-sms-prenom" id="lbl-sms-prenom">Votre prénom</label>
-    <input id="in-sms-prenom" autocomplete="given-name" placeholder="Prénom">
-    <details class="code-cadeau" id="code-cadeau"><summary>J'ai un code cadeau d'un proche</summary>
-      <label class="mf" for="in-code-cadeau">Code cadeau (6 caractères)</label>
-      <input id="in-code-cadeau" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ex. K7Q3MP">
-    </details>
-    <label class="mf" for="in-tel2">Cellulaire</label>
-    <input id="in-tel2" type="tel" inputmode="tel" autocomplete="tel" required placeholder="514 555-1234">
-    <button class="btn" type="submit">Recevoir le code par texto</button>
-    <button class="link" type="button" data-back-login id="sms-retour">J'ai déjà un compte</button>
-  </form>
-
-  <form id="f-smscode" class="login-form" hidden>
-    <p class="hint" id="smscode-hint">Entrez le code reçu par texto.</p>
-    <label class="mf" for="in-smscode">Code reçu par texto</label>
-    <input id="in-smscode" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required placeholder="000000">
-    <label class="mf" for="in-newpw">Choisissez votre mot de passe</label>
-    <input id="in-newpw" type="password" autocomplete="new-password" required minlength="6" placeholder="6 caractères ou plus">
-    <button class="btn" type="submit">Enregistrer et entrer</button>
-    <button class="link" type="button" data-back-login>Retour</button>
   </form>
 
   <form id="f-foyer" class="login-form" hidden>
@@ -72,25 +38,15 @@
     <input id="in-foyer-prenom" autocomplete="given-name" required placeholder="Prénom">
     <label class="mf" for="in-foyer-nom">Nom du foyer</label>
     <input id="in-foyer-nom" autocomplete="off" placeholder="ex. Famille Tremblay">
+    <details class="code-cadeau" id="code-cadeau"><summary>J'ai un code cadeau d'un proche</summary>
+      <label class="mf" for="in-code-cadeau">Code cadeau (6 caractères)</label>
+      <input id="in-code-cadeau" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ex. K7Q3MP">
+    </details>
     <button class="btn" type="submit">Créer mon foyer · 30 jours gratuits</button>
     <p class="hint">Ensuite : 19,99 $ par année, pour jusqu'à 4 personnes. Vous serez le propriétaire du foyer.</p>
     <button class="link muted" type="button" id="foyer-annuler">Se déconnecter</button>
   </form>
 
-  <details class="alt-login" id="alt-login">
-    <summary>Se connecter avec un code par courriel</summary>
-    <form id="f-email" class="login-form">
-      <label for="in-email" class="hint">Entrez votre courriel. Vous recevrez un code à 6 chiffres.</label>
-      <input id="in-email" type="email" autocomplete="email" required placeholder="vous@exemple.com">
-      <button class="btn ghost" type="submit">Recevoir le code par courriel</button>
-    </form>
-    <form id="f-code" class="login-form" hidden>
-      <label for="in-code" class="hint" id="code-hint">Entrez le code reçu par courriel.</label>
-      <input id="in-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required placeholder="000000">
-      <button class="btn ghost" type="submit">Se connecter</button>
-      <button class="link" type="button" id="back-email">Utiliser une autre adresse</button>
-    </form>
-  </details>
   <p class="status" id="login-status" role="status"></p>
 </section>
 
@@ -166,12 +122,8 @@
       <button type="button" hidden id="open-commis"><span aria-hidden="true">💬</span> Aide · demander à Rosalie</button>
       <button type="button" hidden id="open-idee"><span aria-hidden="true">💡</span> Une idée? Un pépin?</button>
       <button type="button" data-installer hidden><span aria-hidden="true">📲</span> Installer l'app sur ce téléphone</button>
-      <button type="button" id="compte-mdp"><span aria-hidden="true">🔒</span> Changer mon mot de passe</button>
+      <a class="compte-lien" id="compte-hai" href="https://compte.holdingai.app/compte" target="_blank" rel="noopener"><span aria-hidden="true">🔒</span> Mon compte HoldingAI (cellulaire, mot de passe)</a>
     </nav>
-    <form class="compte-mdp" id="f-compte-mdp" hidden>
-      <label class="mf"><span>Nouveau mot de passe (6 caractères ou plus)</span><input id="in-compte-mdp" type="password" autocomplete="new-password" minlength="6" required></label>
-      <div class="row-actions"><button class="btn" type="submit">Enregistrer</button><button class="link muted" type="button" id="compte-mdp-annuler">Annuler</button></div>
-    </form>
     <button class="btn ghost danger-txt compte-logout" id="logout" type="button">Se déconnecter</button>
   </section>
 
@@ -287,7 +239,7 @@
 
     <div class="help-item">
       <h3>Membres</h3>
-      <p>Touchez « Membres » en haut pour voir qui partage la liste, inviter quelqu'un (jusqu'à 4 personnes) ou retirer une personne. La personne invitée ouvre l'app, touche « Créer mon compte », entre le cellulaire que vous avez inscrit, puis choisit son mot de passe après avoir reçu un code par texto.</p>
+      <p>Touchez « Membres » en haut pour voir qui partage la liste, inviter quelqu'un (jusqu'à 4 personnes) ou retirer une personne. La personne invitée ouvre l'app, touche « Continuer avec HoldingAI » et utilise le cellulaire que vous avez inscrit (si elle n'a pas encore de compte HoldingAI, elle le crée avec un code par texto).</p>
     </div>
 
     <div class="help-item">
@@ -460,6 +412,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
+<script src="holdingai.js"></script>
 <script src="/commun/commis-guide.js"></script>
 <script src="app.js"></script>
 </body>
