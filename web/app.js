@@ -2488,9 +2488,15 @@
   let current = null;
   // Démarrage : au retour de compte.holdingai.app, échanger le code contre les jetons, puis ouvrir la session.
   (async () => {
-    let erreur = "";
-    try { await HoldingAI.retour(); } catch (e) { erreur = e.message || "La connexion HoldingAI n'a pas fonctionné."; }
+    // Démarrage commun à toutes les apps HoldingAI (holdingai.js) : retour de chez Albert, puis le compte suit.
+    const installee = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+    const dep = await HoldingAI.demarrer({ obligatoire: installee || !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) });
+    if (dep.redirection) return;
+    const erreur = dep.erreur ? (dep.erreur.message || "La connexion HoldingAI n'a pas fonctionné.") : "";
     const session = await sessionHAI();
+    window.HOLDINGAI_PORTE = { app: "le-commis", nomApp: "Le Commis", prenom: session ? session.user.nom : "",
+      liens: [{ texte: "Mon foyer, membres et forfait", action: () => { const b = $("#open-compte"); if (b && $("#compte").hidden) b.click(); } }],
+      surDeconnexion: () => deconnecter() };
     // Première connexion HoldingAI : reprendre ce qui était lié à l'ancien compte du Commis (propriétaire, idées…)
     if (session) { try { await sb.rpc("reprendre_compte"); } catch (e) { /* rien */ } }
     current = session ? session.user.id : null;
