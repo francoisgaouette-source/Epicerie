@@ -1,0 +1,5 @@
+-- CRM de la console HoldingAI (migration « crm », appliquée le 2026-11-25 dans le projet « Notre épicerie »).
+-- Tables crm_contacts, crm_notes, crm_taches : lues et écrites seulement par la fonction console-crm (clé de service).
+-- Fonction crm_donnees() : tout le CRM en un appel. Voir supabase/functions/console-crm pour les gestes.
+-- Les personnes inscrites dans les apps (compte HoldingAI, Le Commis, Le Gousset, Le Tiroir) paraissent dans le CRM
+-- sans fiche; la fiche est créée au premier geste (note, tâche, étape, modification).

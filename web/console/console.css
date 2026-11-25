@@ -17,7 +17,7 @@
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--papier); color: var(--encre); font: 400 16px/1.5 var(--f); font-stretch: 96%; }
 h1, h2, h3, p { margin: 0; }
-button, input { font: inherit; color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--tampon); outline-offset: 2px; border-radius: 4px; }
 [hidden] { display: none !important; }
 
@@ -195,3 +195,45 @@ dialog::backdrop { background: rgb(10 15 25 / .55); }
 
 .gris { color: var(--gris); }
 .section .sous .lien { padding: 0 2px; font-size: inherit; }
+
+/* CRM */
+.crm-barre { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.crm-barre input[type=search] { flex: 1 1 280px; border: 1.5px solid var(--ligne); background: var(--feuille); border-radius: 8px; padding: 10px 12px; font-size: 16px; min-height: 42px; }
+.crm-boutons { display: flex; gap: 8px; flex-wrap: wrap; }
+.crm-filtres, .crm-etapes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 12px 0 2px; }
+.crm-filtres select { border: 1.5px solid var(--ligne); background: var(--feuille); border-radius: 99px; padding: 6px 10px; font-size: 14px; }
+.filtre { appearance: none; border: 1.5px solid var(--ligne); background: transparent; border-radius: 99px; padding: 5px 12px; font-weight: 600; font-size: 14px; color: var(--gris); cursor: pointer; }
+.filtre:hover { color: var(--encre); border-color: var(--gris); }
+.filtre[aria-pressed="true"] { background: var(--encre); color: var(--feuille); border-color: var(--encre); }
+.nom-fiche { appearance: none; border: 0; background: none; padding: 0; font-weight: 700; font-stretch: 100%; font-size: inherit; color: var(--encre); text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: var(--ligne); text-underline-offset: 3px; }
+.nom-fiche:hover { text-decoration-color: var(--encre); }
+small.retard, .retard { color: var(--refus); font-weight: 600; }
+.crm-entete { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 20px; align-items: flex-start; }
+.crm-entete h2 { font-size: 28px; }
+.crm-statut { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.etiquette { border: 1px solid var(--ligne); border-radius: 6px; padding: 1px 8px; font-size: 13.5px; color: var(--gris); background: var(--feuille); }
+.crm-colonnes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 34px; align-items: start; }
+.crm-colonnes > div { display: grid; gap: 34px; }
+@media (max-width: 860px) { .crm-colonnes { grid-template-columns: 1fr; } }
+.crm-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; background: var(--feuille); border: 1px solid var(--ligne); border-radius: 12px; padding: 18px; margin-top: 14px; }
+.crm-form .crm-apps, .crm-form .dlg-actions { grid-column: 1 / -1; }
+@media (max-width: 620px) { .crm-form { grid-template-columns: 1fr; } }
+.crm-form label, .crm-col label, .crm-ligne label { display: grid; gap: 5px; font-size: 14px; font-weight: 600; }
+.crm-form input, .crm-form select, .crm-col input, .crm-col select, .crm-col textarea, .crm-ligne input, .crm-ligne select {
+  border: 1.5px solid var(--ligne); background: var(--papier); border-radius: 8px; padding: 9px 10px; font-weight: 400; font-size: 16px; width: 100%; min-width: 0; }
+.crm-col textarea { resize: vertical; }
+.crm-apps { border: 1px solid var(--ligne); border-radius: 8px; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.crm-apps legend { font-size: 14px; font-weight: 600; padding: 0 4px; }
+label.case { display: inline-flex !important; align-items: center; gap: 8px; font-weight: 500 !important; cursor: pointer; }
+label.case input { width: 18px; height: 18px; accent-color: var(--tampon); }
+.crm-col { display: grid; gap: 10px; margin-top: 12px; }
+.crm-col .btn { justify-self: start; }
+.crm-ligne { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 12px; }
+.crm-ligne > input[name=titre] { flex: 1 1 200px; }
+.crm-ligne > label { flex: 1 1 200px; }
+.fiche.tache { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; align-items: center; padding: 12px 16px; }
+.crm-fichier input { font-size: 14px; }
+.crm-bas { display: flex; gap: 18px; }
+.crm-apps-ligne { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: 6px; }
+.crm-apps-ligne > span:first-child { color: var(--gris); font-size: 14px; min-width: 92px; }
+.section > p.note, .crm-colonnes p.note { font-size: 14px; color: var(--gris); margin-top: 4px; }

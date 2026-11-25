@@ -134,7 +134,8 @@
     const idees = ((d.retour || {}).idees || []).filter((i) => i.statut === "recue");
     const acces = ((d.gousset || {}).demandes || []).filter((x) => x.statut === "pending");
     const paiementsTiroir = (d.tiroir || {}).paiements || [];
-    return { avis, paiements, essais, fils, idees, acces, paiementsTiroir, demandes: d.fanion.demandes, n: avis.length + paiements.length + d.fanion.demandes.length + fils.length + idees.length + acces.length + paiementsTiroir.length };
+    const crmDues = tachesDues();
+    return { avis, paiements, essais, fils, idees, acces, paiementsTiroir, crm: crmDues, demandes: d.fanion.demandes, n: crmDues.length + avis.length + paiements.length + d.fanion.demandes.length + fils.length + idees.length + acces.length + paiementsTiroir.length };
   }
 
   // ---------- courriels : les messages d'un même échange forment un fil
@@ -282,6 +283,9 @@
   function vueTraiter(d) {
     const a = aTraiter(d);
     const blocs = [];
+    if (a.crm.length) blocs.push(section("Tâches du CRM", "Les relances prévues pour aujourd'hui ou en retard.",
+      `<div class="liste">${a.crm.map((k) => { const c = ((etat.crm || {}).contacts || []).find((x) => x.id === k.contact_id) || {};
+        return `<div class="fiche tache"><label class="case"><input type="checkbox" data-crm-tache="${esc(k.id)}" data-crm-ecrit> ${esc(k.titre)}</label><small class="${k.echeance < aujourdHui() ? "retard" : ""}"><button class="lien" data-fiche="c:${esc(k.contact_id)}" data-vers-crm>${esc(c.nom || "Contact")}</button>, ${esc(echeanceTexte(k))}</small></div>`; }).join("")}</div>`));
     if (a.fils.length) blocs.push(section("Courriels à traiter", "Des personnes vous ont écrit. Répondez ici, ou marquez le courriel comme traité.", liste(a.fils.slice(0, 30).map(ficheCourriel), "")));
     if (a.idees.length) blocs.push(section("Idées et commentaires à lire", "Ce que les membres de vos apps vous ont envoyé. Répondez ou changez l'état : la personne le voit dans l'app.", liste(a.idees.slice(0, 20).map(ficheIdee), "")));
     blocs.push(section("Avis à approuver", "Un avis paraît sur le site seulement après votre approbation, et seulement si la personne a accepté l'affichage.",
@@ -544,10 +548,274 @@
             return [`<span class="nom">${esc(foyers.get(id) || "Foyer retiré")}</span>`, l.length, esc(cadUsd(n + commun / actifs)), esc(pire ? `${NOMS_FONCTIONS[pire[0]] || pire[0]} (${cadUsd(pire[1])})` : "")];
           }), "Aucun foyer n'a encore utilisé l'IA."));
   }
-  const MOTS = { "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "fanion.idee": "Idée", "fanion.nouveaute": "Nouveauté", "plumeau.idee": "Idée", "plumeau.nouveaute": "Nouveauté", "plumeau.compte": "Compte", "tiroir.foyer": "Foyer", "gousset.demande": "Demande d'accès", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
+  // ---------- CRM : une fiche par personne (clients des apps et prospects), notes, tâches, courriels, import
+  const TYPES_CRM = { client: "Client", prospect: "Prospect", partenaire: "Partenaire", testeur: "Testeur", media: "Média", autre: "Autre" };
+  const ETAPES_CRM = [["a_contacter", "À contacter"], ["contacte", "Contacté"], ["interesse", "Intéressé"], ["converti", "Converti"], ["perdu", "Perdu"]];
+  const NOM_ETAPE = Object.fromEntries(ETAPES_CRM);
+  const APPS_CRM = ["commis", "fanion", "plumeau", "tiroir", "gousset", "seuil", "voute", "pourquoi", "nostalgie"];
+  const EXPEDITEURS_CRM = ["bonjour@holdingai.app", "bonjour@lecommis.ai", "bonjour@fanion.ai"];
+  const cellCrm = (v) => { const b = String(v || "").trim(), x = b.replace(/\D/g, ""); if (!x) return null;
+    return b.startsWith("+") && x.length >= 8 ? "+" + x : x.length === 10 ? "+1" + x : x.length === 11 && x[0] === "1" ? "+" + x : null; };
+  const mailCrm = (v) => (String(v || "").trim().toLowerCase() || null);
+  const aujourdHui = () => new Date().toLocaleDateString("en-CA"); // AAAA-MM-JJ, heure locale
+
+  async function crm(corps) {
+    const { data: s } = await sb.auth.getSession();
+    if (!s.session) throw Object.assign(new Error("Connexion requise."), { code: 401 });
+    const r = await fetch(`${URL_SB}/functions/v1/console-crm`, { method: "POST", headers: { "Content-Type": "application/json", apikey: CLE_SB, Authorization: `Bearer ${s.session.access_token}` }, body: JSON.stringify(corps) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(d.erreur || `Erreur ${r.status}`), { code: r.status });
+    return d;
+  }
+  async function crmCharger() {
+    try { etat.crm = await crm({ action: "tout" }); etat.crmErreur = null; }
+    catch (e) { etat.crmErreur = e.message; etat.crm = etat.crm || { contacts: [], notes: [], taches: [] }; }
+    if (etat.d) rendre();
+  }
+
+  // Réunit les fiches du CRM et les personnes inscrites dans les apps (même compte HoldingAI, même cellulaire ou même courriel)
+  function personnesCrm(d) {
+    const x = etat.crm || { contacts: [] };
+    const gens = [], parUid = new Map(), parCell = new Map(), parMail = new Map();
+    const indexer = (p) => { if (p.uid) parUid.set(p.uid, p); if (p.cellulaire) parCell.set(p.cellulaire, p); if (p.courriel) parMail.set(p.courriel, p); };
+    for (const c of x.contacts || []) {
+      const p = { cle: "c:" + c.id, contact: c, nom: c.nom, courriel: mailCrm(c.courriel), cellulaire: c.cellulaire, uid: c.holdingai_uid, organisation: c.organisation,
+        type: c.type, etape: c.etape, etiquettes: c.etiquettes || [], apps: new Set(c.apps || []), utilise: new Map(), inscrit: null, vu: null, maj: c.maj, sources: [] };
+      gens.push(p); indexer(p);
+    }
+    const ajouter = (src) => {
+      const cell = cellCrm(src.cellulaire), mail = mailCrm(src.courriel);
+      let p = (src.uid && parUid.get(src.uid)) || (cell && parCell.get(cell)) || (mail && parMail.get(mail));
+      if (!p) {
+        p = { cle: "v:" + (src.uid || cell || mail || src.nom), contact: null, nom: src.nom || mail || tel(cell) || "Sans nom", courriel: mail, cellulaire: cell, uid: src.uid || null,
+          organisation: null, type: "client", etape: null, etiquettes: [], apps: new Set(), utilise: new Map(), inscrit: null, vu: null, maj: null, sources: [] };
+        gens.push(p);
+      }
+      if (!p.courriel && mail) p.courriel = mail;
+      if (!p.cellulaire && cell) p.cellulaire = cell;
+      if (!p.uid && src.uid) p.uid = src.uid;
+      if ((!p.nom || p.nom === "Sans nom") && src.nom) p.nom = src.nom;
+      if (src.app) { p.apps.add(src.app); p.utilise.set(src.app, Math.max(p.utilise.get(src.app) || 0, t(src.derniere) || 0)); }
+      if (src.cree && (!p.inscrit || t(src.cree) < t(p.inscrit))) p.inscrit = src.cree;
+      if (src.vu && (!p.vu || t(src.vu) > t(p.vu))) p.vu = src.vu;
+      p.sources.push(src.source);
+      indexer(p);
+    };
+    for (const c of (d.compte || {}).comptes || []) {
+      if (!(c.apps || []).length) ajouter({ uid: c.id, nom: c.nom, cellulaire: c.cellulaire, cree: c.cree, vu: c.vu, source: "Compte HoldingAI" });
+      for (const a of c.apps || []) ajouter({ uid: c.id, nom: c.nom, cellulaire: c.cellulaire, cree: a.premiere || c.cree, vu: c.vu, app: cleApp(a.app), derniere: a.derniere, source: "Compte HoldingAI" });
+    }
+    for (const f of (d.commis || {}).foyers || []) for (const m of f.membres || []) ajouter({ nom: m.nom, courriel: m.email, cellulaire: m.telephone, cree: f.cree, app: "commis", derniere: f.activite, source: `Le Commis, foyer ${f.nom}` });
+    for (const c of (d.gousset || {}).comptes || []) ajouter({ nom: c.prenom, courriel: c.courriel, cree: c.cree, app: "gousset", derniere: c.sync, source: "Le Gousset" });
+    for (const f of (d.tiroir || {}).foyers || []) ajouter({ nom: f.prenom, courriel: f.courriel, cellulaire: f.telephone, cree: f.cree, app: "tiroir", derniere: f.derniere, source: `Le Tiroir, ${f.nom || "tiroir"}` });
+    // Activité de chaque fiche : notes, tâches et courriels
+    const notes = new Map(), taches = new Map();
+    for (const n of x.notes || []) { if (!notes.has(n.contact_id)) notes.set(n.contact_id, []); notes.get(n.contact_id).push(n); }
+    for (const k of x.taches || []) { if (!taches.has(k.contact_id)) taches.set(k.contact_id, []); taches.get(k.contact_id).push(k); }
+    for (const p of gens) {
+      const id = p.contact && p.contact.id;
+      p.notes = (id && notes.get(id)) || []; p.taches = (id && taches.get(id)) || [];
+      p.courriels = p.courriel ? (d.courriels || []).filter((c) => [c.de, c.a, c.repondre_a].map(mailCrm).includes(p.courriel)) : [];
+      p.paiements = p.courriel ? ((d.commis || {}).paiements || []).filter((x2) => mailCrm(x2.courriel) === p.courriel) : [];
+      p.prochaine = p.taches.filter((k) => !k.faite).sort((a, b) => String(a.echeance || "9999").localeCompare(String(b.echeance || "9999")))[0] || null;
+      p.derniere = Math.max(t(p.maj), t(p.vu), ...p.notes.map((n) => t(n.cree)), ...p.courriels.map((c) => t(c.cree)), ...[...p.utilise.values()]);
+    }
+    return gens.sort((a, b) => b.derniere - a.derniere);
+  }
+  const tachesDues = () => ((etat.crm || {}).taches || []).filter((k) => !k.faite && k.echeance && k.echeance <= aujourdHui());
+
+  function tamponCrm(p) {
+    if (p.type === "prospect" && p.etape) return `<span class="tampon ${p.etape === "perdu" ? "refus" : p.etape === "converti" ? "" : "attente"}">${esc(NOM_ETAPE[p.etape])}</span>`;
+    return `<span class="tampon ${p.type === "client" ? "" : "neutre"}">${esc(TYPES_CRM[p.type] || p.type)}</span>`;
+  }
+  const pucesCrm = (apps) => (apps.size || apps.length ? `<span class="puces">${[...apps].map((a) => `<span class="puce-app"><i class="pastille ${esc(a)}"></i>${esc(nomApp[a] || a)}</span>`).join("")}</span>` : "");
+  const echeanceTexte = (k) => { if (!k.echeance) return "sans date"; const auj = aujourdHui();
+    return k.echeance < auj ? `en retard, ${jour(k.echeance + "T12:00")}` : k.echeance === auj ? "aujourd'hui" : jour(k.echeance + "T12:00"); };
+
+  function vueCrm(d) {
+    if (!etat.crm) { crmCharger(); return `<p class="charge">Lecture du CRM…</p>`; }
+    if (etat.crmImport) return vueCrmImport();
+    if (etat.crmFiche === "nouveau") return `<p><button class="lien" data-crm="liste">Retour à la liste</button></p>` + section("Nouveau contact", "", formContact(null));
+    const gens = personnesCrm(d);
+    if (etat.crmFiche) { const p = gens.find((g) => g.cle === etat.crmFiche) || gens.find((g) => g.contact && "c:" + g.contact.id === etat.crmFiche); if (p) return vueCrmFiche(d, p); etat.crmFiche = null; }
+    const f = etat.crmFiltre || "tous", q = (etat.crmRecherche || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const actifs = gens.filter((p) => p.type === "prospect" && ["a_contacter", "contacte", "interesse"].includes(p.etape));
+    const FILTRES = [["tous", `Tous (${gens.length})`], ["client", `Clients (${gens.filter((p) => p.type === "client").length})`], ["prospect", `Prospects (${gens.filter((p) => p.type === "prospect").length})`],
+      ["autres", `Partenaires, testeurs et médias (${gens.filter((p) => ["partenaire", "testeur", "media", "autre"].includes(p.type)).length})`], ["relancer", `À relancer (${gens.filter((p) => p.prochaine && p.prochaine.echeance && p.prochaine.echeance <= aujourdHui()).length})`]];
+    const etiquettes = [...new Set(gens.flatMap((p) => p.etiquettes))].sort();
+    const vus = gens.filter((p) => (f === "tous" || (f === "autres" ? ["partenaire", "testeur", "media", "autre"].includes(p.type) : f === "relancer" ? p.prochaine && p.prochaine.echeance && p.prochaine.echeance <= aujourdHui() : p.type === f))
+      && (!etat.crmEtape || p.etape === etat.crmEtape) && (!etat.crmEtiquette || p.etiquettes.includes(etat.crmEtiquette))
+      && (!q || [p.nom, p.courriel, p.cellulaire, p.organisation, ...p.etiquettes].join(" ").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q)));
+    return (etat.crmErreur ? `<section class="section"><div class="bandeau">Le CRM n'a pas pu être lu : ${esc(etat.crmErreur)}</div></section>` : "") +
+      `<section class="section">${chiffres([[gens.length, gens.length > 1 ? "personnes" : "personne"], [gens.filter((p) => p.type === "client").length, "clients"], [actifs.length, "prospects en cours"],
+        [gens.filter((p) => p.etape === "converti").length, "prospects convertis"], [tachesDues().length, "tâches à faire aujourd'hui ou en retard"]])}</section>` +
+      `<section class="section"><div class="crm-barre">
+        <input id="crm-q" type="search" placeholder="Chercher un nom, un courriel, une étiquette" value="${esc(etat.crmRecherche || "")}" aria-label="Chercher dans le CRM">
+        <div class="crm-boutons" data-crm-ecrit><button class="btn" data-crm="nouveau">Ajouter un contact</button><button class="btn pale" data-crm="importer">Importer une liste</button></div>
+      </div>
+      <div class="crm-filtres" role="group" aria-label="Filtrer">${FILTRES.map(([k, mot]) => `<button class="filtre" data-crm-filtre="${k}" ${f === k ? 'aria-pressed="true"' : 'aria-pressed="false"'}>${esc(mot)}</button>`).join("")}
+        <select id="crm-etape" aria-label="Étape"><option value="">Toutes les étapes</option>${ETAPES_CRM.map(([k, m]) => `<option value="${k}" ${etat.crmEtape === k ? "selected" : ""}>${m} (${gens.filter((p) => p.etape === k).length})</option>`).join("")}</select>
+        ${etiquettes.length ? `<select id="crm-etiquette" aria-label="Étiquette"><option value="">Toutes les étiquettes</option>${etiquettes.map((e) => `<option ${etat.crmEtiquette === e ? "selected" : ""}>${esc(e)}</option>`).join("")}</select>` : ""}
+      </div>` +
+      table([{ t: "Personne" }, { t: "Statut" }, { t: "Apps" }, { t: "Étiquettes" }, { t: "Prochaine tâche" }, { t: "Dernière activité" }],
+        vus.slice(0, 500).map((p) => [`<button class="nom-fiche" data-fiche="${esc(p.cle)}">${esc(p.nom)}</button><small>${esc([p.organisation, p.courriel, tel(p.cellulaire)].filter(Boolean).join(", "))}</small>`,
+          tamponCrm(p), pucesCrm(p.apps), esc(p.etiquettes.join(", ")),
+          p.prochaine ? `${esc(p.prochaine.titre)}<small class="${p.prochaine.echeance && p.prochaine.echeance < aujourdHui() ? "retard" : ""}">${esc(echeanceTexte(p.prochaine))}</small>` : "",
+          esc(p.derniere ? ilYA(p.derniere) : "")]),
+        gens.length ? "Personne ne correspond à cette recherche." : "Le CRM est vide. Ajoutez un contact ou importez une liste; les personnes inscrites dans vos apps s'ajoutent toutes seules.") + `</section>`;
+  }
+
+  function formContact(c) {
+    const v = (k) => esc((c && c[k]) || "");
+    return `<form id="f-crm-contact" class="crm-form" data-id="${esc((c && c.id) || "")}">
+      <label>Nom<input name="nom" required maxlength="120" value="${v("nom")}"></label>
+      <label>Organisation<input name="organisation" maxlength="120" value="${v("organisation")}" placeholder="ex. Club de golf de Magog"></label>
+      <label>Courriel<input name="courriel" type="email" maxlength="200" value="${v("courriel")}"></label>
+      <label>Cellulaire<input name="cellulaire" inputmode="tel" maxlength="30" value="${esc(c && c.cellulaire ? tel(c.cellulaire) : "")}"></label>
+      <label>Type<select name="type">${Object.entries(TYPES_CRM).map(([k, m]) => `<option value="${k}" ${(c ? c.type : "prospect") === k ? "selected" : ""}>${m}</option>`).join("")}</select></label>
+      <label>Étape (prospects)<select name="etape"><option value="">Aucune</option>${ETAPES_CRM.map(([k, m]) => `<option value="${k}" ${c && c.etape === k ? "selected" : ""}>${m}</option>`).join("")}</select></label>
+      <label>Source<input name="source" maxlength="120" value="${v("source")}" placeholder="ex. salon, recommandation, site"></label>
+      <label>Étiquettes<input name="etiquettes" value="${esc(((c && c.etiquettes) || []).join(", "))}" placeholder="séparées par des virgules"></label>
+      <fieldset class="crm-apps"><legend>Apps qui l'intéressent</legend>${APPS_CRM.map((a) => `<label class="case"><input type="checkbox" name="apps" value="${a}" ${((c && c.apps) || []).includes(a) ? "checked" : ""}> ${esc(nomApp[a])}</label>`).join("")}</fieldset>
+      <div class="dlg-actions"><button class="btn" type="submit">${c && c.id ? "Enregistrer" : "Ajouter le contact"}</button><button class="btn pale" type="button" data-crm="annuler">Annuler</button></div>
+    </form>`;
+  }
+
+  function vueCrmFiche(d, p) {
+    const retour = `<p><button class="lien" data-crm="liste">Retour à la liste</button></p>`;
+    if (etat.crmEdition) return retour + section(p.contact ? `Modifier ${esc(p.nom)}` : "Nouveau contact", "", formContact(p.contact || { nom: p.nom, courriel: p.courriel, cellulaire: p.cellulaire, type: p.type, apps: [...p.apps] }));
+    const ouvertes = p.taches.filter((k) => !k.faite), faites = p.taches.filter((k) => k.faite);
+    const activite = [
+      ...p.notes.map((n) => ({ t: t(n.cree), html: `<article class="fiche"><div class="tete"><b>Note</b><span>${esc(moment(n.cree))}</span>${n.auteur ? `<span>${esc(n.auteur)}</span>` : ""}<button class="lien" data-crm-note-suppr="${esc(n.id)}" data-crm-ecrit>Supprimer</button></div><p class="reponse">${esc(n.texte)}</p></article>` })),
+      ...p.courriels.map((c) => ({ t: t(c.cree), html: `<article class="fiche"><div class="tete"><b>${c.sens === "envoye" ? "Courriel envoyé" : "Courriel reçu"}</b><span>${esc(moment(c.cree))}</span><span>${esc(c.sens === "envoye" ? `de ${c.de}` : `à ${c.a}`)}</span></div><p><b>${esc(c.sujet || "(sans objet)")}</b></p><details><summary>Lire</summary><p class="reponse">${esc(String(c.texte || "").slice(0, 4000))}</p></details></article>` })),
+      ...p.paiements.map((x) => ({ t: t(x.cree), html: `<article class="fiche"><div class="tete"><b>Paiement</b><span>${esc(moment(x.cree))}</span><span>${esc(argent(x.montant, x.devise))}</span><span>${esc(x.foyer || "")}</span></div></article>` })),
+      ...faites.map((k) => ({ t: t(k.faite_le), html: `<article class="fiche"><div class="tete"><b>Tâche faite</b><span>${esc(moment(k.faite_le))}</span></div><p>${esc(k.titre)}</p></article>` })),
+    ].sort((a, b) => b.t - a.t);
+    return retour +
+      `<section class="section crm-entete"><div><h2>${esc(p.nom)}</h2><p class="sous">${esc([p.organisation, p.courriel, tel(p.cellulaire)].filter(Boolean).join(" · ") || "Aucune coordonnée")}</p></div>
+        <div class="crm-statut">${tamponCrm(p)}${p.etiquettes.map((e) => `<span class="etiquette">${esc(e)}</span>`).join("")}</div></section>` +
+      (p.type === "prospect" || p.etape ? `<section class="section" data-crm-ecrit><div class="crm-etapes" role="group" aria-label="Étape">${ETAPES_CRM.map(([k, m]) => `<button class="filtre" data-crm-etape-fiche="${k}" aria-pressed="${p.etape === k}">${m}</button>`).join("")}</div></section>` : "") +
+      `<div class="crm-colonnes"><div>` +
+      section("Tâches", "", (ouvertes.length ? `<div class="liste">${ouvertes.map((k) => `<div class="fiche tache"><label class="case"><input type="checkbox" data-crm-tache="${esc(k.id)}" data-crm-ecrit> ${esc(k.titre)}</label><small class="${k.echeance && k.echeance < aujourdHui() ? "retard" : ""}">${esc(echeanceTexte(k))}</small></div>`).join("")}</div>` : `<p class="vide">Aucune tâche ouverte.</p>`) +
+        `<form id="f-crm-tache" class="crm-ligne" data-crm-ecrit><input name="titre" required maxlength="300" placeholder="ex. Relancer après la démo" aria-label="Nouvelle tâche"><input name="echeance" type="date" aria-label="Échéance" value=""><button class="btn" type="submit">Ajouter</button></form>`) +
+      section("Note", "", `<form id="f-crm-note" class="crm-col" data-crm-ecrit><textarea name="texte" rows="3" maxlength="5000" required placeholder="Ce qui s'est dit, ce qu'il faut retenir" aria-label="Nouvelle note"></textarea><button class="btn" type="submit">Ajouter la note</button></form>`) +
+      (p.courriel ? section("Écrire un courriel", `À ${esc(p.courriel)}. Le courriel est gardé dans cette fiche et dans l'onglet Courriels.`,
+        `<form id="f-crm-courriel" class="crm-col" data-crm-ecrit><label>De<select name="de">${EXPEDITEURS_CRM.map((a) => `<option>${a}</option>`).join("")}</select></label>
+          <label>Objet<input name="sujet" required maxlength="300"></label><label>Message<textarea name="texte" rows="7" required maxlength="20000"></textarea></label><button class="btn" type="submit">Envoyer</button></form>`) : "") +
+      `</div><div>` +
+      section("Apps", "", p.apps.size || p.uid ? `${p.utilise.size ? `<p class="crm-apps-ligne"><span>Utilise</span>${pucesCrm(new Set(p.utilise.keys()))}</p>` : ""}${p.contact && (p.contact.apps || []).length ? `<p class="crm-apps-ligne"><span>S'intéresse à</span>${pucesCrm(new Set(p.contact.apps))}</p>` : ""}<p class="note">${esc([p.uid ? "Compte HoldingAI" : "", p.inscrit ? `inscrit le ${jour(p.inscrit)}` : "", p.vu ? `dernière connexion ${ilYA(p.vu)}` : ""].filter(Boolean).join(", "))}</p>${p.sources.length ? `<p class="note">${esc([...new Set(p.sources)].join(" · "))}</p>` : ""}` : `<p class="vide">N'utilise encore aucune app.</p>`) +
+      section("Activité", "", activite.length ? `<div class="liste">${activite.map((a) => a.html).join("")}</div>` : `<p class="vide">Aucune activité pour l'instant.</p>`) +
+      `<p class="crm-bas" data-crm-ecrit><button class="lien" data-crm="modifier">Modifier la fiche</button>${p.contact ? ` <button class="lien" data-crm="supprimer">Supprimer la fiche</button>` : ""}</p>` +
+      `</div></div>`;
+  }
+
+  // Import : coller une liste (copiée d'une feuille) ou choisir un fichier CSV, voir l'aperçu, puis importer
+  const COLONNES_CRM = [["nom", /^(nom|name|nom complet|full ?name|contact)$/], ["prenom", /^(pr[ée]nom|first ?name)$/], ["famille", /^(nom de famille|last ?name|surname)$/],
+    ["courriel", /^(courriel|e-?mail|mail|adresse courriel)$/], ["cellulaire", /^(cellulaire|cell|t[ée]l[ée]phone|tel|phone|mobile|num[ée]ro)$/],
+    ["organisation", /^(organisation|entreprise|compagnie|soci[ée]t[ée]|company|club|organization)$/], ["type", /^(type|cat[ée]gorie)$/], ["etape", /^([ée]tape|statut|stage|status)$/],
+    ["etiquettes", /^([ée]tiquettes?|tags?|mots-?cl[ée]s)$/], ["source", /^(source|provenance)$/], ["apps", /^(apps?|application)$/], ["note", /^(notes?|commentaires?|remarques?)$/]];
+  function lireCsv(texte) {
+    const lignes = String(texte || "").replace(/^﻿/, "").split(/\r?\n/).filter((l) => l.trim());
+    if (!lignes.length) return { entetes: [], rangs: [] };
+    const sep = ["\t", ";", ","].map((s) => [s, (lignes[0].match(new RegExp(s === "\t" ? "\\t" : s, "g")) || []).length]).sort((a, b) => b[1] - a[1])[0][0];
+    const couper = (l) => { const out = []; let cur = "", q = false;
+      for (let i = 0; i < l.length; i++) { const ch = l[i];
+        if (q) { if (ch === '"' && l[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
+        else if (ch === '"') q = true; else if (ch === sep) { out.push(cur.trim()); cur = ""; } else cur += ch; }
+      out.push(cur.trim()); return out; };
+    const brut = lignes.map(couper);
+    const norm = (h) => h.toLowerCase().replace(/[\s_]+/g, " ").trim();
+    const reconnu = brut[0].map((h) => (COLONNES_CRM.find(([, re]) => re.test(norm(h))) || [null])[0]);
+    const avecEntetes = reconnu.filter(Boolean).length >= 1;
+    const cols = avecEntetes ? reconnu : brut[0].map((v) => (/@/.test(v) ? "courriel" : /^\+?[\d\s().-]{10,}$/.test(v) ? "cellulaire" : "nom"));
+    const rangs = (avecEntetes ? brut.slice(1) : brut).map((r) => { const o = {}; cols.forEach((k, i) => { if (k && r[i]) o[k] = o[k] ? `${o[k]} ${r[i]}` : r[i]; });
+      if (!o.nom && (o.prenom || o.famille)) o.nom = [o.prenom, o.famille].filter(Boolean).join(" "); delete o.prenom; delete o.famille; return o; }).filter((o) => o.nom || o.courriel || o.cellulaire);
+    return { entetes: brut[0], cols, avecEntetes, rangs };
+  }
+  function vueCrmImport() {
+    const x = etat.crmImport, a = x.apercu;
+    return `<p><button class="lien" data-crm="liste">Retour à la liste</button></p>` +
+      section("Importer une liste", "Collez des lignes copiées d'une feuille de calcul, ou choisissez un fichier CSV. La première ligne peut donner les colonnes : nom (ou prénom et nom de famille), courriel, cellulaire, organisation, type, étape, étiquettes, source, apps, note. Une personne déjà présente (même courriel ou même cellulaire) est complétée, jamais écrasée.",
+        `<div class="crm-col"><textarea id="crm-import-texte" rows="8" placeholder="nom;courriel;cellulaire;organisation&#10;Julie Tremblay;julie@exemple.ca;514 555-0101;Club de golf Magog">${esc(x.texte || "")}</textarea>
+          <label class="crm-fichier">Ou un fichier CSV<input id="crm-import-fichier" type="file" accept=".csv,.tsv,.txt,text/csv"></label>
+          <div class="crm-ligne"><label>Type par défaut<select id="crm-import-type">${Object.entries(TYPES_CRM).map(([k, m]) => `<option value="${k}" ${(x.type || "prospect") === k ? "selected" : ""}>${m}</option>`).join("")}</select></label>
+          <label>Étiquette à ajouter à tous<input id="crm-import-etiquette" maxlength="40" value="${esc(x.etiquette || "")}" placeholder="ex. salon-golf-2026"></label></div>
+          <div class="dlg-actions"><button class="btn pale" data-crm="apercu">Voir l'aperçu</button>${a && a.rangs.length ? `<button class="btn" data-crm="lancer-import">Importer ${a.rangs.length} contact${a.rangs.length > 1 ? "s" : ""}</button>` : ""}</div></div>`) +
+      (a ? section("Aperçu", a.rangs.length ? `${a.rangs.length} ligne${a.rangs.length > 1 ? "s" : ""} reconnue${a.rangs.length > 1 ? "s" : ""}${a.avecEntetes ? "" : " (sans ligne de colonnes : nom, courriel et cellulaire devinés)"}. Les 10 premières :` : "Aucune ligne reconnue. Vérifiez que la liste a un nom, un courriel ou un cellulaire.",
+        a.rangs.length ? table([{ t: "Nom" }, { t: "Courriel" }, { t: "Cellulaire" }, { t: "Organisation" }, { t: "Type" }, { t: "Étiquettes" }],
+          a.rangs.slice(0, 10).map((r) => [esc(r.nom || ""), esc(r.courriel || ""), esc(r.cellulaire || ""), esc(r.organisation || ""), esc(r.type || x.type || "prospect"), esc(r.etiquettes || "")]), "") : "") : "") +
+      (x.resultat ? section("Résultat", "", `<p>${x.resultat.ajoutes} ajouté${x.resultat.ajoutes > 1 ? "s" : ""}, ${x.resultat.completes} complété${x.resultat.completes > 1 ? "s" : ""}.</p>${(x.resultat.erreurs || []).length ? `<p class="note alerte">${x.resultat.erreurs.map(esc).join("<br>")}</p>` : ""}`) : "");
+  }
+
+  // Une personne vue dans une app mais sans fiche : la fiche est créée au premier geste (note, tâche, étiquette…)
+  async function assurerFiche(p) {
+    if (p.contact) return p.contact.id;
+    const r = await crm({ action: "contact.enregistrer", contact: { nom: p.nom, courriel: p.courriel, cellulaire: p.cellulaire, type: "client", holdingai_uid: p.uid, apps: [...p.apps] } });
+    etat.crmFiche = "c:" + r.contact.id;
+    return r.contact.id;
+  }
+  async function gesteCrm(corps, fait) {
+    try { await crm(corps); if (fait) toast(fait); await crmCharger(); return true; }
+    catch (e) { toast(e.message, true); return false; }
+  }
+  function ficheCourante() { return etat.d && etat.crmFiche ? personnesCrm(etat.d).find((g) => g.cle === etat.crmFiche) : null; }
+
+  async function clicCrm(b) {
+    const g = b.dataset.crm;
+    if (b.dataset.fiche) { etat.crmFiche = b.dataset.fiche; etat.crmEdition = false; rendre(); window.scrollTo({ top: 0 }); return true; }
+    if (b.dataset.crmFiltre) { etat.crmFiltre = b.dataset.crmFiltre; rendre(); return true; }
+    if (b.hasAttribute("data-crm-etape-fiche")) { const p = ficheCourante(); if (!p) return true;
+      try { const id = await assurerFiche(p); await gesteCrm({ action: "contact.enregistrer", contact: { id, etape: b.dataset.crmEtapeFiche } }, `Étape : ${NOM_ETAPE[b.dataset.crmEtapeFiche]}.`); } catch (e) { toast(e.message, true); }
+      return true; }
+    if (b.dataset.crmNoteSuppr) { if (await confirmer({ titre: "Supprimer cette note ?", texte: "Elle sera effacée pour de bon.", bouton: "Supprimer la note" })) gesteCrm({ action: "note.supprimer", id: b.dataset.crmNoteSuppr }, "Note supprimée."); return true; }
+    if (!g) return false;
+    if (g === "liste") { etat.crmFiche = null; etat.crmEdition = false; etat.crmImport = null; rendre(); return true; }
+    if (g === "nouveau") { etat.crmFiche = "nouveau"; etat.crmEdition = true; rendre(); return true; }
+    if (g === "modifier") { etat.crmEdition = true; rendre(); return true; }
+    if (g === "annuler") { etat.crmEdition = false; if (etat.crmFiche === "nouveau") etat.crmFiche = null; rendre(); return true; }
+    if (g === "supprimer") { const p = ficheCourante(); if (!p || !p.contact) return true;
+      if (await confirmer({ titre: `Supprimer la fiche de ${p.nom} ?`, texte: "Ses notes et ses tâches seront effacées pour de bon. Son compte dans les apps n'est pas touché.", bouton: "Supprimer la fiche" })) {
+        if (await gesteCrm({ action: "contact.supprimer", id: p.contact.id }, "Fiche supprimée.")) { etat.crmFiche = null; rendre(); } }
+      return true; }
+    if (g === "importer") { etat.crmImport = { type: "prospect" }; rendre(); return true; }
+    if (g === "apercu") { const x = etat.crmImport; x.texte = $("#crm-import-texte").value; x.type = $("#crm-import-type").value; x.etiquette = $("#crm-import-etiquette").value.trim(); x.apercu = lireCsv(x.texte); x.resultat = null; rendre(); return true; }
+    if (g === "lancer-import") { const x = etat.crmImport, a = x.apercu; if (!a || !a.rangs.length) return true;
+      if (a.rangs.length > 1000) { toast("Maximum de 1000 lignes à la fois.", true); return true; }
+      const lignes = a.rangs.map((r) => ({ ...r, type: r.type || x.type, etiquettes: [r.etiquettes, x.etiquette].filter(Boolean).join(",") }));
+      b.disabled = true;
+      try { x.resultat = await crm({ action: "importer", lignes }); x.apercu = null; x.texte = ""; toast("Import terminé."); await crmCharger(); }
+      catch (e) { toast(e.message, true); b.disabled = false; }
+      return true; }
+    return false;
+  }
+  async function soumettreCrm(form) {
+    const fd = new FormData(form), v = (k) => String(fd.get(k) || "").trim();
+    if (form.id === "f-crm-contact") {
+      const contact = { nom: v("nom"), organisation: v("organisation"), courriel: v("courriel"), cellulaire: v("cellulaire"), type: v("type"), etape: v("etape") || (v("type") === "prospect" && !form.dataset.id ? "a_contacter" : null), source: v("source"),
+        etiquettes: v("etiquettes").split(",").map((x) => x.trim()).filter(Boolean), apps: fd.getAll("apps") };
+      const p = ficheCourante();
+      if (form.dataset.id) contact.id = form.dataset.id; else if (p && p.uid) contact.holdingai_uid = p.uid;
+      try { const r = await crm({ action: "contact.enregistrer", contact }); toast(contact.id ? "Fiche enregistrée." : "Contact ajouté."); etat.crmFiche = "c:" + r.contact.id; etat.crmEdition = false; await crmCharger(); }
+      catch (e) { toast(e.message, true); }
+      return;
+    }
+    const p = ficheCourante(); if (!p) return;
+    try {
+      const id = await assurerFiche(p);
+      if (form.id === "f-crm-note") await gesteCrm({ action: "note.ajouter", contact_id: id, texte: v("texte") }, "Note ajoutée.");
+      if (form.id === "f-crm-tache") await gesteCrm({ action: "tache.ajouter", contact_id: id, titre: v("titre"), echeance: v("echeance") || null }, "Tâche ajoutée.");
+      if (form.id === "f-crm-courriel") {
+        if (!(await confirmer({ titre: `Envoyer ce courriel à ${p.courriel} ?`, texte: `De ${v("de")}, objet « ${v("sujet")} ».`, bouton: "Envoyer" }))) return;
+        await gesteCrm({ action: "courriel.envoyer", contact_id: id, de: v("de"), sujet: v("sujet"), texte: v("texte") }, "Courriel envoyé.");
+        await charger(true); // le courriel envoyé paraît dans l'activité
+      }
+    } catch (e) { toast(e.message, true); }
+  }
+  const MOTS = { "crm.ajout": "CRM", "crm.suppression": "CRM", "crm.etape": "CRM", "crm.courriel": "CRM", "crm.import": "CRM", "commis.idee": "Idée", "commis.nouveaute": "Nouveauté", "fanion.idee": "Idée", "fanion.nouveaute": "Nouveauté", "plumeau.idee": "Idée", "plumeau.nouveaute": "Nouveauté", "plumeau.compte": "Compte", "tiroir.foyer": "Foyer", "gousset.demande": "Demande d'accès", "commis.avis": "Avis", "commis.foyer": "Foyer", "fanion.avis": "Avis", "fanion.groupe": "Groupe", "fanion.demande": "Demande de jeu", "acces.inviter": "Accès", "acces.role": "Accès", "acces.retirer": "Accès", "courriel.etat": "Courriel", "courriel.repondre": "Courriel" };
   const GESTES = { publie: "publié sur le site", attente: "remis en attente", ecarte: "écarté", essai: "essai prolongé", activer: "forfait activé pour 12 mois", retirer: "forfait retiré", traitee: "marquée comme traitée", traite: "marqué comme traité", atraiter: "remis à traiter", repondu: "réponse envoyée", annoncer: "annoncée dans l'app", recue: "à lire", etudiee: "à l'étude", prevue: "prévue", faite: "faite", non: "non retenue" };
   const ROLES = { proprio: "Propriétaire", gestion: "Gestion", lecture: "Consultation" };
   const gesteJournal = (j) => { const x = j.detail || {};
+    if (/^crm\./.test(j.action)) return j.action === "crm.ajout" ? `contact ajouté (${TYPES_CRM[x.type] || ""})` : j.action === "crm.suppression" ? "fiche supprimée" : j.action === "crm.etape" ? `étape : ${NOM_ETAPE[x.etape] || x.etape}` : j.action === "crm.courriel" ? `courriel envoyé : ${x.sujet || ""}` : j.action === "crm.import" ? "import d'une liste" : "";
     if (j.app === "console") return x.geste === "inviter" ? `accès donné (${ROLES[x.role] || ""})` : x.geste === "role" ? `rôle changé (${ROLES[x.role] || ""})` : "accès retiré";
     if (j.action === "gousset.demande") return (ETATS_DEMANDE[x.statut] || [x.statut])[0].toLowerCase();
     if (j.action === "plumeau.compte") return x.geste === "bloquer" ? "IA coupée" : "IA rendue";
@@ -573,7 +841,7 @@
   }
 
   // Menu sur deux rangées : les fonctions en haut, les apps en dessous
-  const FONCTIONS = [["traiter", "À traiter"], ["comptes", "Comptes"], ["courriels", "Courriels"], ["idees", "Idées"], ["couts", "Coûts"], ["journal", "Journal"]];
+  const FONCTIONS = [["traiter", "À traiter"], ["crm", "CRM"], ["comptes", "Comptes"], ["courriels", "Courriels"], ["idees", "Idées"], ["couts", "Coûts"], ["journal", "Journal"]];
   const APPS = [["commis", "Le Commis"], ["fanion", "Le Fanion"], ["plumeau", "Le Plumeau"], ["tiroir", "Le Tiroir"], ["gousset", "Le Gousset"], ["seuil", "Le Seuil"], ["voute", "La Voûte"]];
   function rendre() {
     const d = etat.d; if (!d) return;
@@ -583,9 +851,9 @@
     const bouton = (cls) => ([k, mot]) => `<button class="${cls}" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${cls === "app" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`;
     $("#onglets").innerHTML = `<div class="rangee fonctions" role="group" aria-label="Fonctions">${fonctions.map(bouton("onglet")).join("")}</div>` +
       `<div class="rangee apps" role="group" aria-label="Apps">${APPS.map(bouton("app")).join("")}</div>`;
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
-    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute").forEach((b) => b.remove());
+    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit]").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
     document.title = (n ? `(${n}) ` : "") + "Console HoldingAI";
     etat.frais = null;
@@ -612,6 +880,7 @@
       d.gousset = go.status === "fulfilled" ? go.value : { comptes: [], demandes: [], erreur: go.reason.message };
       d.couts = [...(d.couts || []), ...((d.tiroir || {}).couts || [])];
       etat.d = d; etat.courriel = d.courriel || ""; etat.role = d.role || "lecture"; rendre();
+      crmCharger(); // le CRM se lit à part, puis la page se met à jour
     } catch (e) {
       if (e.code === 401) { await sb.auth.signOut(); montrerPorte("Votre session est terminée. Reconnectez-vous."); }
       else if (e.code === 403) { await sb.auth.signOut(); montrerPorte("Ce compte n'a pas accès à la console.", true); }
@@ -651,6 +920,8 @@
   $("#page").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
     if (b.hasAttribute("data-factures")) { etat.factures = null; rendre(); factures(true); return; }
+    if (b.hasAttribute("data-vers-crm")) { etat.vue = "crm"; }
+    if (await clicCrm(b)) return;
     const d = etat.d;
     if (b.dataset.filtre) { etat.filtre = b.dataset.filtre; rendre(); return; }
     if (b.dataset.filtreidee) { etat.filtreIdee = b.dataset.filtreidee; rendre(); return; }
@@ -758,6 +1029,23 @@
     const courriel = $("#in-invite").value.trim().toLowerCase(), role = $("#in-role").value;
     const ok = await confirmer({ titre: `Donner l'accès à ${courriel} ?`, texte: role === "gestion" ? "Cette personne verra tous les foyers, groupes, avis et questions, et pourra publier des avis et gérer les forfaits." : "Cette personne verra tous les foyers, groupes, avis et questions, y compris les coordonnées des clients, sans pouvoir rien modifier.", bouton: "Donner l'accès" });
     if (ok) agir({ action: "acces.inviter", courriel, role }, "Accès donné.");
+  });
+
+  $("#page").addEventListener("submit", (e) => { if (!/^f-crm-/.test(e.target.id)) return; e.preventDefault(); soumettreCrm(e.target); });
+  $("#page").addEventListener("input", (e) => {
+    if (e.target.id !== "crm-q") return;
+    const pos = e.target.selectionStart; etat.crmRecherche = e.target.value; rendre();
+    const q = $("#crm-q"); if (q) { q.focus(); q.setSelectionRange(pos, pos); }
+  });
+  $("#page").addEventListener("change", async (e) => {
+    const el = e.target;
+    if (el.id === "crm-etape") { etat.crmEtape = el.value || null; rendre(); }
+    if (el.id === "crm-etiquette") { etat.crmEtiquette = el.value || null; rendre(); }
+    if (el.dataset && el.dataset.crmTache) { el.disabled = true; await gesteCrm({ action: "tache.faite", id: el.dataset.crmTache, faite: el.checked }, el.checked ? "Tâche faite." : null); }
+    if (el.id === "crm-import-fichier" && el.files && el.files[0]) {
+      if (el.files[0].size > 2e6) { toast("Fichier trop gros (2 Mo au maximum).", true); return; }
+      $("#crm-import-texte").value = await el.files[0].text();
+    }
   });
 
   // ---------- connexion par code reçu par courriel
