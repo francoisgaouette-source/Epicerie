@@ -1,9 +1,11 @@
-// Console HoldingAI : pont déployé DANS le projet de Le Tiroir et DANS celui de Le Gousset (même fichier).
+// Console HoldingAI : pont déployé DANS les projets du Tiroir, du Gousset, du Seuil et de La Voûte (projet commun)
+// et de HoldingAI Compte (même fichier).
 // Aucun secret à ajouter : la fonction utilise la clé de service de son propre projet, et vérifie la personne
 // auprès du projet du Commis (RPC console_suis_admin avec le jeton de la console). Le journal passe par console_noter.
 //   { action: "tout" }                                   → données de l'app (console_donnees) + rôle
 //   Le Tiroir  : { action: "foyer", id, geste: "activer" | "retirer", paiement? } → forfait 12 mois (gestion)
 //   Le Gousset : { action: "demande", id, statut: "approved" | "declined" | "pending" } → demande d'accès (gestion)
+//   Le Seuil et La Voûte, HoldingAI Compte : lecture seulement (« tout »)
 // Déployer avec verify_jwt = false : le jeton vient du projet du Commis, la vérification est faite ici.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -12,7 +14,8 @@ const COMMIS_URL = "https://gandliltstmtfsmsjaew.supabase.co";
 const COMMIS_CLE = "sb_publishable_8b0VbS6YyEf5vrsn5u9m4Q_JJZ1vkmP"; // clé publique
 const ORIGINES = /^https:\/\/(console\.holdingai\.app|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
 const UUID = /^[0-9a-f-]{36}$/i;
-const APP = (Deno.env.get("SUPABASE_URL") || "").includes("inhheqccvhwybmcdboip") ? "tiroir" : "gousset";
+const PROJETS: Record<string, string> = { inhheqccvhwybmcdboip: "tiroir", jdgflxesnaiumxodrkzd: "gousset", wuvpckyktoukttkbdzql: "seuil", wwakxuzuhmdmweluafiz: "compte" };
+const APP = Object.entries(PROJETS).find(([ref]) => (Deno.env.get("SUPABASE_URL") || "").includes(ref))?.[1] || "inconnu";
 
 Deno.serve(async (req: Request) => {
   const origine = req.headers.get("Origin") || "";

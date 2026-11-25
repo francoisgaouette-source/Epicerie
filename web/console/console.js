@@ -41,7 +41,7 @@
     const e = etatAvis(a), frais = etat.frais === cle ? " frais" : "";
     return e === "publie" ? `<span class="tampon${frais}">Publié</span>` : e === "ecarte" ? `<span class="tampon refus${frais}">Écarté</span>` : `<span class="tampon attente${frais}">En attente</span>`;
   };
-  const nomApp = { commis: "Le Commis", fanion: "Fanion", plumeau: "Le Plumeau", tiroir: "Le Tiroir", gousset: "Le Gousset", holdingai: "HoldingAI", console: "Console" };
+  const nomApp = { commis: "Le Commis", fanion: "Le Fanion", plumeau: "Le Plumeau", tiroir: "Le Tiroir", gousset: "Le Gousset", seuil: "Le Seuil", voute: "La Voûte", pourquoi: "Le Pourquoi", holdingai: "HoldingAI", console: "Console" };
   const puce = (app) => `<span class="app"><i class="pastille ${esc(app)}"></i>${esc(nomApp[app] || app)}</span>`;
 
   // ---------- serveur
@@ -64,7 +64,9 @@
     return d;
   }
   // Le Tiroir et Le Gousset : une fonction « console-pont » dans chaque projet vérifie l'accès auprès du Commis
-  const PROJETS = { tiroir: "https://inhheqccvhwybmcdboip.supabase.co", gousset: "https://jdgflxesnaiumxodrkzd.supabase.co" };
+  const PROJETS = { tiroir: "https://inhheqccvhwybmcdboip.supabase.co", gousset: "https://jdgflxesnaiumxodrkzd.supabase.co",
+    seuil: "https://wuvpckyktoukttkbdzql.supabase.co", // Le Seuil et La Voûte (projet commun)
+    compte: "https://wwakxuzuhmdmweluafiz.supabase.co" }; // HoldingAI Compte
   async function pontApp(app, corps) {
     const { data: s } = await sb.auth.getSession();
     if (!s.session) throw Object.assign(new Error("Connexion requise."), { code: 401 });
@@ -169,7 +171,7 @@
   }
   function vueCourriels(d) {
     const fils = filsCourriels(d), nAttente = fils.filter((f) => f.attente).length;
-    const FILTRES = [["attente", `À traiter${nAttente ? ` (${nAttente})` : ""}`], ["tous", "Tous"], ["holdingai", "HoldingAI"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["auto", "Automatiques"]];
+    const FILTRES = [["attente", `À traiter${nAttente ? ` (${nAttente})` : ""}`], ["tous", "Tous"], ["holdingai", "HoldingAI"], ["commis", "Le Commis"], ["fanion", "Le Fanion"], ["auto", "Automatiques"]];
     const k = etat.filtre;
     const vus = fils.filter((f) => (k === "attente" ? f.attente : k === "tous" ? true : k === "auto" ? f.auto : f.app === k && !f.auto));
     const vide = !fils.length ? "Aucun courriel reçu pour l'instant. Tout ce qui est écrit à une adresse @holdingai.app, @lecommis.ai ou @fanion.ai arrivera ici."
@@ -236,11 +238,11 @@
   };
   function vueIdees(d) {
     const r = d.retour || { idees: [], sondages: [], nouveautes: [] };
-    const APPS = [["tous", "Toutes les apps"], ["commis", "Le Commis"], ["fanion", "Fanion"], ["plumeau", "Le Plumeau"]];
+    const APPS = [["tous", "Toutes les apps"], ["commis", "Le Commis"], ["fanion", "Le Fanion"], ["plumeau", "Le Plumeau"]];
     const appF = APPS.some(([k]) => k === etat.appIdee) ? etat.appIdee : "tous";
     const deLapp = (x) => appF === "tous" || (x.app || "commis") === appF;
     const ids = r.idees.filter(deLapp), so = r.sondages.filter(deLapp), nvs = r.nouveautes.filter(deLapp);
-    const nomSond = appF === "fanion" ? "Fanion" : appF === "commis" ? "Le Commis" : appF === "plumeau" ? "Le Plumeau" : "l'app";
+    const nomSond = appF === "fanion" ? "Le Fanion" : appF === "commis" ? "Le Commis" : appF === "plumeau" ? "Le Plumeau" : "l'app";
     const recents = so.filter((x) => Date.now() - t(x.cree) < 90 * JOUR);
     const nps = recents.length ? Math.round(100 * (recents.filter((x) => x.note >= 9).length - recents.filter((x) => x.note <= 6).length) / recents.length) : null;
     const F = [["recue", "À lire"], ["etudiee", "À l'étude"], ["prevue", "Prévues"], ["faite", "Faites"], ["non", "Non retenues"], ["tous", "Toutes"]];
@@ -256,7 +258,7 @@
       section("Annoncer une nouveauté", "Chaque membre la voit une fois, en haut de l'app, au prochain lancement. Annoncez les améliorations, surtout celles demandées par les membres.",
         `<form class="invite" id="f-nouveaute"><label>Titre<input id="in-nv-titre" required maxlength="120" placeholder="ex. Le bilan accepte maintenant les grammes"></label>
           <label>Détail (facultatif)<input id="in-nv-texte" maxlength="1000" placeholder="Une phrase sur ce qui change et où le trouver"></label>
-          <label>Dans quelle app<select id="in-nv-app"><option value="commis" ${appF === "fanion" || appF === "plumeau" ? "" : "selected"}>Le Commis</option><option value="fanion" ${appF === "fanion" ? "selected" : ""}>Fanion</option><option value="plumeau" ${appF === "plumeau" ? "selected" : ""}>Le Plumeau</option></select></label>
+          <label>Dans quelle app<select id="in-nv-app"><option value="commis" ${appF === "fanion" || appF === "plumeau" ? "" : "selected"}>Le Commis</option><option value="fanion" ${appF === "fanion" ? "selected" : ""}>Le Fanion</option><option value="plumeau" ${appF === "plumeau" ? "selected" : ""}>Le Plumeau</option></select></label>
           <button class="btn" type="submit">Annoncer</button></form>` +
         table([{ t: "Nouveauté" }, { t: "Annoncée" }, { t: "Geste" }], nvs.map((n) => [`${puce(n.app || "commis")} <span class="nom">${esc(n.titre)}</span><small>${esc(n.texte || "")}${n.idee_id ? " · demandée par un membre" : ""}</small>`, esc(jour(n.cree)), `<div class="gestes"><button class="lien" data-nouveaute="${esc(n.id)}">Retirer</button></div>`]), "Aucune nouveauté annoncée pour l'instant.")) +
       section(`Sondage : recommanderiez-vous ${nomSond}?`, "Posé dans l'app après 10 jours d'usage, puis tous les 3 mois. 9-10 : promoteurs (l'app leur propose de la faire découvrir). 0-6 : détracteurs (l'app leur demande ce qui accroche).",
@@ -388,6 +390,43 @@
           "Aucun compte pour l'instant. Les inscriptions sur legousset.ai s'afficheront ici.")) +
       section("Demandes d'accès", "Les personnes qui demandent à essayer Le Gousset, souvent par le lien d'invitation d'un membre.", ficheDemandesGousset(x.demandes || []));
   }
+  // ---------- comptes HoldingAI, Le Seuil et La Voûte
+  // Une app dans HoldingAI Compte (« le-commis ») → son nom court dans la console (« commis »)
+  const cleApp = (slug) => String(slug || "").replace(/^(le|la)-/, "");
+  const personne = (d, uid) => ((d.compte || {}).comptes || []).find((c) => c.id === uid);
+  const cellPersonne = (d, uid) => { const p = personne(d, uid);
+    return p ? `<span class="nom">${esc(p.nom || "Sans nom")}</span><small>${esc(tel(p.cellulaire))}</small>` : `<span class="nom">Compte inconnu</span><small>${esc(String(uid).slice(0, 8))}</small>`; };
+  const pucesApps = (apps) => apps.length ? `<span class="puces">${apps.map((a) => `<span class="puce-app" title="Dernière visite ${esc(ilYA(a.derniere))}"><i class="pastille ${esc(cleApp(a.app))}"></i>${esc(nomApp[cleApp(a.app)] || a.app)}</span>`).join("")}</span>` : "aucune";
+  function vueComptes(d) {
+    const c = d.compte || {}, cp = c.comptes || [];
+    const visitesDe = (cle) => cp.filter((x) => (x.apps || []).some((a) => cleApp(a.app) === cle)).length;
+    const parApp = (c.apps || []).filter((a) => a.slug !== "holdingai").map((a) => [visitesDe(cleApp(a.slug)), `sur ${a.nom}`]).filter(([n]) => n);
+    return bandeauErreur(c, "HoldingAI Compte") +
+      `<section class="section">${chiffres([[cp.length, cp.length > 1 ? "comptes HoldingAI" : "compte HoldingAI"], [cp.filter((x) => Date.now() - t(x.cree) < 7 * JOUR).length, "nouveaux depuis 7 jours"], ((n) => [n, `${n > 1 ? "connectés" : "connecté"} depuis 7 jours`])(cp.filter((x) => x.vu && Date.now() - t(x.vu) < 7 * JOUR).length), ...parApp])}</section>` +
+      section("Comptes", "Un seul compte par personne, pour toutes les apps branchées sur compte.holdingai.app. Les apps pas encore branchées gardent leurs propres comptes et n'apparaissent pas ici.",
+        table([{ t: "Personne" }, { t: "Créé" }, { t: "Dernière connexion" }, { t: "Apps utilisées" }],
+          cp.map((x) => [`<span class="nom">${esc(x.nom || "Sans nom")}</span><small>${esc(tel(x.cellulaire))}</small>`, esc(jour(x.cree)), esc(x.vu ? ilYA(x.vu) : "jamais"), pucesApps(x.apps || [])]),
+          "Aucun compte HoldingAI pour l'instant."));
+  }
+  function vueSeuil(d) {
+    const x = d.seuilvoute || {}, rs = x.seuil || [];
+    return bandeauErreur(x, "Le Seuil") +
+      `<section class="section">${chiffres([[rs.length, rs.length > 1 ? "personnes avec un compte" : "personne avec un compte"], ((n) => [n, `${n > 1 ? "actives" : "active"} depuis 7 jours`])(rs.filter((r) => Date.now() - t(r.maj) < 7 * JOUR).length), [rs.reduce((s, r) => s + (Number(r.reponses) || 0), 0), "réponses enregistrées"], [rs.reduce((s, r) => s + (Number(r.rappels) || 0), 0), "rappels prévus"]])}</section>` +
+      section("Personnes", "Le Seuil est gratuit et le compte y est facultatif : on ne voit ici que les personnes qui gardent leurs réponses dans leur compte HoldingAI. Le contenu des réponses n'est pas affiché.",
+        table([{ t: "Personne" }, { t: "Réponses", n: 1 }, { t: "Rappels", n: 1 }, { t: "Dernière mise à jour" }],
+          rs.map((r) => [cellPersonne(d, r.uid), r.reponses, r.rappels, esc(ilYA(r.maj))]),
+          "Personne ne garde encore ses réponses dans un compte."));
+  }
+  function vueVoute(d) {
+    const x = d.seuilvoute || {}, vs = x.voute || [];
+    const ko = (n) => n == null ? "" : n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} Ko` : `${(n / 1024 / 1024).toFixed(1).replace(".", ",")} Mo`;
+    return bandeauErreur(x, "La Voûte") +
+      `<section class="section">${chiffres([[vs.length, vs.length > 1 ? "voûtes gardées dans un compte" : "voûte gardée dans un compte"], ((n) => [n, `${n > 1 ? "mises" : "mise"} à jour depuis 30 jours`])(vs.filter((v) => Date.now() - t(v.maj) < 30 * JOUR).length), [ko(vs.reduce((s, v) => s + (Number(v.taille) || 0), 0)) || "0 Ko", "au total"]])}</section>` +
+      section("Voûtes", "Chaque voûte est chiffrée sur l'appareil de la personne. La console voit seulement sa taille et sa date : ni HoldingAI ni la console ne peuvent l'ouvrir.",
+        table([{ t: "Personne" }, { t: "Taille", n: 1 }, { t: "Envoyée de" }, { t: "Dernière copie" }],
+          vs.map((v) => [cellPersonne(d, v.uid), esc(ko(v.taille)), esc(v.appareil || ""), esc(ilYA(v.maj))]),
+          "Aucune voûte gardée dans un compte pour l'instant."));
+  }
   // ---------- coûts : frais fixes mensuels + coûts de l'API Claude, tout en dollars canadiens
   // Taux utilisé pour les services facturés en $ US : taux du marché (≈ 1,37) + ≈ 2,5 % de frais de la carte.
   const TAUX = 1.40;
@@ -480,8 +519,8 @@
   }
 
   // Menu sur deux rangées : les fonctions en haut, les apps en dessous
-  const FONCTIONS = [["traiter", "À traiter"], ["courriels", "Courriels"], ["idees", "Idées"], ["couts", "Coûts"], ["journal", "Journal"]];
-  const APPS = [["commis", "Le Commis"], ["fanion", "Fanion"], ["plumeau", "Le Plumeau"], ["tiroir", "Le Tiroir"], ["gousset", "Le Gousset"]];
+  const FONCTIONS = [["traiter", "À traiter"], ["comptes", "Comptes"], ["courriels", "Courriels"], ["idees", "Idées"], ["couts", "Coûts"], ["journal", "Journal"]];
+  const APPS = [["commis", "Le Commis"], ["fanion", "Le Fanion"], ["plumeau", "Le Plumeau"], ["tiroir", "Le Tiroir"], ["gousset", "Le Gousset"], ["seuil", "Le Seuil"], ["voute", "La Voûte"]];
   function rendre() {
     const d = etat.d; if (!d) return;
     const n = aTraiter(d).n;
@@ -490,7 +529,7 @@
     const bouton = (cls) => ([k, mot]) => `<button class="${cls}" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${cls === "app" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`;
     $("#onglets").innerHTML = `<div class="rangee fonctions" role="group" aria-label="Fonctions">${fonctions.map(bouton("onglet")).join("")}</div>` +
       `<div class="rangee apps" role="group" aria-label="Apps">${APPS.map(bouton("app")).join("")}</div>`;
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
     if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
@@ -512,7 +551,9 @@
         d.couts = [...(d.couts || []), ...(p.couts || [])];
       } catch (e) { d.plumeau = { comptes: [], erreur: e.message }; }
       // Le Tiroir et Le Gousset (projets à part), lus en parallèle
-      const [ti, go] = await Promise.allSettled([pontApp("tiroir", { action: "tout" }), pontApp("gousset", { action: "tout" })]);
+      const [ti, go, se, co] = await Promise.allSettled([pontApp("tiroir", { action: "tout" }), pontApp("gousset", { action: "tout" }), pontApp("seuil", { action: "tout" }), pontApp("compte", { action: "tout" })]);
+      d.seuilvoute = se.status === "fulfilled" ? se.value : { seuil: [], voute: [], erreur: se.reason.message };
+      d.compte = co.status === "fulfilled" ? co.value : { comptes: [], apps: [], erreur: co.reason.message };
       d.tiroir = ti.status === "fulfilled" ? ti.value : { foyers: [], paiements: [], erreur: ti.reason.message };
       d.gousset = go.status === "fulfilled" ? go.value : { comptes: [], demandes: [], erreur: go.reason.message };
       d.couts = [...(d.couts || []), ...((d.tiroir || {}).couts || [])];

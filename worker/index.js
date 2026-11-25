@@ -8,7 +8,7 @@ const SITES = {
 // Pour tester sur l'adresse workers.dev : ?hote=lecommis.ai ou ?hote=console.holdingai.app (mémorisé dans un témoin)
 const TEST = /\.workers\.dev$|^localhost$/;
 
-const CSP_CONSOLE = "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src https://gandliltstmtfsmsjaew.supabase.co https://inhheqccvhwybmcdboip.supabase.co https://jdgflxesnaiumxodrkzd.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const CSP_CONSOLE = "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src https://gandliltstmtfsmsjaew.supabase.co https://inhheqccvhwybmcdboip.supabase.co https://jdgflxesnaiumxodrkzd.supabase.co https://wuvpckyktoukttkbdzql.supabase.co https://wwakxuzuhmdmweluafiz.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 // ---------- Courriels ----------
 // Tout ce qui est écrit à une adresse @holdingai.app, @lecommis.ai ou @fanion.ai passe ici (Email Routing, règle « catch-all » de chaque domaine) :
