@@ -2500,6 +2500,7 @@
     // Première connexion HoldingAI : reprendre ce qui était lié à l'ancien compte du Commis (propriétaire, idées…)
     if (session) { try { await sb.rpc("reprendre_compte"); } catch (e) { /* rien */ } }
     current = session ? session.user.id : null;
+    if (!session && !$("#install-gate") || (!session && $("#install-gate").hidden)) { window.HOLDINGAI_PORTE.personnage = "Rosalie"; window.HOLDINGAI_PORTE = Object.assign(window.HOLDINGAI_PORTE || {}, { barriere: true }); if (window.HoldingAIPorte) HoldingAIPorte.barriere(); }
     await onSession(session);
     if (erreur) loginStatus(erreur);
   })();
