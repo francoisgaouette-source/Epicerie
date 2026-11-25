@@ -77,7 +77,7 @@
     etat.facturesEnCours = false;
     if (etat.vue === "couts") rendre();
   }
-  const PROJETS = { tiroir: "https://inhheqccvhwybmcdboip.supabase.co", gousset: "https://jdgflxesnaiumxodrkzd.supabase.co",
+  const PROJETS = { commis: URL_SB, tiroir: "https://inhheqccvhwybmcdboip.supabase.co", gousset: "https://jdgflxesnaiumxodrkzd.supabase.co",
     seuil: "https://wuvpckyktoukttkbdzql.supabase.co", // Le Seuil et La Voûte (projet commun)
     compte: "https://wwakxuzuhmdmweluafiz.supabase.co" }; // HoldingAI Compte
   async function pontApp(app, corps) {
@@ -840,8 +840,91 @@
       }), "Aucun geste pour l'instant."));
   }
 
+  // ---------- Viralité : combien de nouveaux chaque utilisateur amène, par app
+  // Commis, Gousset, Tiroir : console_viralite() de chaque projet (lu seulement à l'ouverture de l'onglet).
+  // Fanion (groupes, parrain « ref »), Plumeau et HoldingAI Compte : calculés avec les données déjà chargées.
+  async function viralite() {
+    if (etat.viraliteEnCours) return;
+    etat.viraliteEnCours = true;
+    const apps = ["commis", "gousset", "tiroir"];
+    const res = await Promise.allSettled(apps.map((a) => pontApp(a, { action: "viralite" })));
+    etat.viralite = Object.fromEntries(apps.map((a, i) => [a, res[i].status === "fulfilled" ? res[i].value : { unites: [], membres: [], partages: [], erreur: res[i].reason.message }]));
+    etat.viraliteEnCours = false;
+    if (etat.vue === "viralite") rendre();
+  }
+  const pct = (n, sur) => (sur ? `${Math.round((100 * n) / sur)} %` : "–");
+  const facteur = (n) => (n == null ? "–" : n.toFixed(2).replace(".", ","));
+  const mediane = (xs) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const duree = (ms) => (ms == null ? "–" : ms < 3600e3 ? "moins d'une heure" : ms < 2 * JOUR ? pl(Math.round(ms / 3600e3), "heure", "heures") : pl(Math.round(ms / JOUR), "jour", "jours"));
+  // x = { unites:[{id,nom,cree,parrain}], membres:[{unite,cree,invite}], partages:[{unite,cree,canal}] }
+  function mesureVirale(x, depuis) {
+    const dans = (c) => t(c) >= depuis;
+    const us = x.unites || [], parId = new Map(us.map((u) => [u.id, u]));
+    const nouveaux = us.filter((u) => dans(u.cree)), parraines = nouveaux.filter((u) => u.parrain);
+    const invites = (x.membres || []).filter((m) => m.invite && dans(m.cree));
+    const partages = (x.partages || []).filter((p) => dans(p.cree));
+    const amenes = parraines.length + invites.length;
+    const base = us.filter((u) => t(u.cree) < Date.now()).length;
+    const cycles = parraines.map((u) => parId.get(u.parrain)).map((p, i) => (p ? t(parraines[i].cree) - t(p.cree) : null)).filter((v) => v != null && v >= 0);
+    return { total: us.length, nouveaux: nouveaux.length, parraines: parraines.length, invites: invites.length, partages: partages.length,
+      conversion: partages.length ? parraines.length / partages.length : null, k: base ? amenes / base : null, cycle: mediane(cycles) };
+  }
+  function ambassadeurs(app, x, depuis) {
+    const us = x.unites || [], parId = new Map(us.map((u) => [u.id, u])), score = new Map();
+    const plus = (id, cle) => { if (!id) return; const s = score.get(id) || { parraines: 0, invites: 0, partages: 0 }; s[cle]++; score.set(id, s); };
+    us.filter((u) => u.parrain && t(u.cree) >= depuis).forEach((u) => plus(u.parrain, "parraines"));
+    (x.membres || []).filter((m) => m.invite && t(m.cree) >= depuis).forEach((m) => plus(m.unite, "invites"));
+    (x.partages || []).filter((p) => t(p.cree) >= depuis).forEach((p) => plus(p.unite, "partages"));
+    return [...score].map(([id, s]) => ({ app, nom: (parId.get(id) || {}).nom || "Compte retiré", ...s, amenes: s.parraines + s.invites }));
+  }
+  function vueViralite(d) {
+    const per = etat.viralitePeriode || "30", depuis = per === "30" ? Date.now() - 30 * JOUR : 0;
+    const v = etat.viralite;
+    if (!v) { viralite(); }
+    const f = d.fanion || { groupes: [] }, gr = f.groupes || [];
+    // Fanion : un groupe « parrainé » porte la référence du groupe qui l'a amené ; les joueurs ajoutés sont des invités
+    const parRef = (r) => gr.find((g) => g.id === r || g.nom === r || g.code === r);
+    const fanion = { unites: gr.map((g) => ({ id: g.id, nom: g.nom, cree: g.cree, parrain: g.ref ? (parRef(g.ref) || {}).id || g.ref : null })), membres: [], partages: [] };
+    const joueursInvites = gr.reduce((s, g) => s + Math.max(0, (Number(g.joueurs) || 0) - 1), 0);
+    const plumeau = { unites: ((d.plumeau || {}).comptes || []).map((c) => ({ id: c.user_id, nom: c.prenom, cree: c.cree, parrain: null })), membres: [], partages: [] };
+    const lignes = [
+      ["commis", "foyers", v && v.commis], ["fanion", "groupes", fanion], ["gousset", "comptes", v && v.gousset], ["tiroir", "foyers", v && v.tiroir], ["plumeau", "comptes", plumeau],
+    ];
+    const mesures = lignes.map(([app, unite, x]) => ({ app, unite, x, m: x ? mesureVirale(x, depuis) : null }));
+    if (per === "tout") { const mf = mesures.find((l) => l.app === "fanion").m; mf.invites = joueursInvites; mf.k = mf.total ? (mf.parraines + joueursInvites) / mf.total : null; }
+    const ok = mesures.filter((l) => l.m);
+    const tot = ok.reduce((s, l) => ({ nouveaux: s.nouveaux + l.m.nouveaux, parraines: s.parraines + l.m.parraines, invites: s.invites + l.m.invites, partages: s.partages + l.m.partages, total: s.total + l.m.total }), { nouveaux: 0, parraines: 0, invites: 0, partages: 0, total: 0 });
+    const kGlobal = tot.total ? (tot.parraines + tot.invites) / tot.total : null;
+    const erreurs = ["commis", "gousset", "tiroir"].filter((a) => v && v[a] && v[a].erreur).map((a) => `${nomApp[a]} : ${esc(v[a].erreur)}`);
+    const choix = `<div class="filtres" role="group" aria-label="Période">${[["30", "30 derniers jours"], ["tout", "Depuis le début"]].map(([k, m]) => `<button class="filtre" data-viralite-periode="${k}" aria-pressed="${per === k}">${m}</button>`).join("")}</div>`;
+    const amb = [...(v ? ["commis", "gousset", "tiroir"].flatMap((a) => ambassadeurs(a, v[a], depuis)) : []), ...ambassadeurs("fanion", fanion, depuis)]
+      .filter((a) => a.amenes || a.partages).sort((a, b) => b.amenes - a.amenes || b.partages - a.partages).slice(0, 15);
+    const cp = (d.compte || {}).comptes || [];
+    const multi = cp.filter((c) => (c.apps || []).filter((a) => cleApp(a.app) !== "holdingai").length >= 2);
+    return `<section class="section"><h2>Viralité</h2><p class="sous">Combien de nouveaux chaque utilisateur amène. Au-dessus de 1, chaque utilisateur en amène plus d'un et l'app grandit seule ; sous 1, la croissance dépend de vos efforts.</p>${choix}
+      ${v ? "" : `<p class="charge">Lecture des parrainages et des partages…</p>`}
+      ${erreurs.length ? `<div class="bandeau">Certaines données n'ont pas pu être lues. ${erreurs.join(" ; ")}</div>` : ""}
+      ${chiffres([[tot.nouveaux, per === "30" ? "nouveaux depuis 30 jours" : "inscrits au total"], [pct(tot.parraines, tot.nouveaux), "venus par parrainage"], [tot.invites, "personnes invitées dans un foyer ou un groupe"], [tot.partages, "partages de l'app"], [facteur(kGlobal), "facteur K, toutes apps"]])}</section>` +
+      section("Par app", "Facteur K : (parrainages + invités) ÷ inscrits. Conversion : parrainages réussis ÷ partages. Cycle viral : délai typique entre l'inscription d'un parrain et celle de la personne qu'il amène.",
+        table([{ t: "App" }, { t: "Nouveaux", n: 1 }, { t: "Par parrainage", n: 1 }, { t: "Invités", n: 1 }, { t: "Partages", n: 1 }, { t: "Conversion", n: 1 }, { t: "Facteur K", n: 1 }, { t: "Cycle viral" }],
+          mesures.map(({ app, unite, m }) => m ? [`${puce(app)}<small>${esc(pl(m.total, unite.replace(/s$/, ""), unite))}</small>`, m.nouveaux, `${m.parraines}<small>${pct(m.parraines, m.nouveaux)}</small>`,
+            app === "fanion" && per === "30" ? "<small>total seulement</small>" : m.invites, app === "fanion" || app === "plumeau" || app === "tiroir" ? "<small>pas mesuré</small>" : m.partages,
+            m.conversion == null ? "–" : pct(m.parraines, m.partages), `<b>${facteur(m.k)}</b>`, esc(duree(m.cycle))] : [puce(app), "…", "", "", "", "", "", ""]), "")) +
+      section("Ambassadeurs", "Les foyers, groupes et comptes qui amènent le plus de monde. Un bon endroit pour dire merci, ou leur offrir un mois.",
+        table([{ t: "Qui" }, { t: "App" }, { t: "Parrainages", n: 1 }, { t: "Invités", n: 1 }, { t: "Partages", n: 1 }],
+          amb.map((a) => [`<span class="nom">${esc(a.nom)}</span>`, puce(a.app), a.parraines, a.invites, a.app === "fanion" ? "–" : a.partages]),
+          per === "30" ? "Personne n'a parrainé, invité ou partagé depuis 30 jours." : "Personne n'a encore parrainé, invité ou partagé.")) +
+      section("Plusieurs apps", "Les personnes avec un compte HoldingAI qui utilisent au moins deux apps : le passage d'une app à l'autre.",
+        `${chiffres([[multi.length, multi.length > 1 ? "personnes sur 2 apps ou plus" : "personne sur 2 apps ou plus"], [pct(multi.length, cp.length), "des comptes HoldingAI"]])}` +
+        table([{ t: "Personne" }, { t: "Apps utilisées" }], multi.map((c) => [`<span class="nom">${esc(c.nom || "Sans nom")}</span>`, pucesApps(c.apps || [])]), "Aucune personne n'utilise encore deux apps.")) +
+      section("Pas encore mesuré", "",
+        `<ul class="note-liste"><li>Le Tiroir, Le Plumeau, Le Seuil, La Voûte, Le Pourquoi et La Nostalgie n'ont pas encore de lien de parrainage ni de bouton de partage suivi.</li>
+        <li>Les ouvertures d'un lien partagé ne sont pas comptées : la conversion compte seulement les inscriptions qui passent par un parrainage.</li>
+        <li>Les partages faits dans Le Fanion restent dans Firebase ; seuls les groupes parrainés et les joueurs ajoutés sont comptés.</li></ul>`);
+  }
+
   // Menu sur deux rangées : les fonctions en haut, les apps en dessous
-  const FONCTIONS = [["traiter", "À traiter"], ["crm", "CRM"], ["comptes", "Comptes"], ["courriels", "Courriels"], ["idees", "Idées"], ["couts", "Coûts"], ["journal", "Journal"]];
+  const FONCTIONS = [["traiter", "À traiter"], ["crm", "CRM"], ["comptes", "Comptes"], ["courriels", "Courriels"], ["idees", "Idées"], ["viralite", "Viralité"], ["couts", "Coûts"], ["journal", "Journal"]];
   const APPS = [["commis", "Le Commis"], ["fanion", "Le Fanion"], ["plumeau", "Le Plumeau"], ["tiroir", "Le Tiroir"], ["gousset", "Le Gousset"], ["seuil", "Le Seuil"], ["voute", "La Voûte"]];
   function rendre() {
     const d = etat.d; if (!d) return;
@@ -851,7 +934,7 @@
     const bouton = (cls) => ([k, mot]) => `<button class="${cls}" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${cls === "app" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`;
     $("#onglets").innerHTML = `<div class="rangee fonctions" role="group" aria-label="Fonctions">${fonctions.map(bouton("onglet")).join("")}</div>` +
       `<div class="rangee apps" role="group" aria-label="Apps">${APPS.map(bouton("app")).join("")}</div>`;
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "viralite" ? vueViralite(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
     if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit]").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
@@ -915,7 +998,7 @@
 
   // ---------- gestes
   $("#onglets").addEventListener("click", (e) => { const b = e.target.closest("[data-vue]"); if (!b) return; etat.vue = b.dataset.vue; rendre(); window.scrollTo({ top: 0 }); });
-  $("#actualiser").addEventListener("click", async () => { await charger(true); toast("Données à jour."); });
+  $("#actualiser").addEventListener("click", async () => { etat.viralite = null; await charger(true); toast("Données à jour."); });
   $("#sortir").addEventListener("click", async () => { await sb.auth.signOut(); etat.d = null; montrerPorte(""); });
   $("#page").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
@@ -923,6 +1006,7 @@
     if (b.hasAttribute("data-vers-crm")) { etat.vue = "crm"; }
     if (await clicCrm(b)) return;
     const d = etat.d;
+    if (b.dataset.viralitePeriode) { etat.viralitePeriode = b.dataset.viralitePeriode; rendre(); return; }
     if (b.dataset.filtre) { etat.filtre = b.dataset.filtre; rendre(); return; }
     if (b.dataset.filtreidee) { etat.filtreIdee = b.dataset.filtreidee; rendre(); return; }
     if (b.dataset.appidee) { etat.appIdee = b.dataset.appidee; rendre(); return; }

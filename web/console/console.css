@@ -237,3 +237,7 @@ label.case input { width: 18px; height: 18px; accent-color: var(--tampon); }
 .crm-apps-ligne { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: 6px; }
 .crm-apps-ligne > span:first-child { color: var(--gris); font-size: 14px; min-width: 92px; }
 .section > p.note, .crm-colonnes p.note { font-size: 14px; color: var(--gris); margin-top: 4px; }
+/* Viralité */
+.note-liste { margin: 6px 0 0; padding-left: 20px; color: var(--gris); line-height: 1.55; }
+.note-liste li + li { margin-top: 6px; }
+.filtres + .chiffres, .filtres + .charge, .filtres + .bandeau { margin-top: 18px; }
