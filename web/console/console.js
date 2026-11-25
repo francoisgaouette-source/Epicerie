@@ -41,7 +41,7 @@
     const e = etatAvis(a), frais = etat.frais === cle ? " frais" : "";
     return e === "publie" ? `<span class="tampon${frais}">Publié</span>` : e === "ecarte" ? `<span class="tampon refus${frais}">Écarté</span>` : `<span class="tampon attente${frais}">En attente</span>`;
   };
-  const nomApp = { commis: "Le Commis", fanion: "Le Fanion", plumeau: "Le Plumeau", tiroir: "Le Tiroir", gousset: "Le Gousset", seuil: "Le Seuil", voute: "La Voûte", pourquoi: "Le Pourquoi", holdingai: "HoldingAI", console: "Console" };
+  const nomApp = { commis: "Le Commis", fanion: "Le Fanion", plumeau: "Le Plumeau", tiroir: "Le Tiroir", gousset: "Le Gousset", seuil: "Le Seuil", voute: "La Voûte", pourquoi: "Le Pourquoi", nostalgie: "La Nostalgie", holdingai: "HoldingAI", console: "Console" };
   const puce = (app) => `<span class="app"><i class="pastille ${esc(app)}"></i>${esc(nomApp[app] || app)}</span>`;
 
   // ---------- serveur
@@ -64,6 +64,19 @@
     return d;
   }
   // Le Tiroir et Le Gousset : une fonction « console-pont » dans chaque projet vérifie l'accès auprès du Commis
+  // Frais variables lus dans les factures (Anthropic, Twilio, Stripe) : chargés seulement quand l'onglet Coûts s'ouvre
+  async function factures(rafraichir) {
+    if (etat.facturesEnCours) return;
+    etat.facturesEnCours = true;
+    try {
+      const { data: s } = await sb.auth.getSession();
+      const r = await fetch(`${URL_SB}/functions/v1/console-factures`, { method: "POST", headers: { "Content-Type": "application/json", apikey: CLE_SB, Authorization: `Bearer ${s.session.access_token}` }, body: JSON.stringify({ rafraichir: !!rafraichir }) });
+      const d = await r.json().catch(() => ({}));
+      etat.factures = r.ok ? d : { erreur: d.erreur || `Erreur ${r.status}` };
+    } catch (e) { etat.factures = { erreur: e.message }; }
+    etat.facturesEnCours = false;
+    if (etat.vue === "couts") rendre();
+  }
   const PROJETS = { tiroir: "https://inhheqccvhwybmcdboip.supabase.co", gousset: "https://jdgflxesnaiumxodrkzd.supabase.co",
     seuil: "https://wuvpckyktoukttkbdzql.supabase.co", // Le Seuil et La Voûte (projet commun)
     compte: "https://wwakxuzuhmdmweluafiz.supabase.co" }; // HoldingAI Compte
@@ -445,6 +458,46 @@
   const usd = cadUsd; // les autres onglets (Plumeau, Tiroir) affichent aussi en $ CA
   const MOIS = 365 / 12 / 30; // ramène 30 jours à un mois moyen
   const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)", colette: "Colette (questions)", ajouter: "Le Plumeau : lecture d'un lien", classer: "Le Plumeau : classement des liens", suggerer: "Le Plumeau : sites semblables" };
+  const ORDRE_APPS = ["commis", "fanion", "plumeau", "tiroir", "gousset", "seuil", "voute", "pourquoi", "nostalgie", "holdingai"];
+  const NOM_FRAIS = { holdingai: "Compte HoldingAI", nostalgie: "La Nostalgie" };
+  function sectionFrais() {
+    const f = etat.factures;
+    if (!f) { factures(); return section("Frais variables par app", "", `<p class="charge">Lecture des factures…</p>`); }
+    if (f.erreur) return section("Frais variables par app", "", `<p class="vide">Les factures n'ont pas pu être lues (${esc(f.erreur)}). <button class="lien" data-factures>Réessayer</button></p>`);
+    const a = f.anthropic || {}, tw = f.twilio || {}, st = f.stripe || {};
+    const enCad = (montant, devise) => (String(devise || "cad").toLowerCase() === "usd" ? montant * TAUX : montant);
+    const lignes = new Map([...ORDRE_APPS, "autre"].map((k) => [k, { claude: 0, textos: 0, stripe: 0, ventes: 0 }]));
+    const ajouter = (app, cle, cadMontant) => { const l = lignes.get(app && lignes.has(app) ? app : "autre"); l[cle] += cadMontant; };
+    if (a.pret) for (const c of a.cles || []) ajouter(c.app, "claude", c.usd * TAUX);
+    if (tw.pret) {
+      // Verify : partagé selon les tentatives de chaque service; textos directs : selon le nombre envoyé par chaque numéro
+      let attribue = 0;
+      for (const v of tw.verify || []) { ajouter(v.app, "textos", v.usd * TAUX); attribue += v.usd; }
+      const smsUsd = (tw.categories || []).filter((c) => /^(sms|mms)/.test(c.cle)).reduce((s, c) => s + c.usd, 0);
+      const nbTextos = (tw.textos || []).reduce((s, x) => s + x.nombre, 0);
+      for (const x of tw.textos || []) { const part = nbTextos ? smsUsd * x.nombre / nbTextos : 0; ajouter(x.app, "textos", part * TAUX); attribue += part; }
+      ajouter(null, "textos", Math.max(0, (tw.total_usd || 0) - attribue) * TAUX); // numéros loués, autres services
+    }
+    if (st.pret) for (const [app, x] of Object.entries(st.par_app || {})) { ajouter(app === "inconnue" ? null : app, "stripe", enCad(x.frais, st.devise)); ajouter(app === "inconnue" ? null : app, "ventes", enCad(x.ventes, st.devise)); }
+    const somme = (k) => [...lignes.values()].reduce((s, l) => s + l[k], 0);
+    etat.fraisVariables = { total: somme("claude") + somme("textos") + somme("stripe"), claude: a.pret ? somme("claude") : null }; // $ CA, pour les chiffres du haut
+    const manque = [!a.pret && "Anthropic", !tw.pret && "Twilio", !st.pret && "Stripe"].filter(Boolean);
+    const cellule = (pret, v) => (pret ? esc(cad(v)) : `<span class="gris">—</span>`);
+    const rangs = [...lignes.entries()].filter(([k, l]) => ORDRE_APPS.includes(k) || l.claude + l.textos + l.stripe > 0.004)
+      .map(([k, l]) => [k === "autre" ? `<span class="nom">Commun ou non attribué</span><small>numéros loués, clés sans nom d'app, paiements sans description</small>` : k === "holdingai" ? `<span class="nom">Compte HoldingAI</span><small>textos de connexion</small>` : puce(k),
+        cellule(a.pret, l.claude), cellule(tw.pret, l.textos), cellule(st.pret, l.stripe), `<b>${esc(cad(l.claude + l.textos + l.stripe))}</b>`, st.pret && l.ventes ? esc(cad(l.ventes)) : ""]);
+    rangs.push([`<span class="nom">Total</span>`, cellule(a.pret, somme("claude")), cellule(tw.pret, somme("textos")), cellule(st.pret, somme("stripe")), `<b>${esc(cad(somme("claude") + somme("textos") + somme("stripe")))}</b>`, st.pret ? esc(cad(somme("ventes"))) : ""]);
+    const aide = manque.length ? `<div class="bandeau"><b>À brancher : ${esc(manque.join(", "))}.</b> Chaque source se branche avec une clé de lecture, ajoutée dans Supabase, projet « Notre épicerie », Edge Functions, Secrets. La clé reste sur le serveur : la console ne reçoit que les montants.<ol>
+      ${!a.pret ? `<li><b>Anthropic</b> : dans la console Anthropic, Settings, Admin keys, créez une clé d'administration. Secret <b>ANTHROPIC_ADMIN_KEY</b>. Le nom de chaque clé API doit contenir le nom de son app (ex. « Le Gousset ») pour que le coût soit classé.</li>` : ""}
+      ${!tw.pret ? `<li><b>Twilio</b> : dans Twilio, Account, API keys &amp; tokens, créez une clé API (restreinte en lecture si offert). Secrets <b>TWILIO_ACCOUNT_SID</b>, <b>TWILIO_API_KEY</b> et <b>TWILIO_API_SECRET</b>. Les services Verify et les numéros doivent porter le nom de leur app.</li>` : ""}
+      ${!st.pret ? `<li><b>Stripe</b> : dans Stripe, Développeurs, Clés API, créez une clé restreinte avec la lecture de « Balance » et de « Charges ». Secret <b>STRIPE_CLE_LECTURE</b>.</li>` : ""}
+      </ol>Touchez ensuite « Relire les factures ».</div>` : "";
+    const erreurs = [["Anthropic", a], ["Twilio", tw], ["Stripe", st]].filter(([, x]) => x.erreur).map(([n, x]) => `<p class="note alerte">${esc(n)} : ${esc(x.erreur)}</p>`).join("");
+    const clesSansApp = (a.cles || []).filter((c) => !c.app && c.usd > 0.001);
+    return section("Frais variables par app, 30 derniers jours", `Lus directement dans les factures d'Anthropic (Claude), de Twilio (textos) et de Stripe (frais de paiement), en dollars canadiens au taux de ${TAUX.toFixed(2).replace(".", ",")}. ${f.lu ? `Lu ${esc(moment(f.lu))}.` : ""} <button class="lien" data-factures="1">Relire les factures</button>`,
+      aide + erreurs + table([{ t: "App" }, { t: "Claude", n: 1 }, { t: "Textos", n: 1 }, { t: "Frais Stripe", n: 1 }, { t: "Total", n: 1 }, { t: "Ventes", n: 1 }], rangs, "") +
+      (clesSansApp.length ? `<p class="note">Clés Claude sans nom d'app : ${clesSansApp.map((c) => `${esc(c.nom)} (${esc(cad(c.usd * TAUX))})`).join(", ")}. Renommez-les dans la console Anthropic pour les classer.</p>` : ""));
+  }
   function vueCouts(d) {
     const tous = d.couts || [], j30 = tous.filter((c) => Date.now() - t(c.cree) < 30 * JOUR);
     const somme = (l) => l.reduce((s, c) => s + Number(c.cout_usd || 0), 0) * MOIS; // $ US par mois
@@ -462,7 +515,8 @@
     const laisse = PRIX_COMMIS_MOIS - STRIPE_MOIS - parFoyerMoyen * TAUX;
     const seuil = laisse > 0 ? Math.ceil(((fixes + commun) * TAUX) / laisse) : null;
 
-    return `<section class="section">${chiffres([[cadUsd(fixes + ia), "par mois, tout compris"], [cadUsd(fixes), "frais fixes par mois"], [cadUsd(ia), "Claude à l'utilisation, par mois"], [seuil ? `${seuil} foyers` : "—", "pour que Le Commis couvre tout"]])}</section>` +
+    const haut = sectionFrais(), fv = etat.fraisVariables; // les factures, quand elles sont lues, remplacent la mesure faite dans les apps
+    return `<section class="section">${chiffres([[fv ? cad(fixes * TAUX + fv.total) : cadUsd(fixes + ia), "par mois, tout compris"], [cadUsd(fixes), "frais fixes par mois"], [fv ? cad(fv.total) : cadUsd(ia), fv ? "frais variables, 30 derniers jours" : "Claude à l'utilisation, par mois"], [seuil ? `${seuil} foyers` : "—", "pour que Le Commis couvre tout"]])}</section>` + haut +
       section("Frais fixes mensuels", `Montants en dollars canadiens, au taux de ${TAUX.toFixed(2).replace(".", ",")} $ CA pour 1 $ US (frais de carte compris). Ils servent à toutes les apps.`,
         table([{ t: "Poste" }, { t: "Détail" }, { t: "Par mois", n: 1 }],
           [...FRAIS_FIXES.map((f) => [`<span class="nom">${esc(f.poste)}</span>`, esc(f.detail), esc(cadUsd(f.usd))]),
@@ -596,6 +650,7 @@
   $("#sortir").addEventListener("click", async () => { await sb.auth.signOut(); etat.d = null; montrerPorte(""); });
   $("#page").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
+    if (b.hasAttribute("data-factures")) { etat.factures = null; rendre(); factures(true); return; }
     const d = etat.d;
     if (b.dataset.filtre) { etat.filtre = b.dataset.filtre; rendre(); return; }
     if (b.dataset.filtreidee) { etat.filtreIdee = b.dataset.filtreidee; rendre(); return; }

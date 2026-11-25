@@ -55,9 +55,11 @@ button, input { font: inherit; color: inherit; }
 .rangee::-webkit-scrollbar { display: none; }
 /* Deuxième rangée : une puce par app, sur une bande à part */
 .rangee.apps { gap: 8px; padding-block: 9px 10px; border-top: 1px solid var(--ligne); }
-.app { appearance: none; border: 1.5px solid var(--ligne); background: transparent; border-radius: 99px; padding: 5px 13px 5px 11px; font-weight: 600; font-size: 14.5px; color: var(--gris); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
-.app:hover { color: var(--encre); border-color: var(--gris); }
-.app[aria-current="page"] { color: var(--feuille); background: var(--encre); border-color: var(--encre); }
+/* Étiquette d'app (pastille + nom) dans les fiches et les tableaux */
+.app { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.rangee.apps .app { appearance: none; border: 1.5px solid var(--ligne); background: transparent; border-radius: 99px; padding: 5px 13px 5px 11px; font-weight: 600; font-size: 14.5px; color: var(--gris); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
+.rangee.apps .app:hover { color: var(--encre); border-color: var(--gris); }
+.rangee.apps .app[aria-current="page"] { color: var(--feuille); background: var(--encre); border-color: var(--encre); }
 .onglet { appearance: none; border: 0; background: none; padding: 11px 12px 12px; font-weight: 650; font-size: 15.5px; color: var(--gris); border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
 .onglet[aria-current="page"] { color: var(--encre); border-bottom-color: var(--encre); }
 .pastille { width: 9px; height: 9px; border-radius: 50%; flex: none; }
@@ -68,7 +70,7 @@ button, input { font: inherit; color: inherit; }
 .pastille.gousset { background: var(--gousset); }
 .pastille.seuil { background: var(--seuil); }
 .pastille.voute { background: var(--voute); }
-.pastille.pourquoi { background: var(--gris); }
+.pastille.pourquoi, .pastille.nostalgie { background: var(--gris); }
 .puces { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .puce-app { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .pastille.holdingai { background: var(--tampon); }
@@ -190,3 +192,6 @@ dialog::backdrop { background: rgb(10 15 25 / .55); }
 #sa-form input, #sa-form select, #sa-texte { font: inherit; color: inherit; border: 1.5px solid var(--ligne); background: var(--papier); border-radius: 8px; padding: 10px 12px; width: 100%; font-size: 16px; }
 #sa-texte { min-height: 140px; resize: vertical; line-height: 1.45; }
 #sa-form [hidden] { display: none; }
+
+.gris { color: var(--gris); }
+.section .sous .lien { padding: 0 2px; font-size: inherit; }
