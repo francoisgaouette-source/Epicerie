@@ -5,6 +5,12 @@
 //   await HoldingAI.jeton()   → jeton d'accès valide (renouvelé au besoin) ou null
 //   HoldingAI.session()       → { uid, phone, email, nom } ou null
 //   HoldingAI.deconnexion()   → oublie les jetons sur cet appareil
+//   await HoldingAI.demarrer({ obligatoire }) → LA façon commune de démarrer (même comportement dans toutes les apps) :
+//        retour de compte.holdingai.app, puis « le compte suit » : sans session, on passe chez Albert, qui reconnaît
+//        la personne et la ramène. obligatoire: true (app qui exige un compte) → toujours; false (compte facultatif)
+//        → seulement si la personne s'est déjà connectée dans cette app. Une seule fois par visite (jamais de boucle).
+//        Renvoie { session, erreur, redirection }.
+// Version 2 — garder ce fichier IDENTIQUE dans toutes les apps HoldingAI.
 //   HoldingAI.compteUrl       → page « Mon compte » HoldingAI
 (function () {
   "use strict";
@@ -14,7 +20,10 @@
   const CLIENT = C.clientId || "";
   const APP = C.app || "";
   const RETOUR = C.retour || location.origin + "/";
-  const K = { jetons: "hai.jetons", attente: "hai.attente" };
+  const K = { jetons: "hai.jetons", attente: "hai.attente", connu: "hai.connu" };
+  const SESSION_AUTO = "hai.auto";
+  const auto = { deja() { try { return sessionStorage.getItem(SESSION_AUTO) === "1"; } catch (e) { return true; } },
+    marquer() { try { sessionStorage.setItem(SESSION_AUTO, "1"); } catch (e) { /* rien */ } } };
 
   const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const hasard = (n) => b64url(crypto.getRandomValues(new Uint8Array(n)));
@@ -85,6 +94,7 @@
       if (p.get("error")) throw new Error(p.get("error") === "access_denied" ? "Connexion annulée." : (p.get("error_description") || "La connexion HoldingAI n'a pas fonctionné."));
       if (!a || a.etat !== p.get("state")) throw new Error("Cette connexion a expiré. Touchez de nouveau « Continuer avec HoldingAI ».");
       await demanderJetons({ grant_type: "authorization_code", code: p.get("code"), redirect_uri: RETOUR, code_verifier: a.verif });
+      ecrire(K.connu, 1);
       noterVisite();
       return true;
     },
@@ -96,6 +106,20 @@
       return { uid: c.sub, phone: c.phone || "", email: c.email || "", nom: meta.nom || "" };
     },
     noterVisite,
-    deconnexion() { ecrire(K.jetons, null); },
+    // Se déconnecter de l'app : pas de reconnexion automatique pendant cette visite, ni plus tard (compte facultatif).
+    deconnexion() { ecrire(K.jetons, null); ecrire(K.connu, null); auto.marquer(); },
+    async demarrer(o) {
+      o = o || {};
+      let erreur = null;
+      if (this.estRetour()) { auto.marquer(); try { await this.retour(); } catch (e) { erreur = e; } }
+      const session = await this.session();
+      if (session) { if (!erreur) noterVisite(); return { session, erreur: null, redirection: false }; }
+      const connu = !!lire(K.connu);
+      if (!erreur && !auto.deja() && (o.obligatoire || connu) && navigator.onLine !== false) {
+        auto.marquer();
+        try { await this.connecter(); return { session: null, erreur: null, redirection: true }; } catch (e) { erreur = e; }
+      }
+      return { session: null, erreur, redirection: false };
+    },
   };
 })();
