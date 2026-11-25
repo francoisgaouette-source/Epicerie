@@ -841,12 +841,15 @@
   }
 
   // ---------- Viralité : combien de nouveaux chaque utilisateur amène, par app
-  // Commis, Gousset, Tiroir : console_viralite() de chaque projet (lu seulement à l'ouverture de l'onglet).
-  // Fanion (groupes, parrain « ref »), Plumeau et HoldingAI Compte : calculés avec les données déjà chargées.
+  // Commis, Gousset, Tiroir : console_viralite() de chaque projet (parrainages, membres invités, partages propres à l'app).
+  // HoldingAI Compte : console_viralite() des invitations communes à toutes les apps (bouton « Inviter quelqu'un »,
+  //   lien compte.holdingai.app/i/CODE/app) : partages, ouvertures du lien, arrivées (nouveau compte ou première visite).
+  // Fanion (groupes, parrain « ref ») et Plumeau : calculés avec les données déjà chargées.
+  // Tout est lu seulement à l'ouverture de l'onglet.
   async function viralite() {
     if (etat.viraliteEnCours) return;
     etat.viraliteEnCours = true;
-    const apps = ["commis", "gousset", "tiroir"];
+    const apps = ["commis", "gousset", "tiroir", "compte"];
     const res = await Promise.allSettled(apps.map((a) => pontApp(a, { action: "viralite" })));
     etat.viralite = Object.fromEntries(apps.map((a, i) => [a, res[i].status === "fulfilled" ? res[i].value : { unites: [], membres: [], partages: [], erreur: res[i].reason.message }]));
     etat.viraliteEnCours = false;
@@ -856,71 +859,91 @@
   const facteur = (n) => (n == null ? "–" : n.toFixed(2).replace(".", ","));
   const mediane = (xs) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
   const duree = (ms) => (ms == null ? "–" : ms < 3600e3 ? "moins d'une heure" : ms < 2 * JOUR ? pl(Math.round(ms / 3600e3), "heure", "heures") : pl(Math.round(ms / JOUR), "jour", "jours"));
-  // x = { unites:[{id,nom,cree,parrain}], membres:[{unite,cree,invite}], partages:[{unite,cree,canal}] }
-  function mesureVirale(x, depuis) {
+  // x = { unites:[{id,nom,cree,parrain}], membres:[{unite,cree,invite}], partages:[{unite,cree,canal}] } (données propres à l'app)
+  // h = invitations HoldingAI de cette app : { partages, ouvertures, arrivees } (déjà filtrées sur l'app)
+  function mesureVirale(x, h, depuis) {
     const dans = (c) => t(c) >= depuis;
     const us = x.unites || [], parId = new Map(us.map((u) => [u.id, u]));
     const nouveaux = us.filter((u) => dans(u.cree)), parraines = nouveaux.filter((u) => u.parrain);
     const invites = (x.membres || []).filter((m) => m.invite && dans(m.cree));
-    const partages = (x.partages || []).filter((p) => dans(p.cree));
-    const amenes = parraines.length + invites.length;
-    const base = us.filter((u) => t(u.cree) < Date.now()).length;
-    const cycles = parraines.map((u) => parId.get(u.parrain)).map((p, i) => (p ? t(parraines[i].cree) - t(p.cree) : null)).filter((v) => v != null && v >= 0);
-    return { total: us.length, nouveaux: nouveaux.length, parraines: parraines.length, invites: invites.length, partages: partages.length,
-      conversion: partages.length ? parraines.length / partages.length : null, k: base ? amenes / base : null, cycle: mediane(cycles) };
+    const arrivees = h.arrivees.filter((a) => dans(a.cree));
+    const ouvertures = h.ouvertures.filter((o) => dans(o.cree)).length;
+    const partages = (x.partages || []).filter((p) => dans(p.cree)).length + h.partages.filter((p) => dans(p.cree)).length;
+    const venus = parraines.length + arrivees.length;
+    const cycles = [...parraines.map((u) => { const p = parId.get(u.parrain); return p ? t(u.cree) - t(p.cree) : null; }), ...arrivees.map((a) => a.delai)].filter((v) => v != null && v >= 0);
+    return { total: us.length, nouveaux: nouveaux.length, venus, nouveauxComptes: arrivees.filter((a) => a.nouveau).length, invites: invites.length, partages, ouvertures,
+      conversion: ouvertures ? arrivees.length / ouvertures : partages ? venus / partages : null, k: us.length ? (venus + invites.length) / us.length : null, cycle: mediane(cycles) };
   }
-  function ambassadeurs(app, x, depuis) {
+  function ambassadeurs(app, x, h, nomDe, depuis) {
     const us = x.unites || [], parId = new Map(us.map((u) => [u.id, u])), score = new Map();
-    const plus = (id, cle) => { if (!id) return; const s = score.get(id) || { parraines: 0, invites: 0, partages: 0 }; s[cle]++; score.set(id, s); };
-    us.filter((u) => u.parrain && t(u.cree) >= depuis).forEach((u) => plus(u.parrain, "parraines"));
-    (x.membres || []).filter((m) => m.invite && t(m.cree) >= depuis).forEach((m) => plus(m.unite, "invites"));
-    (x.partages || []).filter((p) => t(p.cree) >= depuis).forEach((p) => plus(p.unite, "partages"));
-    return [...score].map(([id, s]) => ({ app, nom: (parId.get(id) || {}).nom || "Compte retiré", ...s, amenes: s.parraines + s.invites }));
+    const plus = (cle, nom, champ) => { if (!cle) return; const s = score.get(cle) || { app, nom, venus: 0, invites: 0, partages: 0 }; s[champ]++; score.set(cle, s); };
+    const nomU = (id) => (parId.get(id) || {}).nom || "Compte retiré";
+    us.filter((u) => u.parrain && t(u.cree) >= depuis).forEach((u) => plus(app + u.parrain, nomU(u.parrain), "venus"));
+    (x.membres || []).filter((m) => m.invite && t(m.cree) >= depuis).forEach((m) => plus(app + m.unite, nomU(m.unite), "invites"));
+    (x.partages || []).filter((p) => t(p.cree) >= depuis).forEach((p) => plus(app + p.unite, nomU(p.unite), "partages"));
+    h.arrivees.filter((a) => t(a.cree) >= depuis).forEach((a) => plus(app + "h" + a.parrain, nomDe(a.parrain), "venus"));
+    h.partages.filter((p) => t(p.cree) >= depuis).forEach((p) => plus(app + "h" + p.profil, nomDe(p.profil), "partages"));
+    return [...score.values()];
   }
+  const APPS_VIRALES = [["commis", "foyers"], ["fanion", "groupes"], ["gousset", "comptes"], ["tiroir", "foyers"], ["plumeau", "comptes"], ["seuil", "comptes"], ["voute", "comptes"], ["pourquoi", "comptes"], ["nostalgie", "comptes"]];
   function vueViralite(d) {
     const per = etat.viralitePeriode || "30", depuis = per === "30" ? Date.now() - 30 * JOUR : 0;
     const v = etat.viralite;
     if (!v) { viralite(); }
+    const hai = (v && v.compte) || { profils: [], partages: [], ouvertures: [], arrivees: [], acces: [] };
+    const profil = new Map((hai.profils || []).map((p) => [p.id, p]));
+    const nomDe = (id) => (profil.get(id) || {}).nom || "Sans prénom";
+    const haiDe = (app) => ({
+      partages: (hai.partages || []).filter((p) => cleApp(p.app) === app),
+      ouvertures: (hai.ouvertures || []).filter((o) => cleApp(o.app) === app),
+      arrivees: (hai.arrivees || []).filter((a) => cleApp(a.app) === app).map((a) => ({ ...a, delai: profil.get(a.parrain) ? t(a.cree) - t(profil.get(a.parrain).cree) : null })),
+    });
+    // Apps sans données propres : leurs comptes HoldingAI (première visite) et les arrivées
+    const parCompte = (app) => ({ unites: (hai.acces || []).filter((x) => cleApp(x.app) === app).map((x) => ({ id: x.profil, nom: nomDe(x.profil), cree: x.premiere })), membres: [], partages: [] });
     const f = d.fanion || { groupes: [] }, gr = f.groupes || [];
-    // Fanion : un groupe « parrainé » porte la référence du groupe qui l'a amené ; les joueurs ajoutés sont des invités
     const parRef = (r) => gr.find((g) => g.id === r || g.nom === r || g.code === r);
-    const fanion = { unites: gr.map((g) => ({ id: g.id, nom: g.nom, cree: g.cree, parrain: g.ref ? (parRef(g.ref) || {}).id || g.ref : null })), membres: [], partages: [] };
+    const propres = {
+      commis: v && v.commis, gousset: v && v.gousset, tiroir: v && v.tiroir,
+      fanion: { unites: gr.map((g) => ({ id: g.id, nom: g.nom, cree: g.cree, parrain: g.ref ? (parRef(g.ref) || {}).id || g.ref : null })), membres: [], partages: [] },
+      plumeau: { unites: ((d.plumeau || {}).comptes || []).map((c) => ({ id: c.user_id, nom: c.prenom, cree: c.cree, parrain: null })), membres: [], partages: [] },
+    };
     const joueursInvites = gr.reduce((s, g) => s + Math.max(0, (Number(g.joueurs) || 0) - 1), 0);
-    const plumeau = { unites: ((d.plumeau || {}).comptes || []).map((c) => ({ id: c.user_id, nom: c.prenom, cree: c.cree, parrain: null })), membres: [], partages: [] };
-    const lignes = [
-      ["commis", "foyers", v && v.commis], ["fanion", "groupes", fanion], ["gousset", "comptes", v && v.gousset], ["tiroir", "foyers", v && v.tiroir], ["plumeau", "comptes", plumeau],
-    ];
-    const mesures = lignes.map(([app, unite, x]) => ({ app, unite, x, m: x ? mesureVirale(x, depuis) : null }));
-    if (per === "tout") { const mf = mesures.find((l) => l.app === "fanion").m; mf.invites = joueursInvites; mf.k = mf.total ? (mf.parraines + joueursInvites) / mf.total : null; }
+    const mesures = APPS_VIRALES.map(([app, unite]) => {
+      const x = app in propres ? propres[app] : v ? parCompte(app) : null;
+      return { app, unite, x, h: haiDe(app), m: x ? mesureVirale(x, haiDe(app), depuis) : null };
+    });
+    if (per === "tout") { const mf = mesures.find((l) => l.app === "fanion").m; mf.invites = joueursInvites; mf.k = mf.total ? (mf.venus + joueursInvites) / mf.total : null; }
     const ok = mesures.filter((l) => l.m);
-    const tot = ok.reduce((s, l) => ({ nouveaux: s.nouveaux + l.m.nouveaux, parraines: s.parraines + l.m.parraines, invites: s.invites + l.m.invites, partages: s.partages + l.m.partages, total: s.total + l.m.total }), { nouveaux: 0, parraines: 0, invites: 0, partages: 0, total: 0 });
-    const kGlobal = tot.total ? (tot.parraines + tot.invites) / tot.total : null;
-    const erreurs = ["commis", "gousset", "tiroir"].filter((a) => v && v[a] && v[a].erreur).map((a) => `${nomApp[a]} : ${esc(v[a].erreur)}`);
+    const somme = (k) => ok.reduce((s, l) => s + l.m[k], 0);
+    const tot = { nouveaux: somme("nouveaux"), venus: somme("venus"), invites: somme("invites"), partages: somme("partages"), ouvertures: somme("ouvertures"), total: somme("total") };
+    const kGlobal = tot.total ? (tot.venus + tot.invites) / tot.total : null;
+    const erreurs = ["commis", "gousset", "tiroir", "compte"].filter((a) => v && v[a] && v[a].erreur).map((a) => `${a === "compte" ? "Invitations HoldingAI" : nomApp[a]} : ${esc(v[a].erreur)}`);
     const choix = `<div class="filtres" role="group" aria-label="Période">${[["30", "30 derniers jours"], ["tout", "Depuis le début"]].map(([k, m]) => `<button class="filtre" data-viralite-periode="${k}" aria-pressed="${per === k}">${m}</button>`).join("")}</div>`;
-    const amb = [...(v ? ["commis", "gousset", "tiroir"].flatMap((a) => ambassadeurs(a, v[a], depuis)) : []), ...ambassadeurs("fanion", fanion, depuis)]
-      .filter((a) => a.amenes || a.partages).sort((a, b) => b.amenes - a.amenes || b.partages - a.partages).slice(0, 15);
+    const amb = [...(v ? mesures.flatMap((l) => (l.x ? ambassadeurs(l.app, l.app in propres ? l.x : { unites: [], membres: [], partages: [] }, l.h, nomDe, depuis) : [])) : [])]
+      .filter((a) => a.venus || a.invites || a.partages).sort((a, b) => b.venus + b.invites - (a.venus + a.invites) || b.partages - a.partages).slice(0, 15);
+    const passages = (hai.arrivees || []).filter((a) => !a.nouveau && t(a.cree) >= depuis);
     const cp = (d.compte || {}).comptes || [];
     const multi = cp.filter((c) => (c.apps || []).filter((a) => cleApp(a.app) !== "holdingai").length >= 2);
     return `<section class="section"><h2>Viralité</h2><p class="sous">Combien de nouveaux chaque utilisateur amène. Au-dessus de 1, chaque utilisateur en amène plus d'un et l'app grandit seule ; sous 1, la croissance dépend de vos efforts.</p>${choix}
-      ${v ? "" : `<p class="charge">Lecture des parrainages et des partages…</p>`}
+      ${v ? "" : `<p class="charge">Lecture des parrainages, des invitations et des partages…</p>`}
       ${erreurs.length ? `<div class="bandeau">Certaines données n'ont pas pu être lues. ${erreurs.join(" ; ")}</div>` : ""}
-      ${chiffres([[tot.nouveaux, per === "30" ? "nouveaux depuis 30 jours" : "inscrits au total"], [pct(tot.parraines, tot.nouveaux), "venus par parrainage"], [tot.invites, "personnes invitées dans un foyer ou un groupe"], [tot.partages, "partages de l'app"], [facteur(kGlobal), "facteur K, toutes apps"]])}</section>` +
-      section("Par app", "Facteur K : (parrainages + invités) ÷ inscrits. Conversion : parrainages réussis ÷ partages. Cycle viral : délai typique entre l'inscription d'un parrain et celle de la personne qu'il amène.",
-        table([{ t: "App" }, { t: "Nouveaux", n: 1 }, { t: "Par parrainage", n: 1 }, { t: "Invités", n: 1 }, { t: "Partages", n: 1 }, { t: "Conversion", n: 1 }, { t: "Facteur K", n: 1 }, { t: "Cycle viral" }],
-          mesures.map(({ app, unite, m }) => m ? [`${puce(app)}<small>${esc(pl(m.total, unite.replace(/s$/, ""), unite))}</small>`, m.nouveaux, `${m.parraines}<small>${pct(m.parraines, m.nouveaux)}</small>`,
-            app === "fanion" && per === "30" ? "<small>total seulement</small>" : m.invites, app === "fanion" || app === "plumeau" || app === "tiroir" ? "<small>pas mesuré</small>" : m.partages,
-            m.conversion == null ? "–" : pct(m.parraines, m.partages), `<b>${facteur(m.k)}</b>`, esc(duree(m.cycle))] : [puce(app), "…", "", "", "", "", "", ""]), "")) +
-      section("Ambassadeurs", "Les foyers, groupes et comptes qui amènent le plus de monde. Un bon endroit pour dire merci, ou leur offrir un mois.",
-        table([{ t: "Qui" }, { t: "App" }, { t: "Parrainages", n: 1 }, { t: "Invités", n: 1 }, { t: "Partages", n: 1 }],
-          amb.map((a) => [`<span class="nom">${esc(a.nom)}</span>`, puce(a.app), a.parraines, a.invites, a.app === "fanion" ? "–" : a.partages]),
-          per === "30" ? "Personne n'a parrainé, invité ou partagé depuis 30 jours." : "Personne n'a encore parrainé, invité ou partagé.")) +
-      section("Plusieurs apps", "Les personnes avec un compte HoldingAI qui utilisent au moins deux apps : le passage d'une app à l'autre.",
-        `${chiffres([[multi.length, multi.length > 1 ? "personnes sur 2 apps ou plus" : "personne sur 2 apps ou plus"], [pct(multi.length, cp.length), "des comptes HoldingAI"]])}` +
+      ${chiffres([[tot.nouveaux, per === "30" ? "nouveaux depuis 30 jours" : "inscrits au total"], [pct(tot.venus, tot.nouveaux), "venus par une invitation"], [tot.invites, "invités dans un foyer ou un groupe"], [tot.partages, "partages de l'app"], [tot.ouvertures, "liens d'invitation ouverts"], [facteur(kGlobal), "facteur K, toutes apps"]])}</section>` +
+      section("Par app", "Venus : parrainages propres à l'app et arrivées par le lien d'invitation HoldingAI. Ouvertures : visites du lien d'invitation. Conversion : arrivées ÷ ouvertures (ou venus ÷ partages quand le lien n'est pas encore utilisé). Facteur K : (venus + invités) ÷ inscrits. Cycle viral : délai typique entre l'inscription de la personne qui invite et l'arrivée de celle qu'elle amène.",
+        table([{ t: "App" }, { t: "Nouveaux", n: 1 }, { t: "Venus", n: 1 }, { t: "Invités", n: 1 }, { t: "Partages", n: 1 }, { t: "Ouvertures", n: 1 }, { t: "Conversion", n: 1 }, { t: "Facteur K", n: 1 }, { t: "Cycle viral" }],
+          mesures.map(({ app, unite, m }) => m ? [`${puce(app)}<small>${esc(pl(m.total, unite.replace(/s$/, ""), unite))}</small>`, m.nouveaux, `${m.venus}<small>${pct(m.venus, m.nouveaux)}</small>`,
+            app === "fanion" && per === "30" ? "<small>total seulement</small>" : ["commis", "tiroir", "fanion"].includes(app) ? m.invites : "<small>–</small>", m.partages, m.ouvertures,
+            m.conversion == null ? "–" : `${Math.round(m.conversion * 100)} %`, `<b>${facteur(m.k)}</b>`, esc(duree(m.cycle))] : [puce(app), "…", "", "", "", "", "", "", ""]), "")) +
+      section("Ambassadeurs", "Les personnes, foyers et groupes qui amènent le plus de monde. Un bon endroit pour dire merci, ou leur offrir un mois.",
+        table([{ t: "Qui" }, { t: "App" }, { t: "Venus", n: 1 }, { t: "Invités", n: 1 }, { t: "Partages", n: 1 }],
+          amb.map((a) => [`<span class="nom">${esc(a.nom)}</span>`, puce(a.app), a.venus, a.invites, a.app === "fanion" ? "–" : a.partages]),
+          per === "30" ? "Personne n'a invité, parrainé ou partagé depuis 30 jours." : "Personne n'a encore invité, parrainé ou partagé.")) +
+      section("D'une app à l'autre", "Les comptes HoldingAI qui utilisent au moins deux apps, et ceux qui ont découvert une autre app grâce à une invitation.",
+        `${chiffres([[multi.length, multi.length > 1 ? "personnes sur 2 apps ou plus" : "personne sur 2 apps ou plus"], [pct(multi.length, cp.length), "des comptes HoldingAI"], [passages.length, passages.length > 1 ? "comptes venus d'une autre app par invitation" : "compte venu d'une autre app par invitation"]])}` +
         table([{ t: "Personne" }, { t: "Apps utilisées" }], multi.map((c) => [`<span class="nom">${esc(c.nom || "Sans nom")}</span>`, pucesApps(c.apps || [])]), "Aucune personne n'utilise encore deux apps.")) +
       section("Pas encore mesuré", "",
-        `<ul class="note-liste"><li>Le Tiroir, Le Plumeau, Le Seuil, La Voûte, Le Pourquoi et La Nostalgie n'ont pas encore de lien de parrainage ni de bouton de partage suivi.</li>
-        <li>Les ouvertures d'un lien partagé ne sont pas comptées : la conversion compte seulement les inscriptions qui passent par un parrainage.</li>
-        <li>Les partages faits dans Le Fanion restent dans Firebase ; seuls les groupes parrainés et les joueurs ajoutés sont comptés.</li></ul>`);
+        `<ul class="note-liste"><li>Le Plumeau et Le Gousset n'ont pas encore le bouton « Inviter quelqu'un » : leur code n'est pas dans les dépôts connus. Le menu d'Albert l'offrira dès qu'ils chargeront porte.js.</li>
+        <li>Le Fanion : les partages restent dans Firebase jusqu'à sa sortie ; seuls les groupes parrainés et les joueurs ajoutés sont comptés.</li>
+        <li>Les liens de parrainage propres au Commis (?ref=) ne comptent pas leurs ouvertures ; ceux du bouton « Inviter quelqu'un » les comptent.</li></ul>`);
   }
 
   // Menu sur deux rangées : les fonctions en haut, les apps en dessous

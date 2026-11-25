@@ -6,7 +6,7 @@
 //   Le Tiroir  : { action: "foyer", id, geste: "activer" | "retirer", paiement? } → forfait 12 mois (gestion)
 //   Le Gousset : { action: "demande", id, statut: "approved" | "declined" | "pending" } → demande d'accès (gestion)
 //   Le Seuil et La Voûte, HoldingAI Compte : lecture seulement (« tout »)
-//   { action: "viralite" }                               → console_viralite() du projet (Commis, Gousset, Tiroir)
+//   { action: "viralite" }                               → console_viralite() du projet (Commis, Gousset, Tiroir, HoldingAI Compte)
 // Déployer avec verify_jwt = false : le jeton vient du projet du Commis, la vérification est faite ici.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
