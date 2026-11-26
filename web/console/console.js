@@ -190,9 +190,9 @@
     const FILTRES = [["attente", `À traiter${nAttente ? ` (${nAttente})` : ""}`], ["tous", "Tous"], ["holdingai", "L’Établi"], ["commis", "Le Commis"], ["fanion", "Le Fanion"], ["auto", "Automatiques"]];
     const k = etat.filtre;
     const vus = fils.filter((f) => (k === "attente" ? f.attente : k === "tous" ? true : k === "auto" ? f.auto : f.app === k && !f.auto));
-    const vide = !fils.length ? "Aucun courriel reçu pour l'instant. Tout ce qui est écrit à une adresse @holdingai.app, @lecommis.ai ou @fanion.ai arrivera ici."
+    const vide = !fils.length ? "Aucun courriel reçu pour l'instant. Tout ce qui est écrit à une adresse @letabli.ai, @holdingai.app, @lecommis.ai ou @fanion.ai arrivera ici."
       : k === "attente" ? "Aucun courriel à traiter." : "Aucun courriel dans cette liste.";
-    return section("Courriels", "Tout ce qui est écrit à une adresse @holdingai.app, @lecommis.ai ou @fanion.ai. Une copie arrive aussi dans votre boîte personnelle. Les réponses partent de l'adresse à laquelle la personne a écrit.",
+    return section("Courriels", "Tout ce qui est écrit à une adresse @letabli.ai, @holdingai.app, @lecommis.ai ou @fanion.ai. Une copie arrive aussi dans votre boîte personnelle. Les réponses partent de l'adresse à laquelle la personne a écrit.",
       `<div class="filtres" role="group" aria-label="Filtrer les courriels">${FILTRES.map(([c, mot]) => `<button class="filtre" data-filtre="${c}" aria-pressed="${k === c}">${mot}</button>`).join("")}</div>` + liste(vus.slice(0, 100).map(ficheCourriel), vide));
   }
 
@@ -578,7 +578,7 @@
   const ETAPES_CRM = [["a_contacter", "À contacter"], ["contacte", "Contacté"], ["interesse", "Intéressé"], ["converti", "Converti"], ["perdu", "Perdu"]];
   const NOM_ETAPE = Object.fromEntries(ETAPES_CRM);
   const APPS_CRM = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale"];
-  const EXPEDITEURS_CRM = ["bonjour@holdingai.app", "bonjour@lecommis.ai", "bonjour@fanion.ai"];
+  const EXPEDITEURS_CRM = ["bonjour@letabli.ai", "bonjour@holdingai.app", "bonjour@lecommis.ai", "bonjour@fanion.ai"];
   const cellCrm = (v) => { const b = String(v || "").trim(), x = b.replace(/\D/g, ""); if (!x) return null;
     return b.startsWith("+") && x.length >= 8 ? "+" + x : x.length === 10 ? "+1" + x : x.length === 11 && x[0] === "1" ? "+" + x : null; };
   const mailCrm = (v) => (String(v || "").trim().toLowerCase() || null);

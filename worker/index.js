@@ -11,12 +11,12 @@ const TEST = /\.workers\.dev$|^localhost$/;
 const CSP_CONSOLE = "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src https://gandliltstmtfsmsjaew.supabase.co https://inhheqccvhwybmcdboip.supabase.co https://jdgflxesnaiumxodrkzd.supabase.co https://wuvpckyktoukttkbdzql.supabase.co https://wwakxuzuhmdmweluafiz.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 // ---------- Courriels ----------
-// Tout ce qui est écrit à une adresse @holdingai.app, @lecommis.ai ou @fanion.ai passe ici (Email Routing, règle « catch-all » de chaque domaine) :
+// Tout ce qui est écrit à une adresse @letabli.ai, @holdingai.app, @lecommis.ai ou @fanion.ai passe ici (Email Routing, règle « catch-all » de chaque domaine) :
 //   1. une copie part vers la boîte personnelle (secret COPIE_COURRIEL, une adresse vérifiée dans Email Routing) ;
 //   2. le message est noté dans la console (fonction Supabase « courriel-recu », protégée par le secret COURRIEL_SECRET).
 // Les réponses écrites dans la console repartent par /api/envoyer (liaison EMAIL, Cloudflare Email Sending).
 const SUPABASE = "https://gandliltstmtfsmsjaew.supabase.co";
-const DOMAINES = ["holdingai.app", "lecommis.ai", "fanion.ai"];
+const DOMAINES = ["letabli.ai", "holdingai.app", "lecommis.ai", "fanion.ai"];
 const MAX_BRUT = 6 * 1024 * 1024; // au-delà, seul le début du message est noté (la copie Gmail reste complète)
 
 async function memeSecret(a, b) {
