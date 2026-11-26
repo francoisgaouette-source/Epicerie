@@ -23,7 +23,8 @@ const famille = (m: string) => (/haiku/i.test(m) ? "haiku" : /opus/i.test(m) ? "
 const APPS: [RegExp, string][] = [
   [/commis|epicerie|rosalie/, "commis"], [/fanion|pelland|caddie|golf/, "fanion"], [/plumeau|colette|collette/, "plumeau"],
   [/tiroir|carnet|gaston/, "tiroir"], [/gousset|margaux|shopping/, "gousset"], [/seuil/, "seuil"], [/voute/, "voute"],
-  [/pourquoi|simon/, "pourquoi"], [/nostalgie|jeanne/, "nostalgie"], [/holding|compte|albert|console/, "holdingai"],
+  [/pourquoi|simon/, "pourquoi"], [/nostalgie|jeanne/, "nostalgie"], [/echange/, "echange"], [/vestibule|lucie/, "vestibule"],
+  [/donne|tapis|marcel/, "donne"], [/escale|celeste/, "escale"], [/holding|etabli|compte|albert|console/, "holdingai"],
 ];
 const appDe = (nom: unknown) => {
   const n = String(nom || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");

@@ -3,14 +3,14 @@
 :root {
   --papier: #EDF0F4; --feuille: #FFFFFF; --encre: #18212E; --gris: #5A6675; --ligne: #D5DBE3;
   --tampon: #2447C8; --tampon-pale: #E4EAFB; --refus: #B5332A; --refus-pale: #F8E5E3; --attente: #8A6200; --attente-pale: #FBF0D2;
-  --commis: #1F5B3A; --fanion: #C98A00; --plumeau: #5B2A86; --tiroir: #B4532A; --gousset: #B23A6E; --seuil: #2F5D7C; --voute: #7A6431;
+  --commis: #1F5B3A; --fanion: #C98A00; --plumeau: #5B2A86; --tiroir: #B4532A; --gousset: #B23A6E; --seuil: #2F5D7C; --voute: #7A6431; --echange: #3F6FA8; --pourquoi: #6A4FA0; --vestibule: #1E7F7A; --donne: #8C1D40; --nostalgie: #9A6B4F; --escale: #0D8AA8;
   --f: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --papier: #10161F; --feuille: #18212E; --encre: #E8EDF4; --gris: #9AA7B8; --ligne: #2B3747;
     --tampon: #8FADFF; --tampon-pale: #1D2B52; --refus: #FF8E84; --refus-pale: #3E1E1B; --attente: #F0C155; --attente-pale: #3A2E10;
-    --commis: #6CC495; --fanion: #F0BB2A; --plumeau: #C9A6EC; --tiroir: #E89A75; --gousset: #EE8FB8; --seuil: #8DBBDB; --voute: #D9C08A; color-scheme: dark;
+    --commis: #6CC495; --fanion: #F0BB2A; --plumeau: #C9A6EC; --tiroir: #E89A75; --gousset: #EE8FB8; --seuil: #8DBBDB; --voute: #D9C08A; --echange: #8FB4E6; --pourquoi: #B9A4E8; --vestibule: #7FD0C9; --donne: #E68AA6; --nostalgie: #D8AE92; --escale: #7FD3E6; color-scheme: dark;
   }
 }
 * { box-sizing: border-box; }
@@ -54,7 +54,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .rangee { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
 .rangee::-webkit-scrollbar { display: none; }
 /* Deuxième rangée : une puce par app, sur une bande à part */
-.rangee.apps { gap: 8px; padding-block: 9px 10px; border-top: 1px solid var(--ligne); }
+.rangee.apps { gap: 8px; padding-block: 9px 10px; border-top: 1px solid var(--ligne); flex-wrap: wrap; }
+@media (max-width: 700px) { .rangee.apps { flex-wrap: nowrap; } }
+.app-entete .sous a { color: inherit; }
+.app-entete .chiffres { margin-top: 16px; }
 /* Étiquette d'app (pastille + nom) dans les fiches et les tableaux */
 .app { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .rangee.apps .app { appearance: none; border: 1.5px solid var(--ligne); background: transparent; border-radius: 99px; padding: 5px 13px 5px 11px; font-weight: 600; font-size: 14.5px; color: var(--gris); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
@@ -70,7 +73,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .pastille.gousset { background: var(--gousset); }
 .pastille.seuil { background: var(--seuil); }
 .pastille.voute { background: var(--voute); }
-.pastille.pourquoi, .pastille.nostalgie { background: var(--gris); }
+.pastille.pourquoi { background: var(--pourquoi); }
+.pastille.nostalgie { background: var(--nostalgie); }
+.pastille.echange { background: var(--echange); }
+.pastille.vestibule { background: var(--vestibule); }
+.pastille.donne { background: var(--donne); }
+.pastille.escale { background: var(--escale); }
 .puces { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .puce-app { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .pastille.holdingai { background: var(--tampon); }
@@ -248,3 +256,4 @@ label.case input { width: 18px; height: 18px; accent-color: var(--tampon); }
 .arbre li { margin: 8px 0; }
 .arbre li small { display: block; color: var(--gris); font-size: 13px; }
 .chaine { color: var(--gris); }
+.app-entete [data-statut-app-ligne] { margin-top: 16px; }

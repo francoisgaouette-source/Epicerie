@@ -16,7 +16,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COURRIEL = /^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$/;
 const TYPES = ["client", "prospect", "partenaire", "testeur", "media", "autre"];
 const ETAPES = ["a_contacter", "contacte", "interesse", "converti", "perdu"];
-const APPS = ["commis", "fanion", "plumeau", "tiroir", "gousset", "seuil", "voute", "pourquoi", "nostalgie"];
+const APPS = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale"];
 const EXPEDITEURS: Record<string, { app: string; nom: string }> = {
   "bonjour@holdingai.app": { app: "holdingai", nom: "HoldingAI" },
   "bonjour@lecommis.ai": { app: "commis", nom: "Le Commis" },

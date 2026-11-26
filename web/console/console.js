@@ -41,7 +41,9 @@
     const e = etatAvis(a), frais = etat.frais === cle ? " frais" : "";
     return e === "publie" ? `<span class="tampon${frais}">Publié</span>` : e === "ecarte" ? `<span class="tampon refus${frais}">Écarté</span>` : `<span class="tampon attente${frais}">En attente</span>`;
   };
-  const nomApp = { commis: "Le Commis", fanion: "Le Fanion", plumeau: "Le Plumeau", tiroir: "Le Tiroir", gousset: "Le Gousset", seuil: "Le Seuil", voute: "La Voûte", pourquoi: "Le Pourquoi", nostalgie: "La Nostalgie", holdingai: "HoldingAI", console: "Console" };
+  // Les apps de L'Établi, avec leur nom exact (clé courte = slug de HoldingAI Compte sans « le- », « la- » ou « l »)
+  const nomApp = { echange: "L'Échange", gousset: "Le Gousset", pourquoi: "Le Pourquoi", commis: "Le Commis", fanion: "Le Fanion", seuil: "Le Seuil", plumeau: "Le Plumeau",
+    vestibule: "Le Vestibule", tiroir: "Le Tiroir", voute: "La Voûte", donne: "La Donne", nostalgie: "La Nostalgie", escale: "L'Escale", holdingai: "HoldingAI", console: "Console" };
   const puce = (app) => `<span class="app"><i class="pastille ${esc(app)}"></i>${esc(nomApp[app] || app)}</span>`;
 
   // ---------- serveur
@@ -409,7 +411,8 @@
   }
   // ---------- comptes HoldingAI, Le Seuil et La Voûte
   // Une app dans HoldingAI Compte (« le-commis ») → son nom court dans la console (« commis »)
-  const cleApp = (slug) => String(slug || "").replace(/^(le|la)-/, "");
+  const CLES_APPS = { lechange: "echange", lescale: "escale", "le-tapis": "donne" };
+  const cleApp = (slug) => CLES_APPS[slug] || String(slug || "").replace(/^(le|la)-/, "");
   const personne = (d, uid) => ((d.compte || {}).comptes || []).find((c) => c.id === uid);
   const cellPersonne = (d, uid) => { const p = personne(d, uid);
     return p ? `<span class="nom">${esc(p.nom || "Sans nom")}</span><small>${esc(tel(p.cellulaire))}</small>` : `<span class="nom">Compte inconnu</span><small>${esc(String(uid).slice(0, 8))}</small>`; };
@@ -430,6 +433,22 @@
             a.statut === "beta" ? `<span class="tampon attente">Bêta</span>` : `<span class="tampon">Disponible</span>`,
             `<button class="btn pale" data-statut-app="${esc(a.slug)}" data-statut="${a.statut === "beta" ? "" : "beta"}">${a.statut === "beta" ? "Marquer disponible" : "Mettre en bêta"}</button>`]),
           "La liste des apps n'a pas pu être lue."));
+  }
+  // Une app sans données propres dans la console : ses personnes (comptes HoldingAI qui l'ont ouverte) et son statut
+  function vueAppCompte(d, app) {
+    const c = d.compte || {}, fiche = (c.apps || []).find((a) => cleApp(a.slug) === app);
+    const gens = (c.comptes || []).map((x) => ({ x, v: (x.apps || []).find((a) => cleApp(a.app) === app) })).filter((g) => g.v)
+      .sort((a, b) => t(b.v.derniere) - t(a.v.derniere));
+    return bandeauErreur(c, "HoldingAI Compte") +
+      `<section class="section app-entete"><h2>${esc(nomApp[app])}</h2>${fiche ? `<p class="sous">${fiche.adresse ? `<a href="${esc(fiche.adresse)}" target="_blank" rel="noopener">${esc(fiche.adresse.replace(/^https:\/\//, ""))}</a>` : ""}${fiche.personnage ? ` · avec ${esc(fiche.personnage)}` : ""} · ${fiche.statut === "beta" ? "en bêta" : "disponible"}</p>` : ""}
+        ${chiffres([[gens.length, gens.length > 1 ? "personnes l'ont ouverte" : "personne l'a ouverte"], [gens.filter((g) => Date.now() - t(g.v.premiere) < 7 * JOUR).length, "nouvelles depuis 7 jours"],
+          [gens.filter((g) => Date.now() - t(g.v.derniere) < 7 * JOUR).length, "actives depuis 7 jours"]])}
+        ${fiche ? `<p data-statut-app-ligne><button class="btn pale" data-statut-app="${esc(fiche.slug)}" data-statut="${fiche.statut === "beta" ? "" : "beta"}">${fiche.statut === "beta" ? "Marquer disponible" : "Mettre en bêta"}</button></p>` : ""}</section>` +
+      section("Personnes", "Les comptes HoldingAI qui ont ouvert l'app. Ses données propres ne sont pas encore lues par la console.",
+        table([{ t: "Personne" }, { t: "Première visite" }, { t: "Dernière visite" }, { t: "Autres apps" }],
+          gens.map(({ x, v }) => [`<span class="nom">${esc(x.nom || "Sans nom")}</span><small>${esc(tel(x.cellulaire))}</small>`, esc(jour(v.premiere)), esc(ilYA(v.derniere)),
+            pucesApps((x.apps || []).filter((a) => cleApp(a.app) !== app))]),
+          "Personne n'a encore ouvert l'app."));
   }
   function vueSeuil(d) {
     const x = d.seuilvoute || {}, rs = x.seuil || [];
@@ -468,7 +487,7 @@
   const usd = cadUsd; // les autres onglets (Plumeau, Tiroir) affichent aussi en $ CA
   const MOIS = 365 / 12 / 30; // ramène 30 jours à un mois moyen
   const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)", colette: "Colette (questions)", ajouter: "Le Plumeau : lecture d'un lien", classer: "Le Plumeau : classement des liens", suggerer: "Le Plumeau : sites semblables" };
-  const ORDRE_APPS = ["commis", "fanion", "plumeau", "tiroir", "gousset", "seuil", "voute", "pourquoi", "nostalgie", "holdingai"];
+  const ORDRE_APPS = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale", "holdingai"];
   const NOM_FRAIS = { holdingai: "Compte HoldingAI", nostalgie: "La Nostalgie" };
   function sectionFrais() {
     const f = etat.factures;
@@ -558,7 +577,7 @@
   const TYPES_CRM = { client: "Client", prospect: "Prospect", partenaire: "Partenaire", testeur: "Testeur", media: "Média", autre: "Autre" };
   const ETAPES_CRM = [["a_contacter", "À contacter"], ["contacte", "Contacté"], ["interesse", "Intéressé"], ["converti", "Converti"], ["perdu", "Perdu"]];
   const NOM_ETAPE = Object.fromEntries(ETAPES_CRM);
-  const APPS_CRM = ["commis", "fanion", "plumeau", "tiroir", "gousset", "seuil", "voute", "pourquoi", "nostalgie"];
+  const APPS_CRM = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale"];
   const EXPEDITEURS_CRM = ["bonjour@holdingai.app", "bonjour@lecommis.ai", "bonjour@fanion.ai"];
   const cellCrm = (v) => { const b = String(v || "").trim(), x = b.replace(/\D/g, ""); if (!x) return null;
     return b.startsWith("+") && x.length >= 8 ? "+" + x : x.length === 10 ? "+1" + x : x.length === 11 && x[0] === "1" ? "+" + x : null; };
@@ -993,7 +1012,7 @@
     h.partages.filter((p) => t(p.cree) >= depuis).forEach((p) => plus(app + "h" + p.profil, nomDe(p.profil), "partages"));
     return [...score.values()];
   }
-  const APPS_VIRALES = [["commis", "foyers"], ["fanion", "groupes"], ["gousset", "comptes"], ["tiroir", "foyers"], ["plumeau", "comptes"], ["seuil", "comptes"], ["voute", "comptes"], ["pourquoi", "comptes"], ["nostalgie", "comptes"]];
+  const APPS_VIRALES = [["commis", "foyers"], ["fanion", "groupes"], ["gousset", "comptes"], ["tiroir", "foyers"], ["plumeau", "comptes"], ["seuil", "comptes"], ["voute", "comptes"], ["pourquoi", "comptes"], ["nostalgie", "comptes"], ["echange", "comptes"], ["vestibule", "comptes"], ["donne", "comptes"], ["escale", "comptes"]];
   function vueViralite(d) {
     const per = etat.viralitePeriode || "30", depuis = per === "30" ? Date.now() - 30 * JOUR : 0;
     const v = etat.viralite;
@@ -1056,7 +1075,7 @@
 
   // Menu sur deux rangées : les fonctions en haut, les apps en dessous
   const FONCTIONS = [["traiter", "À traiter"], ["crm", "CRM"], ["comptes", "Comptes"], ["courriels", "Courriels"], ["idees", "Idées"], ["viralite", "Viralité"], ["couts", "Coûts"], ["journal", "Journal"]];
-  const APPS = [["commis", "Le Commis"], ["fanion", "Le Fanion"], ["plumeau", "Le Plumeau"], ["tiroir", "Le Tiroir"], ["gousset", "Le Gousset"], ["seuil", "Le Seuil"], ["voute", "La Voûte"]];
+  const APPS = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale"].map((k) => [k, nomApp[k]]);
   function rendre() {
     const d = etat.d; if (!d) return;
     const n = aTraiter(d).n;
@@ -1065,7 +1084,7 @@
     const bouton = (cls) => ([k, mot]) => `<button class="${cls}" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${cls === "app" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`;
     $("#onglets").innerHTML = `<div class="rangee fonctions" role="group" aria-label="Fonctions">${fonctions.map(bouton("onglet")).join("")}</div>` +
       `<div class="rangee apps" role="group" aria-label="Apps">${APPS.map(bouton("app")).join("")}</div>`;
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "viralite" ? vueViralite(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "viralite" ? vueViralite(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : nomApp[etat.vue] ? vueAppCompte(d, etat.vue) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
     if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit],[data-statut-app]").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
