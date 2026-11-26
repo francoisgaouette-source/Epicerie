@@ -241,3 +241,10 @@ label.case input { width: 18px; height: 18px; accent-color: var(--tampon); }
 .note-liste { margin: 6px 0 0; padding-left: 20px; color: var(--gris); line-height: 1.55; }
 .note-liste li + li { margin-top: 6px; }
 .filtres + .chiffres, .filtres + .charge, .filtres + .bandeau { margin-top: 18px; }
+/* CRM : chaînes d'invitation */
+.arbre { display: grid; gap: 14px; }
+.arbre-racine > .nom-fiche { font-weight: 700; }
+.arbre ul { list-style: none; margin: 6px 0 0 6px; padding-left: 16px; border-left: 2px solid var(--ligne, #e4dccb); }
+.arbre li { margin: 8px 0; }
+.arbre li small { display: block; color: var(--gris); font-size: 13px; }
+.chaine { color: var(--gris); }

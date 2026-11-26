@@ -2,7 +2,7 @@
 // Réservé aux comptes de console_admins. « lecture » consulte; « gestion » et « proprio » modifient.
 // Les courriels partent par le Worker Cloudflare (console.holdingai.app/api/envoyer), avec le secret COURRIEL_SECRET.
 //   { action: "tout" }                                         → contacts, notes, tâches
-//   { action: "contact.enregistrer", contact }                 → crée (sans id) ou modifie (avec id)
+//   { action: "contact.enregistrer", contact }                 → crée (sans id) ou modifie (avec id); invite_par, invite_app, invite_le : invitation à la bêta
 //   { action: "contact.supprimer", id }
 //   { action: "note.ajouter", contact_id, texte } · { action: "note.supprimer", id }
 //   { action: "tache.ajouter", contact_id, titre, echeance? } · { action: "tache.faite", id, faite } · { action: "tache.supprimer", id }
@@ -60,6 +60,10 @@ export function propre(c: Record<string, unknown>, partiel = false) {
   if (a("etiquettes")) p.etiquettes = liste(c.etiquettes);
   if (a("apps")) p.apps = liste(c.apps, APPS);
   if (a("holdingai_uid")) p.holdingai_uid = texte(c.holdingai_uid, 80);
+  // Invitation à la bêta inscrite à la main : invité par (une autre fiche), pour quelle app, quand
+  if (a("invite_par")) { const v = c.invite_par ? String(c.invite_par) : null; if (v && !UUID.test(v)) throw new Refus("Invité par : fiche invalide."); p.invite_par = v; }
+  if (a("invite_app")) { const v = c.invite_app ? String(c.invite_app).toLowerCase() : null; if (v && !APPS.includes(v)) throw new Refus(`App inconnue : ${v}`); p.invite_app = v; }
+  if (a("invite_le")) { const v = c.invite_le ? String(c.invite_le).slice(0, 10) : null; if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw new Refus("Date d'invitation invalide."); p.invite_le = v; }
   return p;
 }
 
@@ -106,9 +110,12 @@ Deno.serve(async (req: Request) => {
         const avant = await contact(c.id);
         const p = propre(c, true);
         if ("nom" in p && !p.nom) throw new Refus("Le nom est obligatoire.");
+        if (p.invite_par && p.invite_par === avant.id) throw new Refus("Une personne ne peut pas s'inviter elle-même.");
+        if (p.invite_par) await contact(p.invite_par);
         const { data, error } = await db.from("crm_contacts").update({ ...p, maj: new Date().toISOString() }).eq("id", avant.id).select().single();
         doublon(error);
         if (p.etape && p.etape !== avant.etape) await noter("etape", data.nom, { etape: p.etape });
+        if ("invite_par" in p && p.invite_par !== avant.invite_par) await noter("invitation", data.nom, { invite_par: p.invite_par, app: p.invite_app ?? avant.invite_app });
         return json({ ok: true, contact: data });
       }
       const p = propre(c);

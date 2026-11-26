@@ -5,7 +5,8 @@
 //   { action: "tout" }                                   → données de l'app (console_donnees) + rôle
 //   Le Tiroir  : { action: "foyer", id, geste: "activer" | "retirer", paiement? } → forfait 12 mois (gestion)
 //   Le Gousset : { action: "demande", id, statut: "approved" | "declined" | "pending" } → demande d'accès (gestion)
-//   Le Seuil et La Voûte, HoldingAI Compte : lecture seulement (« tout »)
+//   Le Seuil et La Voûte : lecture seulement (« tout »)
+//   HoldingAI Compte : { action: "statut_app", slug, statut: "beta" | null } → « Bêta » affiché dans l'app (gestion)
 //   { action: "viralite" }                               → console_viralite() du projet (Commis, Gousset, Tiroir, HoldingAI Compte)
 // Déployer avec verify_jwt = false : le jeton vient du projet du Commis, la vérification est faite ici.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -73,6 +74,14 @@ Deno.serve(async (req: Request) => {
       if (b.paiement && Number.isInteger(Number(b.paiement))) await db.from("console_paiements").update({ active: true }).eq("id", Number(b.paiement));
       await noter("foyer", f.nom || id, { geste: b.geste, jusqua: paye });
       return json({ ok: true, paye_jusqua: paye });
+    }
+    if (APP === "compte" && action === "statut_app") {
+      const slug = String(b.slug || ""); if (!/^[a-z0-9-]{2,40}$/.test(slug)) return json({ erreur: "App invalide." }, 400);
+      const statut = b.statut === "beta" ? "beta" : null;
+      const { data, error } = await db.rpc("console_statut_app", { p_slug: slug, p_statut: statut });
+      if (error) return json({ erreur: /introuvable/.test(error.message) ? "App introuvable." : error.message }, 400);
+      await noter("statut", data.nom, { statut: statut || "disponible" });
+      return json({ ok: true, app: data });
     }
     if (APP === "gousset" && action === "demande") {
       const id = String(b.id || ""); if (!UUID.test(id)) return json({ erreur: "Demande invalide." }, 400);

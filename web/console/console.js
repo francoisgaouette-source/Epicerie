@@ -423,7 +423,13 @@
       section("Comptes", "Un seul compte par personne, pour toutes les apps branchées sur compte.holdingai.app. Les apps pas encore branchées gardent leurs propres comptes et n'apparaissent pas ici.",
         table([{ t: "Personne" }, { t: "Créé" }, { t: "Dernière connexion" }, { t: "Apps utilisées" }],
           cp.map((x) => [`<span class="nom">${esc(x.nom || "Sans nom")}</span><small>${esc(tel(x.cellulaire))}</small>`, esc(jour(x.cree)), esc(x.vu ? ilYA(x.vu) : "jamais"), pucesApps(x.apps || [])]),
-          "Aucun compte HoldingAI pour l'instant."));
+          "Aucun compte HoldingAI pour l'instant.")) +
+      section("Statut des apps", "Une app en bêta affiche « Bêta » à côté d'Albert, dans son menu, à l'entrée et sur les invitations. Une app disponible n'affiche rien. Le changement paraît dans l'app au prochain chargement.",
+        table([{ t: "App" }, { t: "Statut" }, { t: "" }],
+          (c.apps || []).filter((a) => a.slug !== "holdingai" && a.active !== false).map((a) => [`${puce(cleApp(a.slug))}`,
+            a.statut === "beta" ? `<span class="tampon attente">Bêta</span>` : `<span class="tampon">Disponible</span>`,
+            `<button class="btn pale" data-statut-app="${esc(a.slug)}" data-statut="${a.statut === "beta" ? "" : "beta"}">${a.statut === "beta" ? "Marquer disponible" : "Mettre en bêta"}</button>`]),
+          "La liste des apps n'a pas pu être lue."));
   }
   function vueSeuil(d) {
     const x = d.seuilvoute || {}, rs = x.seuil || [];
@@ -632,6 +638,91 @@
   const echeanceTexte = (k) => { if (!k.echeance) return "sans date"; const auj = aujourdHui();
     return k.echeance < auj ? `en retard, ${jour(k.echeance + "T12:00")}` : k.echeance === auj ? "aujourd'hui" : jour(k.echeance + "T12:00"); };
 
+  // ---------- CRM : invitations à la bêta (qui a invité qui)
+  const aApp = (n) => (/^Le /.test(n) ? "au " + n.slice(3) : /^Les /.test(n) ? "aux " + n.slice(4) : "à " + n);
+  // Deux sources : le lien « Inviter quelqu'un » des apps (HoldingAI Compte, invitations_arrivees, automatique)
+  // et l'invitation inscrite à la main dans une fiche (crm_contacts.invite_par, invite_app, invite_le).
+  async function invitationsCharger() {
+    try { etat.crmInv = await pontApp("compte", { action: "viralite" }); }
+    catch (e) { etat.crmInv = { erreur: e.message, arrivees: [], profils: [] }; }
+    if (etat.d) rendre();
+  }
+  function liensInvitation(gens) {
+    const parUid = new Map(gens.filter((p) => p.uid).map((p) => [p.uid, p]));
+    const parContact = new Map(gens.filter((p) => p.contact).map((p) => [p.contact.id, p]));
+    const x = etat.crmInv || { arrivees: [], profils: [] };
+    const profil = new Map((x.profils || []).map((p) => [p.id, p]));
+    const personneUid = (uid) => parUid.get(uid) || { cle: "u:" + uid, nom: (profil.get(uid) || {}).nom || "Compte HoldingAI", uid, apps: new Set(), fantome: true };
+    const liens = [];
+    for (const a of x.arrivees || []) liens.push({ de: personneUid(a.parrain), a: personneUid(a.filleul), app: cleApp(a.app), quand: a.cree, nouveau: a.nouveau, source: "lien" });
+    for (const p of gens) {
+      const c = p.contact; if (!c || !c.invite_par) continue;
+      const de = parContact.get(c.invite_par); if (!de) continue;
+      liens.push({ de, a: p, app: c.invite_app, quand: c.invite_le ? c.invite_le + "T12:00" : null, source: "main" });
+    }
+    // Pour chaque personne : l'invitation qui l'a amenée (la plus ancienne; celle inscrite à la main l'emporte)
+    const parent = new Map();
+    for (const l of liens) {
+      const k = l.a.cle, avant = parent.get(k);
+      if (!avant || (l.source === "main" && avant.source !== "main") || (l.source === avant.source && t(l.quand) < t(avant.quand))) parent.set(k, l);
+    }
+    const chaine = (p) => { const vus = new Set([p.cle]), ch = [p]; let l = parent.get(p.cle);
+      while (l && !vus.has(l.de.cle)) { ch.unshift(l.de); vus.add(l.de.cle); l = parent.get(l.de.cle); } return ch; };
+    const enfants = new Map();
+    for (const l of liens) { if (!enfants.has(l.de.cle)) enfants.set(l.de.cle, []); if (!enfants.get(l.de.cle).some((m) => m.a.cle === l.a.cle)) enfants.get(l.de.cle).push(l); }
+    return { liens, parent, chaine, enfants };
+  }
+  function arbreInvitations(inv) {
+    const racines = [...new Map([...inv.liens].map((l) => [l.de.cle, l.de])).values()].filter((p) => !inv.parent.has(p.cle));
+    const branche = (p, vus) => {
+      const fils = (inv.enfants.get(p.cle) || []).filter((l) => !vus.has(l.a.cle)).sort((a, b) => t(a.quand) - t(b.quand));
+      if (!fils.length) return "";
+      return `<ul>${fils.map((l) => `<li><button class="nom-fiche" data-fiche="${esc(l.a.cle)}">${esc(l.a.nom)}</button>
+        <small>${[l.app ? esc(nomApp[l.app] || l.app) : "", l.quand ? esc(jour(l.quand)) : "", l.source === "main" ? "inscrit à la main" : l.nouveau === false ? "avait déjà un compte" : ""].filter(Boolean).join(" · ")}</small>
+        ${branche(l.a, new Set([...vus, l.a.cle]))}</li>`).join("")}</ul>`;
+    };
+    return racines.length ? `<div class="arbre">${racines.map((r) => `<div class="arbre-racine"><button class="nom-fiche" data-fiche="${esc(r.cle)}">${esc(r.nom)}</button>${branche(r, new Set([r.cle]))}</div>`).join("")}</div>` : "";
+  }
+  function vueCrmInvitations(d, gens) {
+    if (!etat.crmInv) { invitationsCharger(); return `<p class="charge">Lecture des invitations…</p>`; }
+    const inv = liensInvitation(gens);
+    const invites = [...inv.parent.values()].sort((a, b) => t(b.quand) - t(a.quand));
+    const inviteurs = new Set(inv.liens.map((l) => l.de.cle));
+    const relais = invites.filter((l) => inviteurs.has(l.a.cle)).length;
+    const profondeur = Math.max(0, ...invites.map((l) => inv.chaine(l.a).length - 1));
+    const choix = (nom, aide) => `<select name="${nom}" required aria-label="${aide}"><option value="">${aide}</option>${gens.slice().sort((a, b) => a.nom.localeCompare(b.nom, "fr")).map((p) => `<option value="${esc(p.cle)}">${esc(p.nom)}${p.courriel ? ` (${esc(p.courriel)})` : ""}</option>`).join("")}</select>`;
+    return (etat.crmInv.erreur ? `<section class="section"><div class="bandeau">Les invitations faites dans les apps n'ont pas pu être lues : ${esc(etat.crmInv.erreur)}</div></section>` : "") +
+      `<section class="section">${chiffres([[invites.length, invites.length > 1 ? "personnes invitées" : "personne invitée"], [inviteurs.size, inviteurs.size > 1 ? "personnes qui invitent" : "personne qui invite"],
+        [relais, "invités qui ont invité à leur tour"], [profondeur, profondeur > 1 ? "générations dans la plus longue chaîne" : "génération dans la plus longue chaîne"]])}</section>` +
+      section("Chaînes d'invitation", "Qui a invité qui, de génération en génération. Les invitations faites avec le bouton « Inviter quelqu'un » des apps s'ajoutent toutes seules; les autres s'inscrivent ci-dessous.",
+        arbreInvitations(inv) || `<p class="vide">Personne n'a encore été invité.</p>`) +
+      section("Toutes les invitations", "",
+        table([{ t: "Personne invitée" }, { t: "Invitée par" }, { t: "Chaîne" }, { t: "App" }, { t: "Date" }, { t: "Comment" }, { t: "A invité", n: 1 }],
+          invites.map((l) => [`<button class="nom-fiche" data-fiche="${esc(l.a.cle)}">${esc(l.a.nom)}</button>`, `<button class="nom-fiche" data-fiche="${esc(l.de.cle)}">${esc(l.de.nom)}</button>`,
+            `<small class="chaine">${inv.chaine(l.a).map((p) => esc(p.nom)).join(" › ")}</small>`, l.app ? puce(l.app) : "", esc(l.quand ? jour(l.quand) : ""),
+            esc(l.source === "main" ? "Inscrite à la main" : l.nouveau === false ? "Lien (avait déjà un compte)" : "Lien d'invitation"), (inv.enfants.get(l.a.cle) || []).length]),
+          "Aucune invitation pour l'instant.")) +
+      `<div data-crm-ecrit>` + section("Inscrire une invitation", "Pour une invitation faite hors des apps : un courriel, un appel, une rencontre. La personne invitée garde une seule « invitée par ».",
+        `<form id="f-crm-invitation" class="crm-form">
+          <label>Personne invitée${choix("invite", "Choisir la personne invitée")}</label>
+          <label>Invitée par${choix("par", "Choisir qui l'a invitée")}</label>
+          <label>App<select name="app"><option value="">Toutes ou aucune en particulier</option>${APPS_CRM.map((a) => `<option value="${a}">${esc(nomApp[a])}</option>`).join("")}</select></label>
+          <label>Date<input name="le" type="date" value="${aujourdHui()}"></label>
+          <div class="dlg-actions"><button class="btn" type="submit">Inscrire l'invitation</button></div>
+        </form>`) + `</div>`;
+  }
+  // Dans la fiche : invitée par qui, et qui elle a invité
+  function blocInvitationFiche(gens, p) {
+    if (!etat.crmInv) { invitationsCharger(); return ""; }
+    const inv = liensInvitation(gens), l = inv.parent.get(p.cle), fils = inv.enfants.get(p.cle) || [];
+    const ch = inv.chaine(p);
+    return section("Invitations bêta", "",
+      `${l ? `<p>Invitée par <button class="nom-fiche" data-fiche="${esc(l.de.cle)}">${esc(l.de.nom)}</button>${l.app ? ` ${esc(aApp(nomApp[l.app] || l.app))}` : ""}${l.quand ? `, le ${esc(jour(l.quand))}` : ""}${l.source === "main" ? " (inscrit à la main)" : ""}.</p>` : `<p class="vide">Invitée par personne d'inscrit.</p>`}
+      ${ch.length > 2 ? `<p class="note">Chaîne : ${ch.map((x) => esc(x.nom)).join(" › ")}</p>` : ""}
+      ${fils.length ? `<p>A invité : ${fils.map((m) => `<button class="nom-fiche" data-fiche="${esc(m.a.cle)}">${esc(m.a.nom)}</button>`).join(", ")}.</p>` : ""}
+      ${p.contact && p.contact.invite_par ? `<p data-crm-ecrit><button class="lien" data-crm="oublier-invitation">Retirer l'invitation inscrite à la main</button></p>` : ""}`);
+  }
+
   function vueCrm(d) {
     if (!etat.crm) { crmCharger(); return `<p class="charge">Lecture du CRM…</p>`; }
     if (etat.crmImport) return vueCrmImport();
@@ -641,7 +732,8 @@
     const f = etat.crmFiltre || "tous", q = (etat.crmRecherche || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
     const actifs = gens.filter((p) => p.type === "prospect" && ["a_contacter", "contacte", "interesse"].includes(p.etape));
     const FILTRES = [["tous", `Tous (${gens.length})`], ["client", `Clients (${gens.filter((p) => p.type === "client").length})`], ["prospect", `Prospects (${gens.filter((p) => p.type === "prospect").length})`],
-      ["autres", `Partenaires, testeurs et médias (${gens.filter((p) => ["partenaire", "testeur", "media", "autre"].includes(p.type)).length})`], ["relancer", `À relancer (${gens.filter((p) => p.prochaine && p.prochaine.echeance && p.prochaine.echeance <= aujourdHui()).length})`]];
+      ["autres", `Partenaires, testeurs et médias (${gens.filter((p) => ["partenaire", "testeur", "media", "autre"].includes(p.type)).length})`], ["relancer", `À relancer (${gens.filter((p) => p.prochaine && p.prochaine.echeance && p.prochaine.echeance <= aujourdHui()).length})`],
+      ["invitations", etat.crmInv ? `Invitations bêta (${liensInvitation(gens).parent.size})` : "Invitations bêta"]];
     const etiquettes = [...new Set(gens.flatMap((p) => p.etiquettes))].sort();
     const vus = gens.filter((p) => (f === "tous" || (f === "autres" ? ["partenaire", "testeur", "media", "autre"].includes(p.type) : f === "relancer" ? p.prochaine && p.prochaine.echeance && p.prochaine.echeance <= aujourdHui() : p.type === f))
       && (!etat.crmEtape || p.etape === etat.crmEtape) && (!etat.crmEtiquette || p.etiquettes.includes(etat.crmEtiquette))
@@ -656,13 +748,13 @@
       <div class="crm-filtres" role="group" aria-label="Filtrer">${FILTRES.map(([k, mot]) => `<button class="filtre" data-crm-filtre="${k}" ${f === k ? 'aria-pressed="true"' : 'aria-pressed="false"'}>${esc(mot)}</button>`).join("")}
         <select id="crm-etape" aria-label="Étape"><option value="">Toutes les étapes</option>${ETAPES_CRM.map(([k, m]) => `<option value="${k}" ${etat.crmEtape === k ? "selected" : ""}>${m} (${gens.filter((p) => p.etape === k).length})</option>`).join("")}</select>
         ${etiquettes.length ? `<select id="crm-etiquette" aria-label="Étiquette"><option value="">Toutes les étiquettes</option>${etiquettes.map((e) => `<option ${etat.crmEtiquette === e ? "selected" : ""}>${esc(e)}</option>`).join("")}</select>` : ""}
-      </div>` +
+      </div>` + (f === "invitations" ? `</section>` + vueCrmInvitations(d, gens) : 
       table([{ t: "Personne" }, { t: "Statut" }, { t: "Apps" }, { t: "Étiquettes" }, { t: "Prochaine tâche" }, { t: "Dernière activité" }],
         vus.slice(0, 500).map((p) => [`<button class="nom-fiche" data-fiche="${esc(p.cle)}">${esc(p.nom)}</button><small>${esc([p.organisation, p.courriel, tel(p.cellulaire)].filter(Boolean).join(", "))}</small>`,
           tamponCrm(p), pucesCrm(p.apps), esc(p.etiquettes.join(", ")),
           p.prochaine ? `${esc(p.prochaine.titre)}<small class="${p.prochaine.echeance && p.prochaine.echeance < aujourdHui() ? "retard" : ""}">${esc(echeanceTexte(p.prochaine))}</small>` : "",
           esc(p.derniere ? ilYA(p.derniere) : "")]),
-        gens.length ? "Personne ne correspond à cette recherche." : "Le CRM est vide. Ajoutez un contact ou importez une liste; les personnes inscrites dans vos apps s'ajoutent toutes seules.") + `</section>`;
+        gens.length ? "Personne ne correspond à cette recherche." : "Le CRM est vide. Ajoutez un contact ou importez une liste; les personnes inscrites dans vos apps s'ajoutent toutes seules.") + `</section>`);
   }
 
   function formContact(c) {
@@ -704,6 +796,7 @@
           <label>Objet<input name="sujet" required maxlength="300"></label><label>Message<textarea name="texte" rows="7" required maxlength="20000"></textarea></label><button class="btn" type="submit">Envoyer</button></form>`) : "") +
       `</div><div>` +
       section("Apps", "", p.apps.size || p.uid ? `${p.utilise.size ? `<p class="crm-apps-ligne"><span>Utilise</span>${pucesCrm(new Set(p.utilise.keys()))}</p>` : ""}${p.contact && (p.contact.apps || []).length ? `<p class="crm-apps-ligne"><span>S'intéresse à</span>${pucesCrm(new Set(p.contact.apps))}</p>` : ""}<p class="note">${esc([p.uid ? "Compte HoldingAI" : "", p.inscrit ? `inscrit le ${jour(p.inscrit)}` : "", p.vu ? `dernière connexion ${ilYA(p.vu)}` : ""].filter(Boolean).join(", "))}</p>${p.sources.length ? `<p class="note">${esc([...new Set(p.sources)].join(" · "))}</p>` : ""}` : `<p class="vide">N'utilise encore aucune app.</p>`) +
+      blocInvitationFiche(personnesCrm(d), p) +
       section("Activité", "", activite.length ? `<div class="liste">${activite.map((a) => a.html).join("")}</div>` : `<p class="vide">Aucune activité pour l'instant.</p>`) +
       `<p class="crm-bas" data-crm-ecrit><button class="lien" data-crm="modifier">Modifier la fiche</button>${p.contact ? ` <button class="lien" data-crm="supprimer">Supprimer la fiche</button>` : ""}</p>` +
       `</div></div>`;
@@ -777,6 +870,9 @@
       if (await confirmer({ titre: `Supprimer la fiche de ${p.nom} ?`, texte: "Ses notes et ses tâches seront effacées pour de bon. Son compte dans les apps n'est pas touché.", bouton: "Supprimer la fiche" })) {
         if (await gesteCrm({ action: "contact.supprimer", id: p.contact.id }, "Fiche supprimée.")) { etat.crmFiche = null; rendre(); } }
       return true; }
+    if (g === "oublier-invitation") { const p = ficheCourante(); if (!p || !p.contact) return true;
+      await gesteCrm({ action: "contact.enregistrer", contact: { id: p.contact.id, invite_par: null, invite_app: null, invite_le: null } }, "Invitation retirée.");
+      return true; }
     if (g === "importer") { etat.crmImport = { type: "prospect" }; rendre(); return true; }
     if (g === "apercu") { const x = etat.crmImport; x.texte = $("#crm-import-texte").value; x.type = $("#crm-import-type").value; x.etiquette = $("#crm-import-etiquette").value.trim(); x.apercu = lireCsv(x.texte); x.resultat = null; rendre(); return true; }
     if (g === "lancer-import") { const x = etat.crmImport, a = x.apercu; if (!a || !a.rangs.length) return true;
@@ -797,6 +893,18 @@
       if (form.dataset.id) contact.id = form.dataset.id; else if (p && p.uid) contact.holdingai_uid = p.uid;
       try { const r = await crm({ action: "contact.enregistrer", contact }); toast(contact.id ? "Fiche enregistrée." : "Contact ajouté."); etat.crmFiche = "c:" + r.contact.id; etat.crmEdition = false; await crmCharger(); }
       catch (e) { toast(e.message, true); }
+      return;
+    }
+    if (form.id === "f-crm-invitation") {
+      const gens = personnesCrm(etat.d), invite = gens.find((g) => g.cle === v("invite")), par = gens.find((g) => g.cle === v("par"));
+      if (!invite || !par) { toast("Choisissez les deux personnes.", true); return; }
+      if (invite.cle === par.cle) { toast("Une personne ne peut pas s'inviter elle-même.", true); return; }
+      try {
+        const garder = etat.crmFiche;
+        const idPar = await assurerFiche(par), idInvite = await assurerFiche(invite);
+        etat.crmFiche = garder;
+        await gesteCrm({ action: "contact.enregistrer", contact: { id: idInvite, invite_par: idPar, invite_app: v("app") || null, invite_le: v("le") || null } }, `Invitation inscrite : ${par.nom} › ${invite.nom}.`);
+      } catch (e) { toast(e.message, true); }
       return;
     }
     const p = ficheCourante(); if (!p) return;
@@ -959,7 +1067,7 @@
       `<div class="rangee apps" role="group" aria-label="Apps">${APPS.map(bouton("app")).join("")}</div>`;
     $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "viralite" ? vueViralite(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : vueTraiter(d);
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
-    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit]").forEach((b) => b.remove());
+    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit],[data-statut-app]").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
     document.title = (n ? `(${n}) ` : "") + "Console HoldingAI";
     etat.frais = null;
@@ -1021,7 +1129,7 @@
 
   // ---------- gestes
   $("#onglets").addEventListener("click", (e) => { const b = e.target.closest("[data-vue]"); if (!b) return; etat.vue = b.dataset.vue; rendre(); window.scrollTo({ top: 0 }); });
-  $("#actualiser").addEventListener("click", async () => { etat.viralite = null; await charger(true); toast("Données à jour."); });
+  $("#actualiser").addEventListener("click", async () => { etat.viralite = null; etat.crmInv = null; await charger(true); toast("Données à jour."); });
   $("#sortir").addEventListener("click", async () => { await sb.auth.signOut(); etat.d = null; montrerPorte(""); });
   $("#page").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
@@ -1036,6 +1144,16 @@
     if (b.dataset.nouveaute) {
       const ok = await confirmer({ titre: "Retirer cette nouveauté ?", texte: "Les membres qui ne l'ont pas encore vue ne la verront pas.", bouton: "Retirer" });
       if (ok) agir({ action: "commis.nouveaute", geste: "retirer", id: b.dataset.nouveaute }, "Nouveauté retirée.");
+      return;
+    }
+    if (b.dataset.statutApp) {
+      const app = ((d.compte || {}).apps || []).find((a) => a.slug === b.dataset.statutApp); if (!app) return;
+      b.disabled = true;
+      try {
+        await pontApp("compte", { action: "statut_app", slug: app.slug, statut: b.dataset.statut || null });
+        app.statut = b.dataset.statut || null; rendre();
+        toast(app.statut === "beta" ? `${app.nom} est maintenant en bêta.` : `${app.nom} est maintenant disponible : « Bêta » n'est plus affiché.`);
+      } catch (err) { b.disabled = false; toast(err.message, true); }
       return;
     }
     if (b.dataset.tiroir) {
