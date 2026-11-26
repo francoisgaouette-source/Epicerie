@@ -18,7 +18,7 @@ const TYPES = ["client", "prospect", "partenaire", "testeur", "media", "autre"];
 const ETAPES = ["a_contacter", "contacte", "interesse", "converti", "perdu"];
 const APPS = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale"];
 const EXPEDITEURS: Record<string, { app: string; nom: string }> = {
-  "bonjour@holdingai.app": { app: "holdingai", nom: "HoldingAI" },
+  "bonjour@holdingai.app": { app: "holdingai", nom: "L’Établi" },
   "bonjour@lecommis.ai": { app: "commis", nom: "Le Commis" },
   "bonjour@fanion.ai": { app: "fanion", nom: "Le Fanion" },
 };
@@ -92,7 +92,7 @@ Deno.serve(async (req: Request) => {
     return data;
   };
   const doublon = (e: { code?: string; message?: string } | null) => {
-    if (e?.code === "23505") throw new Refus(/cellulaire/.test(e.message || "") ? "Un autre contact a déjà ce cellulaire." : /holdingai/.test(e.message || "") ? "Ce compte HoldingAI a déjà sa fiche." : "Un autre contact a déjà ce courriel.");
+    if (e?.code === "23505") throw new Refus(/cellulaire/.test(e.message || "") ? "Un autre contact a déjà ce cellulaire." : /holdingai/.test(e.message || "") ? "Ce compte L’Établi a déjà sa fiche." : "Un autre contact a déjà ce courriel.");
     if (e) throw new Refus(e.message || "Erreur", 500);
   };
 

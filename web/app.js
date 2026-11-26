@@ -1091,7 +1091,7 @@
     if (error) { status(msgErreurMembre(error, fmtTel(tel))); return; }
     $("#in-mtel").value = ""; $("#in-mnom").value = "";
     const moi = (state.membres.find(estMoi) || {}).nom || "";
-    inviteMsg = `${nom ? "Salut " + nom + "! " : ""}${moi ? prenom(moi) + " t'invite" : "Je t'invite"} dans notre foyer sur Le Commis : la liste d'épicerie, ce qu'on a à la maison et les spéciaux, partagés en temps réel. Ouvre ${APP_URL}, touche « Continuer avec HoldingAI » et utilise ton cellulaire ${fmtTel(tel)} : si tu n'as pas encore de compte HoldingAI, tu le crées avec un code par texto.`;
+    inviteMsg = `${nom ? "Salut " + nom + "! " : ""}${moi ? prenom(moi) + " t'invite" : "Je t'invite"} dans notre foyer sur Le Commis : la liste d'épicerie, ce qu'on a à la maison et les spéciaux, partagés en temps réel. Ouvre ${APP_URL}, touche « Continuer avec L’Établi » et utilise ton cellulaire ${fmtTel(tel)} : si tu n'as pas encore de compte L’Établi, tu le crées avec un code par texto.`;
     inviteTel = e164(tel);
     $("#invite-text").textContent = `${nom || fmtTel(tel)} a accès. Envoyez-lui ce message pour qu'elle ou il crée son compte :\n\n« ${inviteMsg} »`;
     $("#invite-send").hidden = !navigator.share;
@@ -1301,7 +1301,7 @@
     const copier = IOS && (DANS_APP || PAS_SAFARI);
     $("#gate-body").innerHTML = `${cadeau}${avant}<ol class="bv-steps">${etapes}</ol>
       ${copier ? `<button class="btn gate-btn" type="button" id="gate-copier">Copier le lien</button>` : ""}
-      ${IOS ? `<p class="hint">Dans l'app installée, touchez « Continuer avec HoldingAI » pour vous connecter.</p>` : ""}`;
+      ${IOS ? `<p class="hint">Dans l'app installée, touchez « Continuer avec L’Établi » pour vous connecter.</p>` : ""}`;
     const c = $("#gate-copier");
     if (c) c.onclick = async () => { const l = APP_URL + (code ? "?ref=" + code : ""); try { await navigator.clipboard.writeText(l); c.textContent = "Lien copié ✓"; } catch (err) { c.textContent = l; } };
   }
@@ -2338,7 +2338,7 @@
   if (entree.has("essai") || entree.has("acheter") || entree.has("ref") || entree.has("installer")) history.replaceState(null, "", location.pathname + location.hash);
   $("#hai").addEventListener("click", async (e) => {
     e.target.disabled = true; loginStatus("");
-    try { await HoldingAI.connecter(); } catch (err) { loginStatus("La connexion HoldingAI n'a pas pu démarrer. Réessayez."); e.target.disabled = false; }
+    try { await HoldingAI.connecter(); } catch (err) { loginStatus("La connexion L’Établi n'a pas pu démarrer. Réessayez."); e.target.disabled = false; }
   });
   $("#logout").addEventListener("click", () => deconnecter());
 
@@ -2492,7 +2492,7 @@
     const installee = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
     const dep = await HoldingAI.demarrer({ obligatoire: installee || !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) });
     if (dep.redirection) return;
-    const erreur = dep.erreur ? (dep.erreur.message || "La connexion HoldingAI n'a pas fonctionné.") : "";
+    const erreur = dep.erreur ? (dep.erreur.message || "La connexion L’Établi n'a pas fonctionné.") : "";
     const session = await sessionHAI();
     window.HOLDINGAI_PORTE = { app: "le-commis", nomApp: "Le Commis", prenom: session ? session.user.nom : "",
       liens: [{ texte: "Mon foyer, membres et forfait", action: () => { const b = $("#open-compte"); if (b && $("#compte").hidden) b.click(); } }],

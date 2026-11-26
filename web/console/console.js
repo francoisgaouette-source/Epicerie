@@ -43,7 +43,7 @@
   };
   // Les apps de L'Établi, avec leur nom exact (clé courte = slug de HoldingAI Compte sans « le- », « la- » ou « l »)
   const nomApp = { echange: "L'Échange", gousset: "Le Gousset", pourquoi: "Le Pourquoi", commis: "Le Commis", fanion: "Le Fanion", seuil: "Le Seuil", plumeau: "Le Plumeau",
-    vestibule: "Le Vestibule", tiroir: "Le Tiroir", voute: "La Voûte", donne: "La Donne", nostalgie: "La Nostalgie", escale: "L'Escale", holdingai: "HoldingAI", console: "Console" };
+    vestibule: "Le Vestibule", tiroir: "Le Tiroir", voute: "La Voûte", donne: "La Donne", nostalgie: "La Nostalgie", escale: "L'Escale", holdingai: "L’Établi", console: "Console" };
   const puce = (app) => `<span class="app"><i class="pastille ${esc(app)}"></i>${esc(nomApp[app] || app)}</span>`;
 
   // ---------- serveur
@@ -187,7 +187,7 @@
   }
   function vueCourriels(d) {
     const fils = filsCourriels(d), nAttente = fils.filter((f) => f.attente).length;
-    const FILTRES = [["attente", `À traiter${nAttente ? ` (${nAttente})` : ""}`], ["tous", "Tous"], ["holdingai", "HoldingAI"], ["commis", "Le Commis"], ["fanion", "Le Fanion"], ["auto", "Automatiques"]];
+    const FILTRES = [["attente", `À traiter${nAttente ? ` (${nAttente})` : ""}`], ["tous", "Tous"], ["holdingai", "L’Établi"], ["commis", "Le Commis"], ["fanion", "Le Fanion"], ["auto", "Automatiques"]];
     const k = etat.filtre;
     const vus = fils.filter((f) => (k === "attente" ? f.attente : k === "tous" ? true : k === "auto" ? f.auto : f.app === k && !f.auto));
     const vide = !fils.length ? "Aucun courriel reçu pour l'instant. Tout ce qui est écrit à une adresse @holdingai.app, @lecommis.ai ou @fanion.ai arrivera ici."
@@ -421,12 +421,12 @@
     const c = d.compte || {}, cp = c.comptes || [];
     const visitesDe = (cle) => cp.filter((x) => (x.apps || []).some((a) => cleApp(a.app) === cle)).length;
     const parApp = (c.apps || []).filter((a) => a.slug !== "holdingai").map((a) => [visitesDe(cleApp(a.slug)), `sur ${a.nom}`]).filter(([n]) => n);
-    return bandeauErreur(c, "HoldingAI Compte") +
-      `<section class="section">${chiffres([[cp.length, cp.length > 1 ? "comptes HoldingAI" : "compte HoldingAI"], [cp.filter((x) => Date.now() - t(x.cree) < 7 * JOUR).length, "nouveaux depuis 7 jours"], ((n) => [n, `${n > 1 ? "connectés" : "connecté"} depuis 7 jours`])(cp.filter((x) => x.vu && Date.now() - t(x.vu) < 7 * JOUR).length), ...parApp])}</section>` +
+    return bandeauErreur(c, "Compte L’Établi") +
+      `<section class="section">${chiffres([[cp.length, cp.length > 1 ? "comptes L’Établi" : "compte L’Établi"], [cp.filter((x) => Date.now() - t(x.cree) < 7 * JOUR).length, "nouveaux depuis 7 jours"], ((n) => [n, `${n > 1 ? "connectés" : "connecté"} depuis 7 jours`])(cp.filter((x) => x.vu && Date.now() - t(x.vu) < 7 * JOUR).length), ...parApp])}</section>` +
       section("Comptes", "Un seul compte par personne, pour toutes les apps branchées sur compte.holdingai.app. Les apps pas encore branchées gardent leurs propres comptes et n'apparaissent pas ici.",
         table([{ t: "Personne" }, { t: "Créé" }, { t: "Dernière connexion" }, { t: "Apps utilisées" }],
           cp.map((x) => [`<span class="nom">${esc(x.nom || "Sans nom")}</span><small>${esc(tel(x.cellulaire))}</small>`, esc(jour(x.cree)), esc(x.vu ? ilYA(x.vu) : "jamais"), pucesApps(x.apps || [])]),
-          "Aucun compte HoldingAI pour l'instant.")) +
+          "Aucun compte L’Établi pour l'instant.")) +
       section("Statut des apps", "Une app en bêta affiche « Bêta » à côté d'Albert, dans son menu, à l'entrée et sur les invitations. Une app disponible n'affiche rien. Le changement paraît dans l'app au prochain chargement.",
         table([{ t: "App" }, { t: "Statut" }, { t: "" }],
           (c.apps || []).filter((a) => a.slug !== "holdingai" && a.active !== false).map((a) => [`${puce(cleApp(a.slug))}`,
@@ -439,12 +439,12 @@
     const c = d.compte || {}, fiche = (c.apps || []).find((a) => cleApp(a.slug) === app);
     const gens = (c.comptes || []).map((x) => ({ x, v: (x.apps || []).find((a) => cleApp(a.app) === app) })).filter((g) => g.v)
       .sort((a, b) => t(b.v.derniere) - t(a.v.derniere));
-    return bandeauErreur(c, "HoldingAI Compte") +
+    return bandeauErreur(c, "Compte L’Établi") +
       `<section class="section app-entete"><h2>${esc(nomApp[app])}</h2>${fiche ? `<p class="sous">${fiche.adresse ? `<a href="${esc(fiche.adresse)}" target="_blank" rel="noopener">${esc(fiche.adresse.replace(/^https:\/\//, ""))}</a>` : ""}${fiche.personnage ? ` · avec ${esc(fiche.personnage)}` : ""} · ${fiche.statut === "beta" ? "en bêta" : "disponible"}</p>` : ""}
         ${chiffres([[gens.length, gens.length > 1 ? "personnes l'ont ouverte" : "personne l'a ouverte"], [gens.filter((g) => Date.now() - t(g.v.premiere) < 7 * JOUR).length, "nouvelles depuis 7 jours"],
           [gens.filter((g) => Date.now() - t(g.v.derniere) < 7 * JOUR).length, "actives depuis 7 jours"]])}
         ${fiche ? `<p data-statut-app-ligne><button class="btn pale" data-statut-app="${esc(fiche.slug)}" data-statut="${fiche.statut === "beta" ? "" : "beta"}">${fiche.statut === "beta" ? "Marquer disponible" : "Mettre en bêta"}</button></p>` : ""}</section>` +
-      section("Personnes", "Les comptes HoldingAI qui ont ouvert l'app. Ses données propres ne sont pas encore lues par la console.",
+      section("Personnes", "Les comptes L’Établi qui ont ouvert l'app. Ses données propres ne sont pas encore lues par la console.",
         table([{ t: "Personne" }, { t: "Première visite" }, { t: "Dernière visite" }, { t: "Autres apps" }],
           gens.map(({ x, v }) => [`<span class="nom">${esc(x.nom || "Sans nom")}</span><small>${esc(tel(x.cellulaire))}</small>`, esc(jour(v.premiere)), esc(ilYA(v.derniere)),
             pucesApps((x.apps || []).filter((a) => cleApp(a.app) !== app))]),
@@ -454,7 +454,7 @@
     const x = d.seuilvoute || {}, rs = x.seuil || [];
     return bandeauErreur(x, "Le Seuil") +
       `<section class="section">${chiffres([[rs.length, rs.length > 1 ? "personnes avec un compte" : "personne avec un compte"], ((n) => [n, `${n > 1 ? "actives" : "active"} depuis 7 jours`])(rs.filter((r) => Date.now() - t(r.maj) < 7 * JOUR).length), [rs.reduce((s, r) => s + (Number(r.reponses) || 0), 0), "réponses enregistrées"], [rs.reduce((s, r) => s + (Number(r.rappels) || 0), 0), "rappels prévus"]])}</section>` +
-      section("Personnes", "Le Seuil est gratuit et le compte y est facultatif : on ne voit ici que les personnes qui gardent leurs réponses dans leur compte HoldingAI. Le contenu des réponses n'est pas affiché.",
+      section("Personnes", "Le Seuil est gratuit et le compte y est facultatif : on ne voit ici que les personnes qui gardent leurs réponses dans leur compte L’Établi. Le contenu des réponses n'est pas affiché.",
         table([{ t: "Personne" }, { t: "Réponses", n: 1 }, { t: "Rappels", n: 1 }, { t: "Dernière mise à jour" }],
           rs.map((r) => [cellPersonne(d, r.uid), r.reponses, r.rappels, esc(ilYA(r.maj))]),
           "Personne ne garde encore ses réponses dans un compte."));
@@ -464,7 +464,7 @@
     const ko = (n) => n == null ? "" : n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} Ko` : `${(n / 1024 / 1024).toFixed(1).replace(".", ",")} Mo`;
     return bandeauErreur(x, "La Voûte") +
       `<section class="section">${chiffres([[vs.length, vs.length > 1 ? "voûtes gardées dans un compte" : "voûte gardée dans un compte"], ((n) => [n, `${n > 1 ? "mises" : "mise"} à jour depuis 30 jours`])(vs.filter((v) => Date.now() - t(v.maj) < 30 * JOUR).length), [ko(vs.reduce((s, v) => s + (Number(v.taille) || 0), 0)) || "0 Ko", "au total"]])}</section>` +
-      section("Voûtes", "Chaque voûte est chiffrée sur l'appareil de la personne. La console voit seulement sa taille et sa date : ni HoldingAI ni la console ne peuvent l'ouvrir.",
+      section("Voûtes", "Chaque voûte est chiffrée sur l'appareil de la personne. La console voit seulement sa taille et sa date : ni L’Établi ni la console ne peuvent l'ouvrir.",
         table([{ t: "Personne" }, { t: "Taille", n: 1 }, { t: "Envoyée de" }, { t: "Dernière copie" }],
           vs.map((v) => [cellPersonne(d, v.uid), esc(ko(v.taille)), esc(v.appareil || ""), esc(ilYA(v.maj))]),
           "Aucune voûte gardée dans un compte pour l'instant."));
@@ -488,7 +488,7 @@
   const MOIS = 365 / 12 / 30; // ramène 30 jours à un mois moyen
   const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)", colette: "Colette (questions)", ajouter: "Le Plumeau : lecture d'un lien", classer: "Le Plumeau : classement des liens", suggerer: "Le Plumeau : sites semblables" };
   const ORDRE_APPS = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale", "holdingai"];
-  const NOM_FRAIS = { holdingai: "Compte HoldingAI", nostalgie: "La Nostalgie" };
+  const NOM_FRAIS = { holdingai: "Compte L’Établi", nostalgie: "La Nostalgie" };
   function sectionFrais() {
     const f = etat.factures;
     if (!f) { factures(); return section("Frais variables par app", "", `<p class="charge">Lecture des factures…</p>`); }
@@ -513,7 +513,7 @@
     const manque = [!a.pret && "Anthropic", !tw.pret && "Twilio", !st.pret && "Stripe"].filter(Boolean);
     const cellule = (pret, v) => (pret ? esc(cad(v)) : `<span class="gris">—</span>`);
     const rangs = [...lignes.entries()].filter(([k, l]) => ORDRE_APPS.includes(k) || l.claude + l.textos + l.stripe > 0.004)
-      .map(([k, l]) => [k === "autre" ? `<span class="nom">Commun ou non attribué</span><small>numéros loués, clés sans nom d'app, paiements sans description</small>` : k === "holdingai" ? `<span class="nom">Compte HoldingAI</span><small>textos de connexion</small>` : puce(k),
+      .map(([k, l]) => [k === "autre" ? `<span class="nom">Commun ou non attribué</span><small>numéros loués, clés sans nom d'app, paiements sans description</small>` : k === "holdingai" ? `<span class="nom">Compte L’Établi</span><small>textos de connexion</small>` : puce(k),
         cellule(a.pret, l.claude), cellule(tw.pret, l.textos), cellule(st.pret, l.stripe), `<b>${esc(cad(l.claude + l.textos + l.stripe))}</b>`, st.pret && l.ventes ? esc(cad(l.ventes)) : ""]);
     rangs.push([`<span class="nom">Total</span>`, cellule(a.pret, somme("claude")), cellule(tw.pret, somme("textos")), cellule(st.pret, somme("stripe")), `<b>${esc(cad(somme("claude") + somme("textos") + somme("stripe")))}</b>`, st.pret ? esc(cad(somme("ventes"))) : ""]);
     const aide = manque.length ? `<div class="bandeau"><b>À brancher : ${esc(manque.join(", "))}.</b> Chaque source se branche avec une clé de lecture, ajoutée dans Supabase, projet « Notre épicerie », Edge Functions, Secrets. La clé reste sur le serveur : la console ne reçoit que les montants.<ol>
@@ -627,8 +627,8 @@
       indexer(p);
     };
     for (const c of (d.compte || {}).comptes || []) {
-      if (!(c.apps || []).length) ajouter({ uid: c.id, nom: c.nom, cellulaire: c.cellulaire, cree: c.cree, vu: c.vu, source: "Compte HoldingAI" });
-      for (const a of c.apps || []) ajouter({ uid: c.id, nom: c.nom, cellulaire: c.cellulaire, cree: a.premiere || c.cree, vu: c.vu, app: cleApp(a.app), derniere: a.derniere, source: "Compte HoldingAI" });
+      if (!(c.apps || []).length) ajouter({ uid: c.id, nom: c.nom, cellulaire: c.cellulaire, cree: c.cree, vu: c.vu, source: "Compte L’Établi" });
+      for (const a of c.apps || []) ajouter({ uid: c.id, nom: c.nom, cellulaire: c.cellulaire, cree: a.premiere || c.cree, vu: c.vu, app: cleApp(a.app), derniere: a.derniere, source: "Compte L’Établi" });
     }
     for (const f of (d.commis || {}).foyers || []) for (const m of f.membres || []) ajouter({ nom: m.nom, courriel: m.email, cellulaire: m.telephone, cree: f.cree, app: "commis", derniere: f.activite, source: `Le Commis, foyer ${f.nom}` });
     for (const c of (d.gousset || {}).comptes || []) ajouter({ nom: c.prenom, courriel: c.courriel, cree: c.cree, app: "gousset", derniere: c.sync, source: "Le Gousset" });
@@ -671,7 +671,7 @@
     const parContact = new Map(gens.filter((p) => p.contact).map((p) => [p.contact.id, p]));
     const x = etat.crmInv || { arrivees: [], profils: [] };
     const profil = new Map((x.profils || []).map((p) => [p.id, p]));
-    const personneUid = (uid) => parUid.get(uid) || { cle: "u:" + uid, nom: (profil.get(uid) || {}).nom || "Compte HoldingAI", uid, apps: new Set(), fantome: true };
+    const personneUid = (uid) => parUid.get(uid) || { cle: "u:" + uid, nom: (profil.get(uid) || {}).nom || "Compte L’Établi", uid, apps: new Set(), fantome: true };
     const liens = [];
     for (const a of x.arrivees || []) liens.push({ de: personneUid(a.parrain), a: personneUid(a.filleul), app: cleApp(a.app), quand: a.cree, nouveau: a.nouveau, source: "lien" });
     for (const p of gens) {
@@ -814,7 +814,7 @@
         `<form id="f-crm-courriel" class="crm-col" data-crm-ecrit><label>De<select name="de">${EXPEDITEURS_CRM.map((a) => `<option>${a}</option>`).join("")}</select></label>
           <label>Objet<input name="sujet" required maxlength="300"></label><label>Message<textarea name="texte" rows="7" required maxlength="20000"></textarea></label><button class="btn" type="submit">Envoyer</button></form>`) : "") +
       `</div><div>` +
-      section("Apps", "", p.apps.size || p.uid ? `${p.utilise.size ? `<p class="crm-apps-ligne"><span>Utilise</span>${pucesCrm(new Set(p.utilise.keys()))}</p>` : ""}${p.contact && (p.contact.apps || []).length ? `<p class="crm-apps-ligne"><span>S'intéresse à</span>${pucesCrm(new Set(p.contact.apps))}</p>` : ""}<p class="note">${esc([p.uid ? "Compte HoldingAI" : "", p.inscrit ? `inscrit le ${jour(p.inscrit)}` : "", p.vu ? `dernière connexion ${ilYA(p.vu)}` : ""].filter(Boolean).join(", "))}</p>${p.sources.length ? `<p class="note">${esc([...new Set(p.sources)].join(" · "))}</p>` : ""}` : `<p class="vide">N'utilise encore aucune app.</p>`) +
+      section("Apps", "", p.apps.size || p.uid ? `${p.utilise.size ? `<p class="crm-apps-ligne"><span>Utilise</span>${pucesCrm(new Set(p.utilise.keys()))}</p>` : ""}${p.contact && (p.contact.apps || []).length ? `<p class="crm-apps-ligne"><span>S'intéresse à</span>${pucesCrm(new Set(p.contact.apps))}</p>` : ""}<p class="note">${esc([p.uid ? "Compte L’Établi" : "", p.inscrit ? `inscrit le ${jour(p.inscrit)}` : "", p.vu ? `dernière connexion ${ilYA(p.vu)}` : ""].filter(Boolean).join(", "))}</p>${p.sources.length ? `<p class="note">${esc([...new Set(p.sources)].join(" · "))}</p>` : ""}` : `<p class="vide">N'utilise encore aucune app.</p>`) +
       blocInvitationFiche(personnesCrm(d), p) +
       section("Activité", "", activite.length ? `<div class="liste">${activite.map((a) => a.html).join("")}</div>` : `<p class="vide">Aucune activité pour l'instant.</p>`) +
       `<p class="crm-bas" data-crm-ecrit><button class="lien" data-crm="modifier">Modifier la fiche</button>${p.contact ? ` <button class="lien" data-crm="supprimer">Supprimer la fiche</button>` : ""}</p>` +
@@ -1044,7 +1044,7 @@
     const somme = (k) => ok.reduce((s, l) => s + l.m[k], 0);
     const tot = { nouveaux: somme("nouveaux"), venus: somme("venus"), invites: somme("invites"), partages: somme("partages"), ouvertures: somme("ouvertures"), total: somme("total") };
     const kGlobal = tot.total ? (tot.venus + tot.invites) / tot.total : null;
-    const erreurs = ["commis", "gousset", "tiroir", "compte"].filter((a) => v && v[a] && v[a].erreur).map((a) => `${a === "compte" ? "Invitations HoldingAI" : nomApp[a]} : ${esc(v[a].erreur)}`);
+    const erreurs = ["commis", "gousset", "tiroir", "compte"].filter((a) => v && v[a] && v[a].erreur).map((a) => `${a === "compte" ? "Invitations L’Établi" : nomApp[a]} : ${esc(v[a].erreur)}`);
     const choix = `<div class="filtres" role="group" aria-label="Période">${[["30", "30 derniers jours"], ["tout", "Depuis le début"]].map(([k, m]) => `<button class="filtre" data-viralite-periode="${k}" aria-pressed="${per === k}">${m}</button>`).join("")}</div>`;
     const amb = [...(v ? mesures.flatMap((l) => (l.x ? ambassadeurs(l.app, l.app in propres ? l.x : { unites: [], membres: [], partages: [] }, l.h, nomDe, depuis) : [])) : [])]
       .filter((a) => a.venus || a.invites || a.partages).sort((a, b) => b.venus + b.invites - (a.venus + a.invites) || b.partages - a.partages).slice(0, 15);
@@ -1055,7 +1055,7 @@
       ${v ? "" : `<p class="charge">Lecture des parrainages, des invitations et des partages…</p>`}
       ${erreurs.length ? `<div class="bandeau">Certaines données n'ont pas pu être lues. ${erreurs.join(" ; ")}</div>` : ""}
       ${chiffres([[tot.nouveaux, per === "30" ? "nouveaux depuis 30 jours" : "inscrits au total"], [pct(tot.venus, tot.nouveaux), "venus par une invitation"], [tot.invites, "invités dans un foyer ou un groupe"], [tot.partages, "partages de l'app"], [tot.ouvertures, "liens d'invitation ouverts"], [facteur(kGlobal), "facteur K, toutes apps"]])}</section>` +
-      section("Par app", "Venus : parrainages propres à l'app et arrivées par le lien d'invitation HoldingAI. Ouvertures : visites du lien d'invitation. Conversion : arrivées ÷ ouvertures (ou venus ÷ partages quand le lien n'est pas encore utilisé). Facteur K : (venus + invités) ÷ inscrits. Cycle viral : délai typique entre l'inscription de la personne qui invite et l'arrivée de celle qu'elle amène.",
+      section("Par app", "Venus : parrainages propres à l'app et arrivées par le lien d'invitation L’Établi. Ouvertures : visites du lien d'invitation. Conversion : arrivées ÷ ouvertures (ou venus ÷ partages quand le lien n'est pas encore utilisé). Facteur K : (venus + invités) ÷ inscrits. Cycle viral : délai typique entre l'inscription de la personne qui invite et l'arrivée de celle qu'elle amène.",
         table([{ t: "App" }, { t: "Nouveaux", n: 1 }, { t: "Venus", n: 1 }, { t: "Invités", n: 1 }, { t: "Partages", n: 1 }, { t: "Ouvertures", n: 1 }, { t: "Conversion", n: 1 }, { t: "Facteur K", n: 1 }, { t: "Cycle viral" }],
           mesures.map(({ app, unite, m }) => m ? [`${puce(app)}<small>${esc(pl(m.total, unite.replace(/s$/, ""), unite))}</small>`, m.nouveaux, `${m.venus}<small>${pct(m.venus, m.nouveaux)}</small>`,
             app === "fanion" && per === "30" ? "<small>total seulement</small>" : ["commis", "tiroir", "fanion"].includes(app) ? m.invites : "<small>–</small>", m.partages, m.ouvertures,
@@ -1064,8 +1064,8 @@
         table([{ t: "Qui" }, { t: "App" }, { t: "Venus", n: 1 }, { t: "Invités", n: 1 }, { t: "Partages", n: 1 }],
           amb.map((a) => [`<span class="nom">${esc(a.nom)}</span>`, puce(a.app), a.venus, a.invites, a.app === "fanion" ? "–" : a.partages]),
           per === "30" ? "Personne n'a invité, parrainé ou partagé depuis 30 jours." : "Personne n'a encore invité, parrainé ou partagé.")) +
-      section("D'une app à l'autre", "Les comptes HoldingAI qui utilisent au moins deux apps, et ceux qui ont découvert une autre app grâce à une invitation.",
-        `${chiffres([[multi.length, multi.length > 1 ? "personnes sur 2 apps ou plus" : "personne sur 2 apps ou plus"], [pct(multi.length, cp.length), "des comptes HoldingAI"], [passages.length, passages.length > 1 ? "comptes venus d'une autre app par invitation" : "compte venu d'une autre app par invitation"]])}` +
+      section("D'une app à l'autre", "Les comptes L’Établi qui utilisent au moins deux apps, et ceux qui ont découvert une autre app grâce à une invitation.",
+        `${chiffres([[multi.length, multi.length > 1 ? "personnes sur 2 apps ou plus" : "personne sur 2 apps ou plus"], [pct(multi.length, cp.length), "des comptes L’Établi"], [passages.length, passages.length > 1 ? "comptes venus d'une autre app par invitation" : "compte venu d'une autre app par invitation"]])}` +
         table([{ t: "Personne" }, { t: "Apps utilisées" }], multi.map((c) => [`<span class="nom">${esc(c.nom || "Sans nom")}</span>`, pucesApps(c.apps || [])]), "Aucune personne n'utilise encore deux apps.")) +
       section("Pas encore mesuré", "",
         `<ul class="note-liste"><li>Le Plumeau et Le Gousset n'ont pas encore le bouton « Inviter quelqu'un » : leur code n'est pas dans les dépôts connus. Le menu d'Albert l'offrira dès qu'ils chargeront porte.js.</li>

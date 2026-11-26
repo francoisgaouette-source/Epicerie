@@ -40,7 +40,7 @@
       body: new URLSearchParams({ client_id: CLIENT, ...params }),
     });
     const d = await r.json().catch(() => ({}));
-    if (!r.ok || !d.access_token) throw new Error(d.error_description || d.error || "La connexion HoldingAI n'a pas fonctionné.");
+    if (!r.ok || !d.access_token) throw new Error(d.error_description || d.error || "La connexion L’Établi n'a pas fonctionné.");
     const c = claims(d.access_token) || {};
     const j = { access: d.access_token, refresh: d.refresh_token || (lire(K.jetons) || {}).refresh, exp: (c.exp || 0) * 1000 };
     ecrire(K.jetons, j);
@@ -93,8 +93,8 @@
       const a = lire(K.attente);
       ecrire(K.attente, null);
       history.replaceState(null, "", location.pathname + location.hash);
-      if (p.get("error")) throw new Error(p.get("error") === "access_denied" ? "Connexion annulée." : (p.get("error_description") || "La connexion HoldingAI n'a pas fonctionné."));
-      if (!a || a.etat !== p.get("state")) throw new Error("Cette connexion a expiré. Touchez de nouveau « Continuer avec HoldingAI ».");
+      if (p.get("error")) throw new Error(p.get("error") === "access_denied" ? "Connexion annulée." : (p.get("error_description") || "La connexion L’Établi n'a pas fonctionné."));
+      if (!a || a.etat !== p.get("state")) throw new Error("Cette connexion a expiré. Touchez de nouveau « Continuer avec L’Établi ».");
       await demanderJetons({ grant_type: "authorization_code", code: p.get("code"), redirect_uri: RETOUR, code_verifier: a.verif });
       ecrire(K.connu, 1);
       noterVisite();
