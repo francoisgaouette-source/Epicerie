@@ -2312,7 +2312,7 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.email) loadAll(); });
 
   // ---------- connexion : le compte HoldingAI (compte.letabli.ai), le même pour toutes les apps HoldingAI.
-  // Albert, le majordome de HoldingAI, accueille sur compte.letabli.ai puis annonce Rosalie.
+  // Philou, l'artisan de HoldingAI, accueille sur compte.letabli.ai puis annonce Rosalie.
   const loginStatus = (m) => { $("#login-status").textContent = m || ""; };
   const loginForms = ["#f-login", "#f-foyer"];
   function loginView(id) { loginForms.forEach((f) => ($(f).hidden = f !== id)); loginStatus(""); }
@@ -2488,7 +2488,7 @@
   let current = null;
   // Démarrage : au retour de compte.letabli.ai, échanger le code contre les jetons, puis ouvrir la session.
   (async () => {
-    // Démarrage commun à toutes les apps HoldingAI (holdingai.js) : retour de chez Albert, puis le compte suit.
+    // Démarrage commun à toutes les apps HoldingAI (holdingai.js) : retour de chez Philou, puis le compte suit.
     const installee = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
     const dep = await HoldingAI.demarrer({ obligatoire: installee || !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) });
     if (dep.redirection) return;

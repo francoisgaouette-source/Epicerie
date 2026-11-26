@@ -538,6 +538,6 @@ html.gate-on .cg-lanceur,html.gate-on .cg-fond{display:none!important}
 .code-cadeau{margin:2px 0 6px}
 .code-cadeau summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:.92rem;padding:6px 0}
 .code-cadeau input{text-transform:uppercase;letter-spacing:.12em}
-/* Compte HoldingAI : Albert en haut à droite (comme dans toutes les apps HoldingAI) */
+/* Compte HoldingAI : Philou en haut à droite (comme dans toutes les apps HoldingAI) */
 .title-row .hai-porte-btn{margin-left:auto}
 .compte-btn[hidden]{display:none}
