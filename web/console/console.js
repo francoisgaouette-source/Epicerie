@@ -460,7 +460,7 @@
     const parApp = (c.apps || []).filter((a) => a.slug !== "holdingai").map((a) => [visitesDe(cleApp(a.slug)), `sur ${a.nom}`]).filter(([n]) => n);
     return bandeauErreur(c, "Compte L’Établi") +
       `<section class="section">${chiffres([[cp.length, cp.length > 1 ? "comptes L’Établi" : "compte L’Établi"], [cp.filter((x) => Date.now() - t(x.cree) < 7 * JOUR).length, "nouveaux depuis 7 jours"], ((n) => [n, `${n > 1 ? "connectés" : "connecté"} depuis 7 jours`])(cp.filter((x) => x.vu && Date.now() - t(x.vu) < 7 * JOUR).length), ...parApp])}</section>` +
-      section("Comptes", "Un seul compte par personne, pour toutes les apps branchées sur compte.holdingai.app. Les apps pas encore branchées gardent leurs propres comptes et n'apparaissent pas ici.",
+      section("Comptes", "Un seul compte par personne, pour toutes les apps branchées sur compte.letabli.ai. Les apps pas encore branchées gardent leurs propres comptes et n'apparaissent pas ici.",
         table([{ t: "Personne" }, { t: "Créé" }, { t: "Dernière connexion" }, { t: "Apps utilisées" }],
           cp.map((x) => [`<span class="nom">${esc(x.nom || "Sans nom")}</span><small>${esc(tel(x.cellulaire))}</small>`, esc(jour(x.cree)), esc(x.vu ? ilYA(x.vu) : "jamais"), pucesApps(x.apps || [])]),
           "Aucun compte L’Établi pour l'instant.")) +
@@ -1007,7 +1007,7 @@
   // ---------- Viralité : combien de nouveaux chaque utilisateur amène, par app
   // Commis, Gousset, Tiroir : console_viralite() de chaque projet (parrainages, membres invités, partages propres à l'app).
   // HoldingAI Compte : console_viralite() des invitations communes à toutes les apps (bouton « Inviter quelqu'un »,
-  //   lien compte.holdingai.app/i/CODE/app) : partages, ouvertures du lien, arrivées (nouveau compte ou première visite).
+  //   lien compte.letabli.ai/i/CODE/app) : partages, ouvertures du lien, arrivées (nouveau compte ou première visite).
   // Fanion (groupes, parrain « ref ») et Plumeau : calculés avec les données déjà chargées.
   // Tout est lu seulement à l'ouverture de l'onglet.
   async function viralite() {

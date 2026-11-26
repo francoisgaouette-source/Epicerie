@@ -1,12 +1,12 @@
-// « Continuer avec HoldingAI » : le compte unique de toutes les apps HoldingAI (compte.holdingai.app).
+// « Continuer avec HoldingAI » : le compte unique de toutes les apps HoldingAI (compte.letabli.ai).
 // Même fichier dans chaque app; seuls clientId et app changent (voir config.js : HOLDINGAI).
-//   HoldingAI.connecter()     → part vers compte.holdingai.app (Albert), revient avec un code
+//   HoldingAI.connecter()     → part vers compte.letabli.ai (Albert), revient avec un code
 //   await HoldingAI.retour()  → au retour, échange le code contre les jetons (à appeler au démarrage)
 //   await HoldingAI.jeton()   → jeton d'accès valide (renouvelé au besoin) ou null
 //   HoldingAI.session()       → { uid, phone, email, nom } ou null
 //   HoldingAI.deconnexion()   → oublie les jetons sur cet appareil
 //   await HoldingAI.demarrer({ obligatoire }) → LA façon commune de démarrer (même comportement dans toutes les apps) :
-//        retour de compte.holdingai.app, puis « le compte suit » : sans session, on passe chez Albert, qui reconnaît
+//        retour de compte.letabli.ai, puis « le compte suit » : sans session, on passe chez Albert, qui reconnaît
 //        la personne et la ramène. obligatoire: true (app qui exige un compte) → toujours; false (compte facultatif)
 //        → seulement si la personne s'est déjà connectée dans cette app. Une seule fois par visite (jamais de boucle).
 //        Renvoie { session, erreur, redirection }.
@@ -74,7 +74,7 @@
   }
 
   window.HoldingAI = {
-    compteUrl: "https://compte.holdingai.app/compte",
+    compteUrl: "https://compte.letabli.ai/compte",
     estRetour() { const p = new URLSearchParams(location.search); return p.has("state") && (p.has("code") || p.has("error")); },
     async connecter() {
       const verif = hasard(48), etat = hasard(16);

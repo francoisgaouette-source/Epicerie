@@ -14,7 +14,7 @@ Liste d'épicerie partagée à deux, installable sur le téléphone, avec :
 |---|---|---|
 | Application web (dossier `web/`) | Netlify | gratuit |
 | Base de données | Supabase, projet « Notre épicerie » | gratuit |
-| Connexion | Compte HoldingAI (compte.holdingai.app), client OAuth « Le Commis »; le projet du Commis accepte ses jetons (Third-Party Auth > Custom OIDC). `web/holdingai.js`. Un membre est reconnu par le cellulaire de son compte HoldingAI. `commis`, `identifier-produit` et `lire-facture` : « Verify JWT » désactivé (elles vérifient l'appartenance au foyer dans la base). La console garde sa connexion propre au Commis. | |
+| Connexion | Compte HoldingAI (compte.letabli.ai), client OAuth « Le Commis »; le projet du Commis accepte ses jetons (Third-Party Auth > Custom OIDC). `web/holdingai.js`. Un membre est reconnu par le cellulaire de son compte HoldingAI. `commis`, `identifier-produit` et `lire-facture` : « Verify JWT » désactivé (elles vérifient l'appartenance au foyer dans la base). La console garde sa connexion propre au Commis. | |
 | Agent du jeudi (dossier `agent/`) | GitHub Actions | gratuit (quelques minutes par semaine) |
 | Recherche dans les circulaires | API d'Anthropic | quelques dollars par mois, selon le nombre de produits |
 
