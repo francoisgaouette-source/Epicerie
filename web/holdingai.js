@@ -83,7 +83,9 @@
       const u = new URL(BASE + "/auth/v1/oauth/authorize");
       Object.entries({ response_type: "code", client_id: CLIENT, redirect_uri: RETOUR, scope: "openid phone profile",
         state: etat, code_challenge: defi, code_challenge_method: "S256" }).forEach(([k, v]) => u.searchParams.set(k, v));
-      location.href = u.toString();
+      // Dans un cadre (ex. vue iPhone sur ordinateur), la page de compte refuse de s'afficher : on navigue la fenêtre entière
+      let w = window; try { if (window.top !== window && window.top.location.origin === location.origin) w = window.top; } catch (e) { }
+      w.location.href = u.toString();
     },
     async retour() {
       if (!this.estRetour()) return false;
