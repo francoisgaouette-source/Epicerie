@@ -43,7 +43,7 @@
   };
   // Les apps de L'Établi, avec leur nom exact (clé courte = slug de HoldingAI Compte sans « le- », « la- » ou « l »)
   const nomApp = { echange: "L'Échange", gousset: "Le Gousset", pourquoi: "Le Pourquoi", commis: "Le Commis", fanion: "Le Fanion", seuil: "Le Seuil", plumeau: "Le Plumeau",
-    vestibule: "Le Vestibule", tiroir: "Le Tiroir", voute: "La Voûte", donne: "La Donne", nostalgie: "La Nostalgie", escale: "L'Escale", holdingai: "L’Établi", console: "Console" };
+    vestibule: "Le Vestibule", tiroir: "Le Tiroir", voute: "La Voûte", donne: "La Donne", nostalgie: "La Nostalgie", escale: "L'Escale", debours: "Le Débours", holdingai: "L’Établi", console: "Console" };
   const puce = (app) => `<span class="app"><i class="pastille ${esc(app)}"></i>${esc(nomApp[app] || app)}</span>`;
 
   // ---------- serveur
@@ -235,6 +235,40 @@
   const TYPES = { idee: ["💡", "Idée"], probleme: ["🐞", "Problème"], aime: ["❤️", "J'aime"], autre: ["💬", "Commentaire"] };
   const STATUTS = { recue: "À lire", etudiee: "À l'étude", prevue: "Prévue", faite: "Faite", non: "Non retenue" };
   const SOURCES = { app: "", sondage: "réponse au sondage", rosalie: "proposée par Rosalie" };
+  // L'avis de Claude sur une idée (fonction console-idee-avis) : gardé par app + id
+  const VERDICTS = { bonne: ["Bonne idée", ""], a_creuser: ["À creuser", " attente"], pas_maintenant: ["Pas maintenant", " neutre"], non: ["Pas pour nous", " refus"] };
+  const EFFORTS = { petit: "petit effort", moyen: "effort moyen", gros: "gros effort" };
+  const cleAvis = (i) => `${i.app || "commis"}|${i.id}`;
+  async function appelAvis(corps) {
+    const { data: s } = await sb.auth.getSession();
+    if (!s.session) throw new Error("Connexion requise.");
+    const r = await fetch(`${URL_SB}/functions/v1/console-idee-avis`, { method: "POST", headers: { "Content-Type": "application/json", apikey: CLE_SB, Authorization: `Bearer ${s.session.access_token}` }, body: JSON.stringify(corps) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.erreur || `Erreur ${r.status}`);
+    return d;
+  }
+  async function chargerAvisIdees() {
+    if (etat.avisIdees || etat.avisIdeesEnCours) return;
+    etat.avisIdeesEnCours = true;
+    try { const d = await appelAvis({ action: "tous" }); etat.avisIdees = Object.fromEntries((d.avis || []).map((a) => [`${a.app}|${a.idee_id}`, { ...a.avis, cree: a.cree }])); }
+    catch { etat.avisIdees = {}; }
+    etat.avisIdeesEnCours = false;
+    if (etat.vue === "idees") rendre();
+  }
+  const blocAvis = (i) => {
+    const k = cleAvis(i), a = (etat.avisIdees || {})[k];
+    if ((etat.avisEnCours || {})[k]) return `<div class="avis-claude attend"><p class="note">Claude lit l'idée et la compare aux apps…</p></div>`;
+    if (!a) return "";
+    const [mot, cls] = VERDICTS[a.verdict] || VERDICTS.a_creuser;
+    const appsA = (a.apps || []).map((x) => { const c = cleApp(x.app); return `<li>${x.app === "nouvelle" ? `<span class="app"><b>Une nouvelle app</b></span>` : puce(c)} ${esc(x.raison)}</li>`; }).join("");
+    return `<div class="avis-claude">
+      <div class="tete"><span class="tampon${cls}">${esc(mot)}</span><b>L'avis de Claude</b>${a.effort ? `<span>${esc(EFFORTS[a.effort])}</span>` : ""}${a.cree ? `<span>${esc(moment(a.cree))}</span>` : ""}</div>
+      ${a.resume ? `<p class="resume">${esc(a.resume)}</p>` : ""}
+      ${a.pourquoi ? `<p>${esc(a.pourquoi)}</p>` : ""}
+      ${appsA ? `<p class="note"><b>Où elle a sa place</b></p><ul class="avis-apps">${appsA}</ul>` : ""}
+      ${a.prochaine_etape ? `<p class="note"><b>Prochaine étape :</b> ${esc(a.prochaine_etape)}</p>` : ""}
+    </div>`;
+  };
   const ficheIdee = (i) => {
     const [ic, mot] = TYPES[i.type] || TYPES.autre;
     const tamp = i.statut === "recue" ? `<span class="tampon attente">À lire</span>` : `<span class="tampon${i.statut === "non" ? " neutre" : ""}">${esc(STATUTS[i.statut])}</span>`;
@@ -242,18 +276,21 @@
     return `<article class="fiche">
       <div class="tete">${tamp}${puce(i.app || "commis")}<b>${ic} ${esc(mot)}</b><span>${esc(moment(i.cree))}</span>${i.prenom ? `<span>${esc(i.prenom)}</span>` : ""}${i.foyer ? `<span>${i.app === "fanion" ? "groupe" : "foyer"} ${esc(i.foyer)}</span>` : ""}${i.ecran ? `<span>écran ${esc(i.ecran)}</span>` : ""}${SOURCES[i.source] ? `<span>${esc(SOURCES[i.source])}</span>` : ""}</div>
       <blockquote>${esc(i.texte)}</blockquote>
+      ${blocAvis(i)}
       ${i.contact_ok && i.contact ? `<p class="note">Accepte d'être contacté·e : <b>${esc(String(i.contact).startsWith("+") ? tel(i.contact) : i.contact)}</b></p>` : ""}
       ${i.appareil ? `<p class="note">${esc(i.appareil)}</p>` : ""}
       ${i.reponse ? `<div class="message envoye"><p class="note"><b>Votre réponse</b>, ${esc(moment(i.repondu))} · la personne la voit dans l'app</p><p class="lettre">${esc(i.reponse)}</p></div>` : ""}
       <div class="gestes">
         <button class="btn" data-idee="${esc(i.id)}" data-g="repondre">${i.reponse ? "Modifier la réponse" : "Répondre"}</button>
         ${autres.map((k) => `<button class="btn pale" data-idee="${esc(i.id)}" data-g="statut" data-statut="${k}">${esc(STATUTS[k])}</button>`).join("")}
+        ${(etat.avisEnCours || {})[cleAvis(i)] ? "" : `<button class="btn pale claude" data-idee-avis="${esc(cleAvis(i))}">${(etat.avisIdees || {})[cleAvis(i)] ? "Redemander à Claude" : "Demander à Claude"}</button>`}
         ${i.statut !== "faite" ? `<button class="lien" data-idee="${esc(i.id)}" data-g="annoncer">C'est fait : l'annoncer à tous</button>` : ""}
       </div>
     </article>`;
   };
   function vueIdees(d) {
     const r = d.retour || { idees: [], sondages: [], nouveautes: [] };
+    if (!etat.avisIdees) setTimeout(chargerAvisIdees, 0);
     const APPS = [["tous", "Toutes les apps"], ["commis", "Le Commis"], ["fanion", "Le Fanion"], ["plumeau", "Le Plumeau"]];
     const appF = APPS.some(([k]) => k === etat.appIdee) ? etat.appIdee : "tous";
     const deLapp = (x) => appF === "tous" || (x.app || "commis") === appF;
@@ -1188,6 +1225,17 @@
       const bloque = b.dataset.bloque === "1";
       if (bloque && !confirm("Couper l'IA de ce compte? Colette ne lira plus ses liens et ne répondra plus à ses questions.")) return;
       return agir({ action: "plumeau.bloquer", user_id: b.dataset.plumeauCompte, bloque }, bloque ? "IA coupée pour ce compte." : "IA rendue à ce compte.");
+    }
+    if (b.dataset.ideeAvis) {
+      const k = b.dataset.ideeAvis, i = ((d.retour || {}).idees || []).find((x) => cleAvis(x) === k); if (!i) return;
+      const encore = !!(etat.avisIdees || {})[k];
+      etat.avisEnCours = { ...(etat.avisEnCours || {}), [k]: true }; rendre();
+      try {
+        const r = await appelAvis({ action: "avis", rafraichir: encore, idee: { id: i.id, app: i.app || "commis", type: i.type, texte: i.texte, ecran: i.ecran || null } });
+        etat.avisIdees = { ...(etat.avisIdees || {}), [k]: { ...r.avis, cree: r.cree } };
+      } catch (err) { toast(err.message, true); }
+      delete etat.avisEnCours[k]; rendre();
+      return;
     }
     if (b.dataset.idee) {
       const i = ((d.retour || {}).idees || []).find((x) => x.id === b.dataset.idee); if (!i) return;

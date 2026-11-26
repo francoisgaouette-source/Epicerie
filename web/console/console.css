@@ -3,7 +3,7 @@
 :root {
   --papier: #EDF0F4; --feuille: #FFFFFF; --encre: #18212E; --gris: #5A6675; --ligne: #D5DBE3;
   --tampon: #2447C8; --tampon-pale: #E4EAFB; --refus: #B5332A; --refus-pale: #F8E5E3; --attente: #8A6200; --attente-pale: #FBF0D2;
-  --commis: #1F5B3A; --fanion: #C98A00; --plumeau: #5B2A86; --tiroir: #B4532A; --gousset: #B23A6E; --seuil: #2F5D7C; --voute: #7A6431; --echange: #3F6FA8; --pourquoi: #6A4FA0; --vestibule: #1E7F7A; --donne: #8C1D40; --nostalgie: #9A6B4F; --escale: #0D8AA8;
+  --commis: #1F5B3A; --fanion: #C98A00; --plumeau: #5B2A86; --tiroir: #B4532A; --gousset: #B23A6E; --seuil: #2F5D7C; --voute: #7A6431; --echange: #3F6FA8; --pourquoi: #6A4FA0; --vestibule: #1E7F7A; --donne: #8C1D40; --nostalgie: #9A6B4F; --escale: #0D8AA8; --debours: #4A6B2F;
   --f: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -79,6 +79,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .pastille.vestibule { background: var(--vestibule); }
 .pastille.donne { background: var(--donne); }
 .pastille.escale { background: var(--escale); }
+.pastille.debours { background: var(--debours); }
 .puces { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .puce-app { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .pastille.holdingai { background: var(--tampon); }
@@ -257,3 +258,16 @@ label.case input { width: 18px; height: 18px; accent-color: var(--tampon); }
 .arbre li small { display: block; color: var(--gris); font-size: 13px; }
 .chaine { color: var(--gris); }
 .app-entete [data-statut-app-ligne] { margin-top: 16px; }
+
+/* L'avis de Claude sur une idée */
+.avis-claude { margin: 4px 0 10px; padding: 12px 14px; border-radius: 8px; background: var(--papier); border-left: 3px solid var(--pourquoi); }
+.avis-claude .tete { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-bottom: 6px; }
+.avis-claude .tete > span:not(.tampon) { color: var(--gris); font-size: 14px; }
+.avis-claude p { margin: 4px 0; }
+.avis-claude .resume { font-weight: 600; }
+.avis-claude.attend { border-left-style: dashed; animation: respirer 1.4s ease-in-out infinite alternate; }
+.avis-apps { margin: 2px 0 6px; padding-left: 0; list-style: none; display: grid; gap: 4px; }
+.avis-apps .app { margin-right: 6px; }
+.btn.claude { border-color: var(--pourquoi); color: var(--pourquoi); }
+@keyframes respirer { from { opacity: .65; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .avis-claude.attend { animation: none; } }
