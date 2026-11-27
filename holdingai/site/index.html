@@ -197,6 +197,41 @@ footer{padding-block:24px 36px;display:flex;justify-content:space-between;gap:16
 }
 @media (max-width:420px){.facts{grid-template-columns:1fr 1fr} nav{gap:14px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* --- En-tête avec du punch --- */
+header .mark{font-size:32px;gap:12px}
+header .mark svg{width:46px;height:46px}
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center;background:var(--encre);color:var(--papier);border-radius:22px;padding:64px 64px 56px;margin-top:28px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-120px;bottom:-160px;width:520px;height:520px;border-radius:50%;background:radial-gradient(closest-side,rgba(176,122,62,.35),transparent);pointer-events:none}
+.h-logo{display:flex;align-items:center;gap:18px;margin-bottom:30px}
+.h-etabli{width:92px;height:92px;color:var(--papier);flex:none}
+.h-etabli svg{width:100%;height:100%;display:block}
+.h-nom{font-family:var(--f-display);font-weight:600;font-size:44px;line-height:1;letter-spacing:-.015em;display:flex;flex-direction:column;gap:8px}
+.h-nom small{font-family:var(--f-body);font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#C9A77E}
+.hero h1{font-size:clamp(42px,6vw,76px);font-weight:600;letter-spacing:-.025em;line-height:1.02;margin:0 0 22px;color:var(--papier)}
+.hero h1 em{font-style:italic;font-weight:400;color:#D9A866}
+.hero .h-gauche>p{font-size:19px;line-height:1.5;color:#D8CFC0;max-width:44ch;margin:0 0 30px}
+.h-actions{display:flex;flex-wrap:wrap;gap:12px}
+.btn.clair{background:var(--papier);color:var(--encre)}
+.btn.clair:hover{background:#fff}
+.btn.ligne{background:transparent;color:var(--papier);border:1.5px solid rgba(244,239,230,.45);font:inherit;cursor:pointer}
+.btn.ligne:hover{border-color:var(--papier);background:rgba(244,239,230,.08)}
+.h-philippe{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px}
+.h-portrait{display:block;width:min(340px,100%);aspect-ratio:1;border-radius:50%;overflow:hidden;padding:0;border:0;cursor:pointer;box-shadow:0 0 0 6px var(--encre),0 0 0 9px #B07A3E,0 24px 60px rgba(0,0,0,.45);transition:transform .25s}
+.h-portrait:hover{transform:scale(1.03) rotate(-2deg)}
+.h-portrait img{width:100%;height:100%;object-fit:cover;display:block}
+.h-bulle{position:relative;background:var(--papier);color:var(--encre);border-radius:18px 18px 18px 6px;padding:14px 18px;font-size:16px;line-height:1.45;max-width:320px;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:h-arrive .6s .3s both}
+.h-bulle::after{content:"";position:absolute;left:46px;bottom:-9px;width:18px;height:18px;background:var(--papier);transform:rotate(45deg);border-radius:0 0 4px 0}
+.h-bulle b{font-family:var(--f-display);font-size:18px;display:block;margin-bottom:2px}
+.h-signature{font-size:15px;color:#C9BFAF;letter-spacing:.02em}
+.h-signature b{color:var(--papier);font-family:var(--f-display);font-size:20px}
+@keyframes h-arrive{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;padding:40px 26px 36px;gap:34px}
+  .h-etabli{width:68px;height:68px}.h-nom{font-size:34px}
+  .h-philippe{order:-1}.h-portrait{width:230px}
+}
+@media (prefers-reduced-motion:reduce){.h-bulle{animation:none}.h-portrait{transition:none}}
 </style>
 <style>body{margin:0} img{max-width:100%}</style>
 </head>
@@ -213,14 +248,16 @@ footer{padding-block:24px 36px;display:flex;justify-content:space-between;gap:16
   </header>
 
   <div class="hero" id="top">
-    <div>
-      <div class="devise"><span class="etabli"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><rect x="3" y="13" width="42" height="7" rx="1.5" fill="currentColor"/><rect x="8" y="20" width="5" height="21" fill="currentColor"/><rect x="35" y="20" width="5" height="21" fill="currentColor"/><rect x="13" y="31" width="22" height="3" fill="currentColor"/><rect x="38" y="8" width="7" height="5" rx="1" fill="var(--etau,#B07A3E)"/></svg></span><span class="label">On y fabrique de bons outils</span></div>
+    <div class="h-gauche">
+      <div class="h-logo"><span class="h-etabli"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><rect x="3" y="13" width="42" height="7" rx="1.5" fill="currentColor"/><rect x="8" y="20" width="5" height="21" fill="currentColor"/><rect x="35" y="20" width="5" height="21" fill="currentColor"/><rect x="13" y="31" width="22" height="3" fill="currentColor"/><rect x="38" y="8" width="7" height="5" rx="1" fill="var(--etau,#B07A3E)"/></svg></span><span class="h-nom">L’Établi<small>On y fabrique de bons outils.</small></span></div>
       <h1>Des outils simples pour le <em>quotidien</em>.</h1>
+      <p>Des applications pratiques, une à la fois, comme un artisan fabrique ses outils : sans fioritures, solides, et pensées pour servir tous les jours. Faites au Québec, en français.</p>
+      <div class="h-actions"><a class="btn clair" href="#apps">Voir nos 14 apps ↓</a><button type="button" class="btn ligne" data-fiche="philippe" aria-haspopup="dialog">Rencontrer Philippe</button></div>
     </div>
-    <div class="side">
-      <p>L’Établi conçoit des applications pratiques, une à la fois, comme un artisan fabrique ses outils : sans fioritures, solides, et pensées pour servir tous les jours. Faites au Québec, en français.</p>
-      <a class="btn" href="#apps">Voir nos apps ↓</a>
-      <div class="hote" style="--etau:var(--chene)"><button type="button" class="visage" data-fiche="philippe" aria-haspopup="dialog" aria-label="Philippe, le bâtisseur de L’Établi : faire connaissance"><span class="v-face"><img src="personnages/philippe.webp" alt="" width="320" height="320"></span><span class="v-nom">Philippe</span></button><p><b>Philippe, notre bâtisseur.</b> Il fabrique nos outils, vous accueille dans chaque app et s’occupe de votre compte.</p></div>
+    <div class="h-philippe">
+      <div class="h-bulle"><b>Bienvenue à l’atelier!</b> Moi, c’est Philippe. Je bâtis nos outils, et je vous accueille dans chacun d’eux.</div>
+      <button type="button" class="h-portrait" data-fiche="philippe" aria-haspopup="dialog" aria-label="Philippe, le bâtisseur de L’Établi : faire connaissance"><img src="personnages/philippe-grand.webp" alt="" width="640" height="640"></button>
+      <div class="h-signature"><b>Philippe</b> · notre bâtisseur</div>
     </div>
   </div>
 
