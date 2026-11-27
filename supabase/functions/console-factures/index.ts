@@ -12,7 +12,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ORIGINES = /^https:\/\/(console\.holdingai\.app|app\.lecommis\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
+const ORIGINES = /^https:\/\/(console\.letabli\.ai|console\.holdingai\.app|app\.lecommis\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
 const JOUR = 864e5;
 
 // Tarifs en $ US par million de jetons : entrée, sortie, écriture en cache, lecture en cache (mêmes valeurs que les apps)

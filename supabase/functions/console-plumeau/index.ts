@@ -9,7 +9,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const PLUMEAU_URL = "https://xpgpzhfmfusdenbwrpny.supabase.co";
-const ORIGINES = /^https:\/\/(console\.holdingai\.app|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
+const ORIGINES = /^https:\/\/(console\.letabli\.ai|console\.holdingai\.app|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
 const UUID = /^[0-9a-f-]{36}$/i;
 const STATUTS = ["recue", "etudiee", "prevue", "faite", "non"];
 

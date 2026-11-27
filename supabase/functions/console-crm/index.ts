@@ -11,7 +11,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ORIGINES = /^https:\/\/(console\.holdingai\.app|app\.lecommis\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
+const ORIGINES = /^https:\/\/(console\.letabli\.ai|console\.holdingai\.app|app\.lecommis\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COURRIEL = /^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$/;
 const TYPES = ["client", "prospect", "partenaire", "testeur", "media", "autre"];

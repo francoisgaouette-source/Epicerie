@@ -271,3 +271,7 @@ label.case input { width: 18px; height: 18px; accent-color: var(--tampon); }
 .btn.claude { border-color: var(--pourquoi); color: var(--pourquoi); }
 @keyframes respirer { from { opacity: .65; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .avis-claude.attend { animation: none; } }
+
+/* Ouvrir le site ou l'app depuis la page d'une app */
+.ouvrir-app { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.ouvrir-app a.btn { text-decoration: none; display: inline-flex; align-items: center; }

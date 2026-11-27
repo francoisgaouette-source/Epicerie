@@ -3,6 +3,7 @@
 
 const SITES = {
   "lecommis.ai": "/site",
+  "console.letabli.ai": "/console",
   "console.holdingai.app": "/console",
 };
 // Pour tester sur l'adresse workers.dev : ?hote=lecommis.ai ou ?hote=console.holdingai.app (mémorisé dans un témoin)
@@ -95,7 +96,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     let host = url.hostname;
-    if (host === "console.holdingai.app" && url.pathname === "/api/envoyer") return envoyer(request, env);
+    if ((host === "console.holdingai.app" || host === "console.letabli.ai") && url.pathname === "/api/envoyer") return envoyer(request, env);
 
     if (host === "www.lecommis.ai") {
       url.hostname = "lecommis.ai";

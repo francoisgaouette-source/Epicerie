@@ -471,6 +471,17 @@
             `<button class="btn pale" data-statut-app="${esc(a.slug)}" data-statut="${a.statut === "beta" ? "" : "beta"}">${a.statut === "beta" ? "Marquer disponible" : "Mettre en bêta"}</button>`]),
           "La liste des apps n'a pas pu être lue."));
   }
+  // Le site et l'app de chaque app de L'Établi, pour les ouvrir depuis sa page de la console
+  const SITES = { echange: "https://app.lechange.ai/", gousset: "https://legousset.ai/", pourquoi: "https://lepourquoi.ai/", commis: "https://lecommis.ai/",
+    fanion: "https://lefanion.ai/", seuil: "https://leseuil.ai/", plumeau: "https://leplumeau.ai/", vestibule: "https://levestibule.ai/", tiroir: "https://letiroir.ai/",
+    voute: "https://lavoute.ai/", donne: "https://ladonne.ai/", nostalgie: "https://lanostalgie.ai/", escale: "https://lescale.ai/", debours: "https://ledebours.ai/" };
+  const ouvrirApp = (d, app) => {
+    const fiche = (((d.compte || {}).apps) || []).find((a) => cleApp(a.slug) === app);
+    const site = SITES[app], appli = fiche && fiche.adresse && fiche.adresse !== site ? fiche.adresse : null;
+    if (!site && !appli) return "";
+    const lien = (url, mot) => `<a class="btn pale" href="${esc(url)}" target="_blank" rel="noopener">${mot}</a>`;
+    return `<div class="ouvrir-app">${site ? lien(site, "Ouvrir le site web") : ""}${appli ? lien(appli, "Ouvrir l'app") : ""}</div>`;
+  };
   // Une app sans données propres dans la console : ses personnes (comptes HoldingAI qui l'ont ouverte) et son statut
   function vueAppCompte(d, app) {
     const c = d.compte || {}, fiche = (c.apps || []).find((a) => cleApp(a.slug) === app);
@@ -987,7 +998,7 @@
     return GESTES[x.etat || x.geste] || ""; };
   function vueAcces(d) {
     const gens = d.acces || [];
-    return section("Donner l'accès à quelqu'un", "La personne ouvre console.holdingai.app, entre son courriel et reçoit un code de connexion, comme vous. Aucun courriel d'invitation n'est envoyé : donnez-lui l'adresse vous-même.",
+    return section("Donner l'accès à quelqu'un", "La personne ouvre console.letabli.ai, entre son courriel et reçoit un code de connexion, comme vous. Aucun courriel d'invitation n'est envoyé : donnez-lui l'adresse vous-même.",
       `<form class="invite" id="f-invite"><label>Courriel<input id="in-invite" type="email" required maxlength="200" autocomplete="off" placeholder="prenom@exemple.com"></label>
         <label>Ce qu'elle peut faire<select id="in-role"><option value="lecture">Consulter seulement</option><option value="gestion">Consulter, publier les avis et gérer les forfaits</option></select></label>
         <button class="btn" type="submit">Donner l'accès</button></form>`) +
@@ -1122,6 +1133,7 @@
     $("#onglets").innerHTML = `<div class="rangee fonctions" role="group" aria-label="Fonctions">${fonctions.map(bouton("onglet")).join("")}</div>` +
       `<div class="rangee apps" role="group" aria-label="Apps">${APPS.map(bouton("app")).join("")}</div>`;
     $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "viralite" ? vueViralite(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : nomApp[etat.vue] ? vueAppCompte(d, etat.vue) : vueTraiter(d);
+    if (nomApp[etat.vue] && APPS.some(([k]) => k === etat.vue)) $("#page").insertAdjacentHTML("afterbegin", ouvrirApp(d, etat.vue));
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
     if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit],[data-statut-app]").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;

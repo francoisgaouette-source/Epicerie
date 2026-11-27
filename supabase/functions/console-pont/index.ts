@@ -14,7 +14,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const COMMIS_URL = "https://gandliltstmtfsmsjaew.supabase.co";
 const COMMIS_CLE = "sb_publishable_8b0VbS6YyEf5vrsn5u9m4Q_JJZ1vkmP"; // clé publique
-const ORIGINES = /^https:\/\/(console\.holdingai\.app|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
+const ORIGINES = /^https:\/\/(console\.letabli\.ai|console\.holdingai\.app|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
 const UUID = /^[0-9a-f-]{36}$/i;
 const PROJETS: Record<string, string> = { gandliltstmtfsmsjaew: "commis", inhheqccvhwybmcdboip: "tiroir", jdgflxesnaiumxodrkzd: "gousset", wuvpckyktoukttkbdzql: "seuil", wwakxuzuhmdmweluafiz: "compte" };
 const APP = Object.entries(PROJETS).find(([ref]) => (Deno.env.get("SUPABASE_URL") || "").includes(ref))?.[1] || "inconnu";
