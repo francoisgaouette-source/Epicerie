@@ -1125,7 +1125,7 @@
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
     if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit],[data-statut-app]").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
-    document.title = (n ? `(${n}) ` : "") + "Console L'Établi";
+    document.title = (n ? `(${n}) ` : "") + "Console L'Établi.ai";
     etat.frais = null;
   }
   async function charger(silence) {
