@@ -1,6 +1,6 @@
 // Boucle de retour de Fanion : idées et commentaires des joueurs, réponses de l'équipe, nouveautés, sondage éclair.
-// Appelée par le serveur de Fanion (fanion.ai/api/retour) avec le jeton Firebase du membre : le jeton est revérifié ici.
-// Chaque joueur ne lit que ses propres envois ; les réponses et états se gèrent dans la console HoldingAI (onglet Idées).
+// Appelée par le serveur de Fanion (fanion.ai/api/retour) avec le jeton du membre : compte HoldingAI, ou Firebase (anciennes versions de l'app).
+// Le jeton est revérifié ici. Chaque joueur ne lit que ses propres envois ; les réponses et états se gèrent dans la console HoldingAI (onglet Idées).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -14,9 +14,32 @@ async function clesGoogle() {
   const r = await fetch("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com");
   CLES = (await r.json()).keys; CLES_A = Date.now(); return CLES!;
 }
+// Compte HoldingAI (compte.holdingai.app) : jeton signé par HoldingAI Compte, vérifié avec ses clés publiques (JWKS).
+const HAI_ISS = "https://wwakxuzuhmdmweluafiz.supabase.co/auth/v1";
+let CLES_HAI: JsonWebKey[] | null = null, CLES_HAI_A = 0;
+async function clesHai() {
+  if (CLES_HAI && Date.now() - CLES_HAI_A < 3600e3) return CLES_HAI;
+  const r = await fetch(HAI_ISS + "/.well-known/jwks.json");
+  CLES_HAI = (await r.json()).keys || []; CLES_HAI_A = Date.now(); return CLES_HAI!;
+}
+// deno-lint-ignore no-explicit-any
+async function verifHai(h: string, p: string, sig: string, tete: any, corps: any) {
+  // deno-lint-ignore no-explicit-any
+  const jwk: any = (await clesHai()).find((k: any) => k.kid === tete.kid); if (!jwk) throw new Error("clé inconnue");
+  const ec = jwk.kty === "EC";
+  const cle = await crypto.subtle.importKey("jwk", jwk, ec ? { name: "ECDSA", namedCurve: jwk.crv || "P-256" } : { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+  const ok = await crypto.subtle.verify(ec ? { name: "ECDSA", hash: "SHA-256" } : "RSASSA-PKCS1-v1_5", cle, b64u(sig), new TextEncoder().encode(`${h}.${p}`));
+  if (!ok || corps.exp < Date.now() / 1000 || !corps.sub) throw new Error("jeton invalide");
+}
+
 async function membreFirebase(tok: string): Promise<{ uid: string; tel: string }> {
   const [h, p, sig] = tok.split("."); if (!sig) throw new Error("jeton manquant");
   const tete = JSON.parse(new TextDecoder().decode(b64u(h))), corps = JSON.parse(new TextDecoder().decode(b64u(p)));
+  if (corps.iss === HAI_ISS) {
+    await verifHai(h, p, sig, tete, corps);
+    const d = String(corps.phone || "").replace(/\D/g, "");
+    return { uid: String(corps.sub), tel: d ? "+" + d : "" };
+  }
   if (tete.alg !== "RS256") throw new Error("jeton invalide");
   // deno-lint-ignore no-explicit-any
   const jwk = (await clesGoogle()).find((k: any) => k.kid === tete.kid); if (!jwk) throw new Error("clé inconnue");
