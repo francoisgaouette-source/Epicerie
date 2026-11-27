@@ -1105,7 +1105,7 @@
         `${chiffres([[multi.length, multi.length > 1 ? "personnes sur 2 apps ou plus" : "personne sur 2 apps ou plus"], [pct(multi.length, cp.length), "des comptes L’Établi"], [passages.length, passages.length > 1 ? "comptes venus d'une autre app par invitation" : "compte venu d'une autre app par invitation"]])}` +
         table([{ t: "Personne" }, { t: "Apps utilisées" }], multi.map((c) => [`<span class="nom">${esc(c.nom || "Sans nom")}</span>`, pucesApps(c.apps || [])]), "Aucune personne n'utilise encore deux apps.")) +
       section("Pas encore mesuré", "",
-        `<ul class="note-liste"><li>Le Plumeau et Le Gousset n'ont pas encore le bouton « Inviter quelqu'un » : leur code n'est pas dans les dépôts connus. Le menu de Philou l'offrira dès qu'ils chargeront porte.js.</li>
+        `<ul class="note-liste"><li>L'Escale n'a pas encore d'app : ses invitations seront comptées dès qu'elle chargera porte.js.</li>
         <li>Le Fanion : les partages restent dans Firebase jusqu'à sa sortie ; seuls les groupes parrainés et les joueurs ajoutés sont comptés.</li>
         <li>Les liens de parrainage propres au Commis (?ref=) ne comptent pas leurs ouvertures ; ceux du bouton « Inviter quelqu'un » les comptent.</li></ul>`);
   }
