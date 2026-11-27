@@ -464,7 +464,7 @@
         table([{ t: "Personne" }, { t: "Créé" }, { t: "Dernière connexion" }, { t: "Apps utilisées" }],
           cp.map((x) => [`<span class="nom">${esc(x.nom || "Sans nom")}</span><small>${esc(tel(x.cellulaire))}</small>`, esc(jour(x.cree)), esc(x.vu ? ilYA(x.vu) : "jamais"), pucesApps(x.apps || [])]),
           "Aucun compte L’Établi pour l'instant.")) +
-      section("Statut des apps", "Une app en bêta affiche « Bêta » à côté d'Philou, dans son menu, à l'entrée et sur les invitations. Une app disponible n'affiche rien. Le changement paraît dans l'app au prochain chargement.",
+      section("Statut des apps", "Une app en bêta affiche « Bêta » à côté de Philou, dans son menu, à l'entrée et sur les invitations. Une app disponible n'affiche rien. Le changement paraît dans l'app au prochain chargement.",
         table([{ t: "App" }, { t: "Statut" }, { t: "" }],
           (c.apps || []).filter((a) => a.slug !== "holdingai" && a.active !== false).map((a) => [`${puce(cleApp(a.slug))}`,
             a.statut === "beta" ? `<span class="tampon attente">Bêta</span>` : `<span class="tampon">Disponible</span>`,
@@ -1105,7 +1105,7 @@
         `${chiffres([[multi.length, multi.length > 1 ? "personnes sur 2 apps ou plus" : "personne sur 2 apps ou plus"], [pct(multi.length, cp.length), "des comptes L’Établi"], [passages.length, passages.length > 1 ? "comptes venus d'une autre app par invitation" : "compte venu d'une autre app par invitation"]])}` +
         table([{ t: "Personne" }, { t: "Apps utilisées" }], multi.map((c) => [`<span class="nom">${esc(c.nom || "Sans nom")}</span>`, pucesApps(c.apps || [])]), "Aucune personne n'utilise encore deux apps.")) +
       section("Pas encore mesuré", "",
-        `<ul class="note-liste"><li>Le Plumeau et Le Gousset n'ont pas encore le bouton « Inviter quelqu'un » : leur code n'est pas dans les dépôts connus. Le menu d'Philou l'offrira dès qu'ils chargeront porte.js.</li>
+        `<ul class="note-liste"><li>Le Plumeau et Le Gousset n'ont pas encore le bouton « Inviter quelqu'un » : leur code n'est pas dans les dépôts connus. Le menu de Philou l'offrira dès qu'ils chargeront porte.js.</li>
         <li>Le Fanion : les partages restent dans Firebase jusqu'à sa sortie ; seuls les groupes parrainés et les joueurs ajoutés sont comptés.</li>
         <li>Les liens de parrainage propres au Commis (?ref=) ne comptent pas leurs ouvertures ; ceux du bouton « Inviter quelqu'un » les comptent.</li></ul>`);
   }
