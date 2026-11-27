@@ -21,8 +21,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--tampon); outline-offset: 2px; border-radius: 4px; }
 [hidden] { display: none !important; }
 
-.marque { white-space: nowrap; font-weight: 800; font-stretch: 118%; font-size: 17px; letter-spacing: -.01em; }
-.marque span { font-weight: 500; font-stretch: 100%; color: var(--gris); margin-left: 6px; }
+.marque { display: flex; align-items: center; gap: 9px; white-space: nowrap; font-size: 17px; }
+.marque svg { width: 28px; height: 28px; flex: none; color: var(--encre); }
+.marque b { font-family: Fraunces, Georgia, "Times New Roman", serif; font-weight: 600; font-size: 21px; letter-spacing: -.01em; }
+.marque span { font-weight: 500; color: var(--gris); padding-left: 10px; border-left: 1px solid var(--ligne); }
 
 /* Boutons */
 .btn { appearance: none; border: 1.5px solid var(--encre); background: var(--encre); color: var(--feuille); border-radius: 8px; padding: 9px 14px; font-weight: 650; font-size: 15px; cursor: pointer; min-height: 42px; }
