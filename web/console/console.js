@@ -234,7 +234,7 @@
   // ---------- idées, sondages et nouveautés du Commis
   const TYPES = { idee: ["💡", "Idée"], probleme: ["🐞", "Problème"], aime: ["❤️", "J'aime"], autre: ["💬", "Commentaire"] };
   const STATUTS = { recue: "À lire", etudiee: "À l'étude", prevue: "Prévue", faite: "Faite", non: "Non retenue" };
-  const SOURCES = { app: "", sondage: "réponse au sondage", rosalie: "proposée par Rosalie" };
+  const SOURCES = { app: "", sondage: "réponse au sondage", rosalie: "proposée par Catherine" };
   // L'avis de Claude sur une idée (fonction console-idee-avis) : gardé par app + id
   const VERDICTS = { bonne: ["Bonne idée", ""], a_creuser: ["À creuser", " attente"], pas_maintenant: ["Pas maintenant", " neutre"], non: ["Pas pour nous", " refus"] };
   const EFFORTS = { petit: "petit effort", moyen: "effort moyen", gros: "gros effort" };
@@ -389,14 +389,14 @@
     const actifs = cp.filter((c) => c.derniere && Date.now() - t(c.derniere) < 30 * JOUR).length;
     return (p.erreur ? `<section class="section"><div class="bandeau">Les comptes du Plumeau n'ont pas pu être lus : ${esc(p.erreur)}</div></section>` : "") +
       `<section class="section">${chiffres([[cp.length, cp.length > 1 ? "comptes" : "compte"], [cp.filter((c) => Date.now() - t(c.cree) < 7 * JOUR).length, "nouveaux depuis 7 jours"], [somme("liens"), "liens gardés"], [somme("archives"), "liens archivés (ménage fait)"], [pilote, "ont importé et fait le ménage"], [usd(j30), "d'IA depuis 30 jours"], [actifs ? usd(j30 / actifs) : "–", "par compte actif, 30 jours"]])}</section>` +
-      section("Comptes", "Le Plumeau est gratuit : pas de forfait à gérer. Un compte « ont importé et fait le ménage » a gardé 20 liens ou plus et a archivé un lien ou gardé une suggestion de Colette.",
+      section("Comptes", "Le Plumeau est gratuit : pas de forfait à gérer. Un compte « ont importé et fait le ménage » a gardé 20 liens ou plus et a archivé un lien ou gardé une suggestion de Edda.",
         table([{ t: "Personne" }, { t: "Inscrite" }, { t: "Liens", n: 1 }, { t: "Archivés", n: 1 }, { t: "Collections", n: 1 }, { t: "Suggestions gardées", n: 1 }, { t: "Dernier lien" }, { t: "Geste" }],
           cp.map((c) => [`<span class="nom">${esc(c.prenom || "Sans prénom")}</span><small>${esc(c.courriel || "")}${c.bloque ? " · IA coupée" : ""}</small>`, esc(jour(c.cree)), c.liens, c.archives, c.collections, c.sugg_gardees, c.derniere ? esc(ilYA(c.derniere)) : "aucun",
             `<div class="gestes"><button class="lien" data-plumeau-compte="${esc(c.user_id)}" data-bloque="${c.bloque ? "0" : "1"}">${c.bloque ? "Rendre l'IA" : "Couper l'IA"}</button></div>`]),
           "Aucun compte pour l'instant. Les inscriptions sur leplumeau.ai s'afficheront ici.")) +
-      section("Idées et commentaires", "Répondez dans l'onglet Idées (filtre Le Plumeau) : la personne voit votre réponse dans l'app, et Colette l'avertit.",
+      section("Idées et commentaires", "Répondez dans l'onglet Idées (filtre Le Plumeau) : la personne voit votre réponse dans l'app, et Edda l'avertit.",
         liste(idees.filter((i) => i.statut === "recue").slice(0, 20).map(ficheIdee), idees.length ? "Tout est lu. Les idées traitées sont dans l'onglet Idées." : "Aucune idée reçue pour l'instant.")) +
-      section("Questions posées à Colette", "Ce que les gens demandent à Colette dans l'app. Une question qui revient souvent montre un endroit où l'app accroche.",
+      section("Questions posées à Edda", "Ce que les gens demandent à Edda dans l'app. Une question qui revient souvent montre un endroit où l'app accroche.",
         liste(q.map(ficheQuestion), "Aucune question notée pour l'instant. Elles s'inscrivent ici à mesure que les gens en posent."));
   }
   // ---------- Le Tiroir : foyers, fiches, rappels (5 fiches gratuites, puis 29 $ par année)
@@ -464,7 +464,7 @@
         table([{ t: "Personne" }, { t: "Créé" }, { t: "Dernière connexion" }, { t: "Apps utilisées" }],
           cp.map((x) => [`<span class="nom">${esc(x.nom || "Sans nom")}</span><small>${esc(tel(x.cellulaire))}</small>`, esc(jour(x.cree)), esc(x.vu ? ilYA(x.vu) : "jamais"), pucesApps(x.apps || [])]),
           "Aucun compte L’Établi pour l'instant.")) +
-      section("Statut des apps", "Une app en bêta affiche « Bêta » à côté d'Albert, dans son menu, à l'entrée et sur les invitations. Une app disponible n'affiche rien. Le changement paraît dans l'app au prochain chargement.",
+      section("Statut des apps", "Une app en bêta affiche « Bêta » à côté d'Philou, dans son menu, à l'entrée et sur les invitations. Une app disponible n'affiche rien. Le changement paraît dans l'app au prochain chargement.",
         table([{ t: "App" }, { t: "Statut" }, { t: "" }],
           (c.apps || []).filter((a) => a.slug !== "holdingai" && a.active !== false).map((a) => [`${puce(cleApp(a.slug))}`,
             a.statut === "beta" ? `<span class="tampon attente">Bêta</span>` : `<span class="tampon">Disponible</span>`,
@@ -523,7 +523,7 @@
   const cadUsd = (usd) => cad(usd * TAUX);
   const usd = cadUsd; // les autres onglets (Plumeau, Tiroir) affichent aussi en $ CA
   const MOIS = 365 / 12 / 30; // ramène 30 jours à un mois moyen
-  const NOMS_FONCTIONS = { rosalie: "Rosalie (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)", colette: "Colette (questions)", ajouter: "Le Plumeau : lecture d'un lien", classer: "Le Plumeau : classement des liens", suggerer: "Le Plumeau : sites semblables" };
+  const NOMS_FONCTIONS = { rosalie: "Catherine (questions)", "photo-produit": "Photo d'un produit", facture: "Lecture de facture", circulaires: "Circulaires (lecture commune)", colette: "Edda (questions)", ajouter: "Le Plumeau : lecture d'un lien", classer: "Le Plumeau : classement des liens", suggerer: "Le Plumeau : sites semblables" };
   const ORDRE_APPS = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale", "holdingai"];
   const NOM_FRAIS = { holdingai: "Compte L’Établi", nostalgie: "La Nostalgie" };
   function sectionFrais() {
@@ -1105,7 +1105,7 @@
         `${chiffres([[multi.length, multi.length > 1 ? "personnes sur 2 apps ou plus" : "personne sur 2 apps ou plus"], [pct(multi.length, cp.length), "des comptes L’Établi"], [passages.length, passages.length > 1 ? "comptes venus d'une autre app par invitation" : "compte venu d'une autre app par invitation"]])}` +
         table([{ t: "Personne" }, { t: "Apps utilisées" }], multi.map((c) => [`<span class="nom">${esc(c.nom || "Sans nom")}</span>`, pucesApps(c.apps || [])]), "Aucune personne n'utilise encore deux apps.")) +
       section("Pas encore mesuré", "",
-        `<ul class="note-liste"><li>Le Plumeau et Le Gousset n'ont pas encore le bouton « Inviter quelqu'un » : leur code n'est pas dans les dépôts connus. Le menu d'Albert l'offrira dès qu'ils chargeront porte.js.</li>
+        `<ul class="note-liste"><li>Le Plumeau et Le Gousset n'ont pas encore le bouton « Inviter quelqu'un » : leur code n'est pas dans les dépôts connus. Le menu d'Philou l'offrira dès qu'ils chargeront porte.js.</li>
         <li>Le Fanion : les partages restent dans Firebase jusqu'à sa sortie ; seuls les groupes parrainés et les joueurs ajoutés sont comptés.</li>
         <li>Les liens de parrainage propres au Commis (?ref=) ne comptent pas leurs ouvertures ; ceux du bouton « Inviter quelqu'un » les comptent.</li></ul>`);
   }
@@ -1133,7 +1133,7 @@
     try {
       const d = await appel({ action: "tout" });
       try { d.retour = await rpc("console_retour"); } catch (e) { d.retour = { idees: [], sondages: [], nouveautes: [] }; }
-      // Le Plumeau (projet à part) : comptes, idées, nouveautés, questions à Colette et coûts, ajoutés aux listes communes
+      // Le Plumeau (projet à part) : comptes, idées, nouveautés, questions à Edda et coûts, ajoutés aux listes communes
       try {
         const p = await pont({ action: "tout" });
         d.plumeau = { comptes: p.comptes || [] };
@@ -1223,7 +1223,7 @@
     }
     if (b.dataset.plumeauCompte) {
       const bloque = b.dataset.bloque === "1";
-      if (bloque && !confirm("Couper l'IA de ce compte? Colette ne lira plus ses liens et ne répondra plus à ses questions.")) return;
+      if (bloque && !confirm("Couper l'IA de ce compte? Edda ne lira plus ses liens et ne répondra plus à ses questions.")) return;
       return agir({ action: "plumeau.bloquer", user_id: b.dataset.plumeauCompte, bloque }, bloque ? "IA coupée pour ce compte." : "IA rendue à ce compte.");
     }
     if (b.dataset.ideeAvis) {
