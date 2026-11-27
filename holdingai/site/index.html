@@ -574,7 +574,7 @@ document.getElementById('copy').addEventListener('click', function(){
   var courant = null;
   function ouvrir(k, bouton){
     var d = D[k]; if (!d || !dlg) return; dernier = bouton; courant = k;
-    face.innerHTML = bouton.querySelector('.v-face').innerHTML;
+    var vf = bouton.querySelector('.v-face') || document.querySelector('.visage[data-fiche="'+k+'"] .v-face'); face.innerHTML = vf ? vf.innerHTML : (bouton.querySelector('img') ? '<img src="'+bouton.querySelector('img').getAttribute('src')+'" alt="">' : '<img src="personnages/philippe.webp" alt="">');
     document.getElementById('f-titre').textContent = 'Moi, c’est ' + d.nom + '.';
     document.getElementById('f-role').textContent = d.role;
     document.getElementById('f-etapes').innerHTML = d.etapes.map(function(e){ return '<li><span class="lab">'+txt(e[0])+'</span><b>'+txt(e[1])+'</b><p>'+txt(e[2])+'</p></li>'; }).join('');
@@ -584,7 +584,7 @@ document.getElementById('copy').addEventListener('click', function(){
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open','');
     raconter(k);
   }
-  document.querySelectorAll('.visage').forEach(function(b){ b.addEventListener('click', function(){ ouvrir(b.getAttribute('data-fiche'), b); }); });
+  document.querySelectorAll('[data-fiche]').forEach(function(b){ b.addEventListener('click', function(){ ouvrir(b.getAttribute('data-fiche'), b); }); });
   bv.addEventListener('click', function () {
     var on = !sonOn(); try { localStorage.setItem('holdingai.voix', on ? '1' : '0'); } catch (e) {}
     majBouton(); if (courant) raconter(courant);
