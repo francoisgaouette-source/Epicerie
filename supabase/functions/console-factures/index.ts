@@ -22,7 +22,7 @@ const famille = (m: string) => (/haiku/i.test(m) ? "haiku" : /opus/i.test(m) ? "
 // Reconnaît l'app à partir d'un nom (clé API, service Verify, numéro, description de paiement)
 const APPS: [RegExp, string][] = [
   [/commis|epicerie|rosalie/, "commis"], [/fanion|pelland|caddie|golf/, "fanion"], [/plumeau|colette|collette/, "plumeau"],
-  [/tiroir|carnet|gaston/, "tiroir"], [/gousset|margaux|shopping/, "gousset"], [/seuil/, "seuil"], [/voute/, "voute"],
+  [/tiroir|carnet|gaston/, "tiroir"], [/gousset|margaux|rapha[eë]lle|shopping/, "gousset"], [/seuil/, "seuil"], [/voute/, "voute"],
   [/pourquoi|simon/, "pourquoi"], [/nostalgie|jeanne/, "nostalgie"], [/echange/, "echange"], [/vestibule|lucie/, "vestibule"],
   [/donne|tapis|marcel/, "donne"], [/escale|celeste/, "escale"], [/holding|etabli|compte|albert|console/, "holdingai"],
 ];

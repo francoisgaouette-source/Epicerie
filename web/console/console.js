@@ -439,7 +439,7 @@
     const actifs = cp.filter((c) => c.sync && Date.now() - t(c.sync) < 7 * JOUR).length;
     return bandeauErreur(x, "Le Gousset") +
       `<section class="section">${chiffres([[cp.length, cp.length > 1 ? "comptes" : "compte"], [cp.filter((c) => c.gmail).length, "Gmail connecté"], [actifs, "synchronisés depuis 7 jours"], [somme("aubaines"), "offres en cours"], [somme("codes"), "codes promo"], [somme("abonnements"), "abonnements suivis"], [argent(Math.round(somme("economies") * 100), "cad"), "d'économies notées"], [(x.demandes || []).filter((a) => a.statut === "pending").length, "demandes d'accès en attente"]])}</section>` +
-      section("Comptes", "Le Gousset lit l'onglet Promotions de Gmail. Une synchronisation récente montre que Margaux travaille pour ce compte.",
+      section("Comptes", "Le Gousset lit l'onglet Promotions de Gmail. Une synchronisation récente montre que Raphaëlle travaille pour ce compte.",
         table([{ t: "Personne" }, { t: "Inscrite" }, { t: "Gmail" }, { t: "Dernière synchro" }, { t: "Offres", n: 1 }, { t: "Codes", n: 1 }, { t: "Abonnements", n: 1 }, { t: "Achats", n: 1 }, { t: "Économies", n: 1 }, { t: "Parrainages", n: 1 }],
           cp.map((c) => [`<span class="nom">${esc(c.prenom || "Sans prénom")}</span><small>${esc([c.courriel, c.ville].filter(Boolean).join(", "))}</small>`, esc(jour(c.cree)), c.gmail ? `<span class="tampon">Connecté</span>` : `<span class="tampon refus">Non</span>`,
             `${c.sync ? esc(ilYA(c.sync)) : "jamais"}${c.sync_etat ? `<small>${esc(c.sync_etat)}</small>` : ""}`, c.aubaines, c.codes, c.abonnements, c.achats, esc(argent(Math.round(Number(c.economies || 0) * 100), "cad")), c.parrainages]),
