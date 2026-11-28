@@ -175,6 +175,17 @@
     if (f.peutRepondre && !f.auto) gestes.push(`<button class="btn" data-courriel="${esc(c.id)}" data-geste="repondre">Répondre</button>`);
     gestes.push(f.attente ? `<button class="btn pale" data-courriel="${esc(c.id)}" data-geste="traite">Marquer comme traité</button>` : `<button class="btn pale" data-courriel="${esc(c.id)}" data-geste="atraiter">Remettre à traiter</button>`);
     if (f.peutRepondre && f.auto) gestes.push(`<button class="lien" data-courriel="${esc(c.id)}" data-geste="repondre">Répondre quand même</button>`);
+    // Liste d'envoi : se désabonner avec le lien de l'expéditeur; tout expéditeur peut être bloqué
+    const recu = c.sens === "recu" ? c : null;
+    if (recu && (recu.desabonner_url || recu.desabonner_mailto) && !recu.desabonne_le) gestes.push(`<button class="lien" data-courriel="${esc(c.id)}" data-geste="desabonner">Se désabonner</button>`);
+    if (recu && !/\.invalid$/.test(recu.de)) {
+      gestes.push(`<button class="lien" data-courriel="${esc(c.id)}" data-geste="bloquer">Bloquer l'expéditeur</button>`);
+      // Tout un domaine, sauf les boîtes de courriel grand public (on bloquerait des millions de personnes)
+      const dom = recu.de.split("@")[1] || "";
+      if (dom && !/^(gmail|googlemail|outlook|hotmail|live|msn|yahoo|ymail|icloud|me|mac|aol|proton|protonmail|videotron|sympatico|bell|cogeco|rogers|shaw|telus)\./i.test(dom))
+        gestes.push(`<button class="lien" data-courriel="${esc(c.id)}" data-geste="bloquer-domaine">Bloquer tout @${esc(dom)}</button>`);
+    }
+    gestes.push(`<button class="lien" data-courriel="${esc(c.id)}" data-geste="effacer">Effacer</button>`);
     return `<article class="fiche">
       ${tampon}
       <div class="tete">${puce(f.app)}<b>${esc(c.sens === "envoye" ? c.a : c.de_nom || c.de)}</b>${c.sens === "recu" && c.de_nom ? `<span>${esc(c.de)}</span>` : ""}<span>écrit à ${esc(c.sens === "envoye" ? c.de : c.a)}</span><span>${esc(moment(c.cree))}</span></div>
@@ -182,6 +193,7 @@
       ${avant.length ? `<details><summary>Voir le reste de l'échange (${pl(avant.length, "autre message", "autres messages")})</summary><div class="echange">${avant.map(messageCourriel).join("")}</div></details>` : ""}
       ${messageCourriel(c)}
       ${c.sens === "recu" && c.repondre_a ? `<p class="note">La réponse ira à ${esc(c.repondre_a)}, comme le demande ce message.</p>` : ""}
+      ${recu && recu.desabonne_le ? `<p class="note">Désabonné ${esc(moment(recu.desabonne_le))}. Si d'autres courriels arrivent, bloquez l'expéditeur.</p>` : ""}
       <div class="gestes">${gestes.join("")}</div>
     </article>`;
   }
@@ -193,7 +205,9 @@
     const vide = !fils.length ? "Aucun courriel reçu pour l'instant. Tout ce qui est écrit à une adresse @letabli.ai, @lecommis.ai ou @fanion.ai arrivera ici."
       : k === "attente" ? "Aucun courriel à traiter." : "Aucun courriel dans cette liste.";
     return section("Courriels", "Tout ce qui est écrit à une adresse @letabli.ai, @lecommis.ai ou @fanion.ai. Une copie arrive aussi dans votre boîte personnelle. Les réponses partent de l'adresse à laquelle la personne a écrit.",
-      `<div class="filtres" role="group" aria-label="Filtrer les courriels">${FILTRES.map(([c, mot]) => `<button class="filtre" data-filtre="${c}" aria-pressed="${k === c}">${mot}</button>`).join("")}</div>` + liste(vus.slice(0, 100).map(ficheCourriel), vide));
+      `<div class="filtres" role="group" aria-label="Filtrer les courriels">${FILTRES.map(([c, mot]) => `<button class="filtre" data-filtre="${c}" aria-pressed="${k === c}">${mot}</button>`).join("")}</div>` + liste(vus.slice(0, 100).map(ficheCourriel), vide)) +
+      ((d.bloques || []).length ? section("Expéditeurs bloqués", "Leurs courriels ne sont plus notés ici. Une copie peut encore arriver dans votre boîte personnelle.",
+        table([{ t: "Expéditeur" }, { t: "Bloqué" }, { t: "Geste" }], d.bloques.map((x) => [`<span class="nom">${esc(x.adresse.startsWith("@") ? "Tout le domaine " + x.adresse.slice(1) : x.adresse)}</span>`, esc(moment(x.cree)), `<div class="gestes"><button class="lien" data-debloquer="${esc(x.adresse)}">Débloquer</button></div>`]), "")) : "");
   }
 
   // ---------- morceaux d'écran
@@ -1186,7 +1200,7 @@
     $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "viralite" ? vueViralite(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "infra" ? vueInfra() : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : nomApp[etat.vue] ? vueAppCompte(d, etat.vue) : vueTraiter(d);
     if (nomApp[etat.vue] && APPS.some(([k]) => k === etat.vue)) $("#page").insertAdjacentHTML("afterbegin", ouvrirApp(d, etat.vue));
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
-    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit],[data-statut-app]").forEach((b) => b.remove());
+    if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-debloquer],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit],[data-statut-app]").forEach((b) => b.remove());
     $("#pied").textContent = `Connecté : ${etat.courriel}${etat.role === "lecture" ? " (consultation seulement)" : ""}. Données lues à ${new Intl.DateTimeFormat("fr-CA", { hour: "numeric", minute: "2-digit" }).format(new Date())}.`;
     document.title = (n ? `(${n}) ` : "") + "Console · L’Établi";
     etat.frais = null;
@@ -1315,9 +1329,38 @@
         return;
       }
     }
+    if (b.dataset.debloquer) {
+      const x = b.dataset.debloquer;
+      if (!(await confirmer({ titre: "Débloquer?", texte: `Les prochains courriels de ${x.startsWith("@") ? "tout le domaine " + x.slice(1) : x} seront de nouveau notés dans la console.`, bouton: "Débloquer" }))) return;
+      return agir({ action: "courriel.debloquer", adresse: x }, "Expéditeur débloqué.");
+    }
     if (b.dataset.courriel) {
       const c = (d.courriels || []).find((x) => x.id === b.dataset.courriel), g = b.dataset.geste; if (!c) return;
       if (g === "repondre") return repondre(c);
+      if (g === "effacer") {
+        const n = (d.courriels || []).filter((x) => x.fil === c.fil).length;
+        if (!(await confirmer({ titre: "Effacer ce courriel?", texte: `${n > 1 ? `Les ${n} messages de cet échange seront effacés` : "Ce courriel sera effacé"} de la console, pour de bon. La copie reçue dans votre boîte personnelle n'est pas touchée.`, bouton: "Effacer" }))) return;
+        return agir({ action: "courriel.supprimer", id: c.id }, n > 1 ? "Échange effacé." : "Courriel effacé.");
+      }
+      if (g === "desabonner") {
+        const mode = c.desabonner_url && c.desabonner_un_clic ? "un_clic" : c.desabonner_mailto ? "courriel" : "page";
+        const texte = mode === "un_clic" ? `La console demande à ${c.de} de vous retirer de sa liste, sans ouvrir son site.`
+          : mode === "courriel" ? `La console écrit à l'adresse de désabonnement de ${c.de}, depuis ${c.a}.`
+          : `La page de désabonnement de ${c.de} s'ouvrira dans un nouvel onglet : confirmez-y le désabonnement.`;
+        if (!(await confirmer({ titre: "Se désabonner?", texte: texte + " Pour un pourriel, mieux vaut bloquer l'expéditeur : se désabonner lui confirme que l'adresse est active.", bouton: "Se désabonner" }))) return;
+        try {
+          const r = await appel({ action: "courriel.desabonner", id: c.id });
+          if (r && r.mode === "page" && r.url) window.open(r.url, "_blank", "noopener");
+          toast(r && r.mode === "page" ? "Page de désabonnement ouverte." : "Désabonnement envoyé."); await charger(true);
+        } catch (e) { toast(e.message, true); }
+        return;
+      }
+      if (g === "bloquer" || g === "bloquer-domaine") {
+        const dom = c.de.split("@")[1] || "", tout = g === "bloquer-domaine";
+        const qui = tout ? `toute adresse @${dom}` : c.de;
+        if (!(await confirmer({ titre: `Bloquer ${qui}?`, texte: `Ses prochains courriels ne seront plus notés dans la console, et ceux déjà reçus ici seront effacés. Vous pourrez le débloquer plus bas dans cet onglet.`, bouton: "Bloquer" }))) return;
+        return agir({ action: "courriel.bloquer", id: c.id, domaine: tout }, tout ? `Tout le domaine ${dom} est bloqué.` : `${c.de} est bloqué.`);
+      }
       return agir({ action: "courriel.etat", id: c.id, traite: g === "traite" }, g === "traite" ? "Courriel marqué comme traité." : "Courriel remis à traiter.");
     }
     if (b.dataset.avis) {

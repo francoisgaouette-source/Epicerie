@@ -1,11 +1,19 @@
-// Reçoit du Worker Cloudflare chaque courriel écrit à @holdingai.app, @lecommis.ai ou @fanion.ai
-// et le note dans console_courriels, pour l'onglet « Courriels » de la console HoldingAI.
+// Reçoit du Worker Cloudflare chaque courriel écrit à @letabli.ai, @lecommis.ai ou @fanion.ai (et à l'ancienne @holdingai.app)
+// et le note dans console_courriels, pour l'onglet « Courriels » de la console.
+// Garde aussi le lien de désabonnement de l'expéditeur (List-Unsubscribe) et ignore les expéditeurs bloqués (console_bloques).
 // Appelée sans jeton Supabase (verify_jwt = false) : elle exige le secret COURRIEL_SECRET, partagé avec le Worker.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import PostalMime from "npm:postal-mime@4.2.1";
 
-const APPS: Record<string, string> = { "holdingai.app": "holdingai", "lecommis.ai": "commis", "fanion.ai": "fanion" };
+const APPS: Record<string, string> = { "letabli.ai": "holdingai", "holdingai.app": "holdingai", "lecommis.ai": "commis", "fanion.ai": "fanion" };
+// List-Unsubscribe : « <https://…>, <mailto:…> ». On garde la première adresse web (https seulement) et la première adresse courriel.
+function desabonnement(valeur: string, post: string) {
+  const liens = [...String(valeur || "").matchAll(/<([^>]+)>/g)].map((x) => x[1].trim());
+  const url = liens.find((l) => /^https:\/\//i.test(l) && l.length <= 2000) || null;
+  const mailto = liens.find((l) => /^mailto:/i.test(l) && l.length <= 1000) || null;
+  return { desabonner_url: url, desabonner_mailto: mailto, desabonner_un_clic: !!url && /List-Unsubscribe=One-Click/i.test(post || "") };
+}
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
 async function memeSecret(a: string | null, b: string | undefined) {
@@ -55,6 +63,9 @@ Deno.serve(async (req: Request) => {
   const refs = String(m.references || "").trim().slice(0, 4000) || null;
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+  // Expéditeur bloqué dans la console (adresse exacte ou tout son domaine) : rien n'est noté
+  const { data: bloque } = await admin.from("console_bloques").select("adresse").in("adresse", [de, "@" + de.split("@")[1]]).limit(1);
+  if (bloque?.length) return json({ ok: true, bloque: true });
   if (idMsg) {
     const { data: deja } = await admin.from("console_courriels").select("id").eq("message_id", idMsg).maybeSingle();
     if (deja) return json({ ok: true, deja: true });
@@ -76,6 +87,7 @@ Deno.serve(async (req: Request) => {
     sens: "recu", app, de, de_nom: String(m.from?.name || "").slice(0, 200) || null, a, repondre_a: repondreA && repondreA !== de ? repondreA : null,
     sujet, texte: texte.slice(0, 60000),
     message_id: idMsg, en_reponse_a: enReponseA, refs,
+    ...desabonnement(enTete("list-unsubscribe"), enTete("list-unsubscribe-post")),
     pieces: (m.attachments || []).filter((p: { disposition?: string | null; filename?: string | null }) => p.disposition !== "inline" || p.filename).slice(0, 30)
       .map((p: { filename?: string | null; mimeType?: string; content?: ArrayBuffer | Uint8Array | string }) => ({ nom: String(p.filename || "sans nom").slice(0, 200), type: String(p.mimeType || "").slice(0, 100), taille: typeof p.content === "string" ? p.content.length : p.content?.byteLength ?? null })),
     auto, tronque: req.headers.get("X-Tronque") === "1" || texte.length > 60000, copie: req.headers.get("X-Copie") === "1",

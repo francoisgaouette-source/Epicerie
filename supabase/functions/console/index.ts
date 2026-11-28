@@ -15,7 +15,7 @@ const cors = (o: string) => ({
 });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const JOUR = 864e5;
-import { actionCourriel, listeCourriels, Refus } from "./courriels.ts";
+import { actionCourriel, listeBloques, listeCourriels, Refus } from "./courriels.ts";
 
 // ---------- Firebase (Fanion) ----------
 const PROJET = "pelland";
@@ -159,12 +159,12 @@ Deno.serve(async (req: Request) => {
       try { fanion = await donneesFanion(); } catch (e) { fanion = { pret: false, erreur: (e as Error).message, groupes: [], avis: [], demandes: [] }; }
       let acces = null;
       if (role === "proprio") acces = (await admin.rpc("console_acces")).data;
-      const courriels = await listeCourriels(admin);
+      const [courriels, bloques] = await Promise.all([listeCourriels(admin), listeBloques(admin)]);
       // Coûts de l'API Claude des 90 derniers jours (table couts_ia, écrite par les fonctions qui appellent Claude)
       const depuis = new Date(Date.now() - 90 * 864e5).toISOString();
       const { data: couts } = await admin.from("couts_ia").select("cree, app, fonction, foyer_id, modele, entree, sortie, cache_lu, recherches, cout_usd")
         .gte("cree", depuis).order("cree", { ascending: false }).limit(20000);
-      return json({ commis, fanion, courriels, couts: couts || [], courriel: u.user.email, role, acces });
+      return json({ commis, fanion, courriels, bloques, couts: couts || [], courriel: u.user.email, role, acces });
     }
     if (role !== "proprio" && role !== "gestion") throw new Refus("Votre accès permet seulement de consulter.", 403);
 
