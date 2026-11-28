@@ -525,7 +525,7 @@
     { poste: "Supabase Pro", detail: "25 $ + 6 projets × 10 $ − 10 $ de crédit", usd: 75 },
     { poste: "Claude Pro", detail: "abonnement pour le développement", usd: 20 },
     { poste: "Domaines .ai (5)", detail: "lecommis, fanion, letiroir, leplumeau, legousset · 80 $ par an chacun", usd: 5 * 80 / 12 },
-    { poste: "Domaine holdingai.app", detail: "≈ 15 $ par an", usd: 15 / 12 },
+    { poste: "Ancien domaine (redirections seulement)", detail: "≈ 15 $ par an", usd: 15 / 12 },
     { poste: "Cloudflare", detail: "forfait gratuit (5 $ si on active la réponse aux courriels)", usd: 0 },
     { poste: "GitHub", detail: "forfait gratuit, 2 000 minutes d'Actions par mois", usd: 0 },
   ];
