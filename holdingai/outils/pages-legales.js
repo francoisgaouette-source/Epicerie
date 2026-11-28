@@ -99,7 +99,7 @@ ${corps}
 
 // ===================== Politique de confidentialité =====================
 const confidentialite = page('Politique de confidentialité',
-  'Version de travail. À faire valider avant l’ouverture des ventes, en conformité avec la Loi sur la protection des renseignements personnels dans le secteur privé (Loi 25). Les éléments entre crochets sont à compléter.',
+  'Version de travail, à faire valider par un avocat, en conformité avec la Loi sur la protection des renseignements personnels dans le secteur privé (Loi 25). Les éléments entre crochets sont à compléter.',
   `<p class="vigueur">En vigueur le ${ENTREPRISE.enVigueur}. Cette politique explique quels renseignements ${a.nom} recueille, pourquoi, qui y a accès et comment exercer vos droits.</p>
 
 <h2>1. Responsable de la protection des renseignements personnels</h2>
@@ -107,7 +107,7 @@ const confidentialite = page('Politique de confidentialité',
 
 <h2>2. Ce que nous recueillons</h2>
 ${liste([...a.recueil,
-  'Compte : la connexion se fait avec le compte commun des apps de L’Établi (compte.letabli.ai), lié à votre numéro de cellulaire.',
+  'Compte : la connexion se fait avec le compte commun des apps de L’Établi (compte.letabli.ai).',
   'Technique : données de connexion nécessaires au fonctionnement de l’app. Nous n’utilisons ni témoins publicitaires ni outils de pistage.'])}
 
 <h2>3. Pourquoi</h2>
@@ -136,13 +136,13 @@ ${liste([
 <p>Ce site n’utilise aucun témoin. Les polices de caractères sont servies par Google Fonts, qui reçoit l’adresse IP de votre appareil pour les afficher.</p>
 
 <h2>10. Modifications</h2>
-<p>Nous publierons ici toute modification et vous en aviserons par courriel si elle est importante.</p>`);
+<p>Nous publierons ici toute modification et vous en aviserons dans l’app ou par courriel si elle est importante.</p>`);
 
 // ===================== Conditions d'utilisation =====================
 let n = 1;
 const s = titre => `<h2>${n++}. ${titre}</h2>`;
 const conditions = page('Conditions d’utilisation',
-  'Version de travail. À faire valider par un avocat avant l’ouverture des ventes. Les éléments entre crochets sont à compléter.',
+  'Version de travail, à faire valider par un avocat. Les éléments entre crochets sont à compléter.',
   `<p class="vigueur">En vigueur le ${ENTREPRISE.enVigueur}. Ces conditions encadrent l’utilisation ${a.deNom}${a.prixPayant ? ' et l’achat d’un forfait' : ''}.</p>
 
 ${s('Qui sommes-nous')}
@@ -171,10 +171,10 @@ ${s('Exactitude et disponibilité')}
 <p>${a.exactitude} Nous faisons notre possible pour que l’app soit disponible en tout temps, mais des interruptions peuvent survenir.</p>
 
 ${s('Responsabilité')}
-<p>${a.prixPayant ? 'Notre responsabilité envers vous est limitée au montant payé pour le forfait en cours' : 'Le service étant offert gratuitement, notre responsabilité envers vous est limitée dans toute la mesure permise par la loi'}, sauf en cas de faute lourde ou intentionnelle de notre part, ou lorsque la loi ne permet pas une telle limite.</p>
+<p>Notre responsabilité envers vous est limitée au montant que vous avez payé pour le service au cours des 12 derniers mois, le cas échéant, sauf en cas de faute lourde ou intentionnelle de notre part, ou lorsque la loi ne permet pas une telle limite.</p>
 
 ${s('Modifications')}
-<p>Nous pouvons modifier ces conditions. Nous vous aviserons par courriel au moins 30 jours avant qu’un changement important s’applique.${a.prixPayant ? ' Un forfait déjà payé reste régi par les conditions en vigueur lors de l’achat, sauf si le changement vous est favorable.' : ''}</p>
+<p>Nous pouvons modifier ces conditions. Nous vous aviserons dans l’app ou par courriel au moins 30 jours avant qu’un changement important s’applique.${a.prixPayant ? ' Un forfait déjà payé reste régi par les conditions en vigueur lors de l’achat, sauf si le changement vous est favorable.' : ''}</p>
 
 ${s('Lois applicables')}
 <p>Ces conditions sont régies par les lois du Québec et du Canada qui s’y appliquent.</p>`);
