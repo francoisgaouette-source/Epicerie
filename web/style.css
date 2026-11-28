@@ -362,11 +362,11 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 .eco-liste li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
 .eco-plus{font:500 .95rem var(--f-mono);color:var(--accent);white-space:nowrap}
 
-/* Avatar de Rosalie dans l'aide */
+/* Avatar de Catherine dans l'aide */
 #commis-av{overflow:hidden;background:#DCEBDF;width:40px;height:40px}
 #commis-av svg{width:100%;height:100%;display:block}
 
-/* Place pour le visage de Rosalie, toujours dans le coin */
+/* Place pour le visage de Catherine, toujours dans le coin */
 #app{padding-bottom:96px}
 
 /* Corriger un article de la liste */
@@ -380,7 +380,7 @@ h2,.bv-card h1,.bienvenue h1{font-family:var(--f-display);letter-spacing:-.01em}
 .f-edit-liste .el-ligne > div{display:flex;flex-direction:column;gap:4px;min-width:0}
 .f-edit-liste .mf{flex:none;display:block}
 
-/* Spéciaux : comment Rosalie surveille */
+/* Spéciaux : comment Catherine surveille */
 .agent .surv-titre{font-family:var(--f-display);font-weight:800;font-size:1.05rem;display:flex;gap:8px;align-items:baseline}
 .agent .surv-puces{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
 .agent .surv-etapes{margin:12px 0 8px;padding-left:20px;display:grid;gap:6px;font-size:.92rem}

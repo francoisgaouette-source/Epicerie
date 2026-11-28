@@ -248,11 +248,11 @@
     $("#c-speciaux").textContent = spec.length;
     $("#c-speciaux").classList.toggle("hot", spec.length > 0);
     const c = state.config;
-    // Comment ça marche : ce que Rosalie surveille, son jeudi, et où en est la dernière vérification
+    // Comment ça marche : ce que Catherine surveille, son jeudi, et où en est la dernière vérification
     const surv = surveilles(), mags = stores();
     const jeudi = (() => { const d = new Date(); d.setDate(d.getDate() + ((4 - d.getDay() + 7) % 7 || (d.getHours() >= 8 ? 7 : 0))); return d.toISOString().slice(0, 10); })();
     $("#agent-info").innerHTML = `
-      <div class="surv-titre">Ce que Rosalie surveille <span class="meta">${surv.length} produit${surv.length > 1 ? "s" : ""} ★</span></div>
+      <div class="surv-titre">Ce que Catherine surveille <span class="meta">${surv.length} produit${surv.length > 1 ? "s" : ""} ★</span></div>
       ${surv.length ? `<div class="surv-puces">${surv.map((p) => `<button class="fchip" type="button" data-survopen="${p.id}">★ ${esc(p.nom)}${p.prix_cible != null ? ` <span class="meta">sous ${money(num(p.prix_cible))}</span>` : ""}</button>`).join("")}</div>`
         : `<p class="hint">Rien pour l'instant. Dans l'onglet Produits, touchez l'étoile ☆ d'un produit que vous achetez souvent : je guetterai ses rabais.</p>`}
       <button class="link" type="button" data-survajout>${surv.length ? "Changer ce que je surveille" : "Choisir des produits à surveiller"}</button>
@@ -332,7 +332,7 @@
     const ailleurs = q ? state.prod.filter((p) => !dansLieu(p) && norm([p.nom, p.marque, p.format].join(" ")).includes(q)) : [];
     const blocAilleurs = ailleurs.length ? `<div class="ailleurs"><p class="hint">Dans un autre lieu :</p>${ailleurs.slice(0, 8).map((p) => `<button class="fchip" type="button" data-lieuajout="${p.id}">＋ ${esc(p.nom)} <span class="meta">${esc((p.lieux || []).map((x) => nomLieu(x)).join(", "))}</span></button>`).join("")}</div>` : "";
     if (!ici.length && !ailleurs.length) { $("#list-prod").innerHTML = emptyBox(state.lieux.length > 1 ? `Aucun produit à « ${esc(nomLieu())} » pour l'instant` : "Aucun produit pour l'instant", "Ajoutez vos produits habituels ci-dessus, ou ajoutez simplement des articles à la liste : ils s'inscriront ici."); return; }
-    if (!list.length) { $("#list-prod").innerHTML = filtre === "surv" && !q ? emptyBox("Aucun produit surveillé", "Touchez l'étoile ☆ à droite d'un produit pour que Rosalie guette ses rabais chaque jeudi.")
+    if (!list.length) { $("#list-prod").innerHTML = filtre === "surv" && !q ? emptyBox("Aucun produit surveillé", "Touchez l'étoile ☆ à droite d'un produit pour que Catherine guette ses rabais chaque jeudi.")
       : filtre === "maison" && !q ? emptyBox("Rien à la maison", "Les produits rangés dans un espace avec une réserve apparaîtront ici.")
       : emptyBox("Aucun produit trouvé", `Rien ne correspond à « ${esc(search)} »${state.lieux.length > 1 ? ` à « ${esc(nomLieu())} »` : ""}.`) + blocAilleurs; return; }
     // Don't rebuild while someone types in a product's fields.
@@ -904,7 +904,7 @@
         <label class="mf">Minimum à garder <input id="e-min-${pid}" inputmode="decimal" placeholder="Aucun" value="${p.minimum != null ? esc(fmtQ(p.minimum)) : ""}" data-nfield="minimum" data-id="${pid}"></label>
       </div>
       ${state.lieux.length > 1 ? `<fieldset class="lieux-prod"><legend>Ce produit est à</legend>${lieuxTries().map((l) => `<label><input type="checkbox" data-plieu="${l.id}" data-id="${pid}" ${dansLieu(p, l.id) ? "checked" : ""}> ${esc(l.nom)}</label>`).join("")}</fieldset>` : ""}
-      <p class="hint prix-expl">${p.surveiller ? "★ Surveillé : Rosalie vérifie ses prix chaque jeudi et vous montre ses rabais dans Spéciaux." : "Prix réguliers par épicerie. Rosalie les met à jour le jeudi (les produits ★ en premier), et vos factures aussi. Vous pouvez les taper vous-même."}</p>
+      <p class="hint prix-expl">${p.surveiller ? "★ Surveillé : Catherine vérifie ses prix chaque jeudi et vous montre ses rabais dans Spéciaux." : "Prix réguliers par épicerie. Catherine les met à jour le jeudi (les produits ★ en premier), et vos factures aussi. Vous pouvez les taper vous-même."}</p>
       <div class="price-grid">${stores().map((s, ix) => {
         const e = (p.prix && p.prix[s]) || {}; const pr = priceAt(p, s);
         return `<div class="pcell${b && b.store === s ? " best" : ""}"><label for="pr-${pid}-${ix}">${esc(s)}</label>
@@ -1166,7 +1166,7 @@
       ? (parQui ? `${parQui} vous a invité à partager l'épicerie de la maison. ` : "") + "Je tiens l'épicerie avec vous : ce que vous achetez, ce que vous avez, ce qui manque et ce qui est en rabais. Voici comment je travaille, en six petites étapes."
       : "Voici comment je travaille, en six petites étapes.";
     CommisGuide.ouvrir({
-      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: `Bienvenue${nom ? ", " + nom : ""}! Moi, c'est Rosalie, votre commis.`, texte: intro }].concat(CommisGuide.CONCEPTS),
+      etapes: [{ puce: "Bonjour!", icone: "bonjour", titre: `Bienvenue${nom ? ", " + nom : ""}! Moi, c'est Catherine, votre commis.`, texte: intro }].concat(CommisGuide.CONCEPTS),
       fin: { titre: "À vous de jouer!", texte: "Commencez par photographier trois ou quatre produits que vous achetez souvent. La carte « Bien démarrer » vous guide ensuite. Une question? Touchez « Aide » en haut : je réponds.", bouton: "Commencer" },
       onFermer: () => { lsSet(cleAccueil(), String(Date.now())); renderDemarrer(); window.scrollTo({ top: 0, behavior: "smooth" }); },
     });
@@ -1188,7 +1188,7 @@
         <li><b>Liste épicerie</b><span>Ce qu'il faut acheter. Cochez en magasin.</span></li>
         <li><b>Spéciaux</b><span>Chaque jeudi, les rabais sur vos produits ★.</span></li>
       </ol>
-      <p class="bv-commis"><span class="commis-av" aria-hidden="true">C</span> Une question ? Touchez <b>Aide</b> en haut : Rosalie, votre commis, vous répond.</p>
+      <p class="bv-commis"><span class="commis-av" aria-hidden="true">C</span> Une question ? Touchez <b>Aide</b> en haut : Catherine, votre commis, vous répond.</p>
       <button class="btn bv-go" type="button" id="bv-go">Commencer</button>
     </div>`;
     box.hidden = false;
@@ -1341,7 +1341,7 @@
       <ol class="onb-list">${st.map((x) => `<li class="${x.done ? "done" : x === next ? "next" : ""}"><span class="onb-dot">${x.done ? "✓" : ""}</span>
         <div class="main"><b>${esc(x.t)}</b>${x === next ? `<small>${esc(x.d)}</small>` : ""}</div>
         ${x.done ? "" : `<button class="${x === next ? "btn small" : "onb-more"}" type="button" data-onb="${x.k}" aria-label="${esc(x.b)}">${x === next ? esc(x.b) : "›"}</button>`}</li>`).join("")}</ol>
-      <p class="hint onb-foot">Une question ? <button class="link" type="button" data-onb-commis>Demandez à Rosalie</button> · <button class="link muted" type="button" data-onb-masquer>Masquer</button></p>
+      <p class="hint onb-foot">Une question ? <button class="link" type="button" data-onb-commis>Demandez à Catherine</button> · <button class="link muted" type="button" data-onb-masquer>Masquer</button></p>
     </section>`;
   }
   $("#demarrer").addEventListener("click", (e) => {
@@ -1711,7 +1711,7 @@
     const av = $("#commis-av"); if (av && window.CommisGuide && !av.dataset.ok) { av.innerHTML = CommisGuide.avatar(); av.dataset.ok = "1"; }
     const bv = $("#voix-commis"); if (bv && window.CommisGuide && CommisGuide.peutParler) { bv.hidden = false; CommisGuide.majBoutonVoix(bv); }
     const nom = prenom((moiMembre() || {}).nom);
-    if (!commis.msgs.length) commis.msgs.push({ role: "assistant", content: `Bonjour${nom ? " " + nom : ""} ! Moi, c'est Rosalie, votre commis. Posez-moi vos questions sur l'app : ajouter un produit, ranger la maison, la liste, les spéciaux…` });
+    if (!commis.msgs.length) commis.msgs.push({ role: "assistant", content: `Bonjour${nom ? " " + nom : ""} ! Moi, c'est Catherine, votre commis. Posez-moi vos questions sur l'app : ajouter un produit, ranger la maison, la liste, les spéciaux…` });
     $("#commis-log").innerHTML = commis.msgs.map(msgHtml).join("") + (commis.busy ? '<div class="cad-msg bot busy">…</div>' : "");
     const sugg = ["Comment ajouter un produit avec la photo ?", "Comment ranger ce que j'ai acheté ?", "Comment marche le bilan du soir ?", "Comment inviter quelqu'un ?"];
     $("#commis-sugg").innerHTML = commis.msgs.length < 2 ? sugg.map((q) => `<button class="fchip" type="button" data-cadq="${esc(q)}">${esc(q)}</button>`).join("") : "";
@@ -2241,7 +2241,7 @@
   $("#v-speciaux").addEventListener("click", (e) => {
     const o = e.target.closest("[data-survopen]");
     if (o) { openProd = o.dataset.survopen; filtre = "surv"; showView("produits"); render(); setTimeout(() => { const el = document.querySelector(`[data-prod="${o.dataset.survopen}"]`) || $("#v-produits"); el.scrollIntoView({ block: "center" }); }, 60); return; }
-    if (e.target.closest("[data-survajout]")) { filtre = "tous"; showView("produits"); render(); status("Touchez l'étoile ☆ à droite d'un produit pour que Rosalie surveille ses rabais."); }
+    if (e.target.closest("[data-survajout]")) { filtre = "tous"; showView("produits"); render(); status("Touchez l'étoile ☆ à droite d'un produit pour que Catherine surveille ses rabais."); }
   });
   $("#v-liste").addEventListener("input", (e) => { const f = e.target.dataset && e.target.dataset.el; if (f && brouillonListe) brouillonListe[f] = e.target.value; });
   $("#v-liste").addEventListener("keydown", (e) => {
@@ -2312,7 +2312,7 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.email) loadAll(); });
 
   // ---------- connexion : le compte HoldingAI (compte.letabli.ai), le même pour toutes les apps HoldingAI.
-  // Philippe, le bâtisseur de HoldingAI, accueille sur compte.letabli.ai puis annonce Rosalie.
+  // Philippe, le bâtisseur de HoldingAI, accueille sur compte.letabli.ai puis annonce Catherine.
   const loginStatus = (m) => { $("#login-status").textContent = m || ""; };
   const loginForms = ["#f-login", "#f-foyer"];
   function loginView(id) { loginForms.forEach((f) => ($(f).hidden = f !== id)); loginStatus(""); }
@@ -2407,7 +2407,7 @@
     if (ouvrir) { majCompte(); $("#compte").scrollIntoView({ block: "start", behavior: "smooth" }); }
   });
   $("#close-compte").addEventListener("click", () => { $("#compte").hidden = true; });
-  // ---------- Rosalie toujours présente : son visage dans le coin ouvre l'aide; elle salue à chaque arrivée
+  // ---------- Catherine toujours présente : son visage dans le coin ouvre l'aide; elle salue à chaque arrivée
   let rosalie = null;
   function messageArrivee() {
     const h = new Date().getHours(), salut = h < 12 ? "Bonjour" : h < 18 ? "Bon après-midi" : "Bonsoir";
@@ -2422,9 +2422,9 @@
     else texte = "Tout est en ordre. Touchez mon visage si vous avez une question.";
     return { titre: `${salut}${nom ? ", " + nom : ""}!`, texte, bouton, action, duree: 9000 };
   }
-  function accueilRosalie() {
+  function accueilCatherine() {
     if (!window.CommisGuide) return;
-    if (!rosalie) rosalie = CommisGuide.presence({ surFace: () => ouvrirCommis(), label: "Parler à Rosalie, votre commis" });
+    if (!rosalie) rosalie = CommisGuide.presence({ surFace: () => ouvrirCommis(), label: "Parler à Catherine, votre commis" });
     rosalie.cacher(false);
     // Une fois par ouverture de l'app, après la visite des nouveaux
     if (ssGet("rosalie.salut") || !$("#bienvenue").hidden || document.querySelector(".cg-fond")) return;
@@ -2481,7 +2481,7 @@
       status(`Seul le propriétaire du foyer peut acheter l'app. Demandez à ${prenom(((state.membres || []).find((m) => m.role === "proprio") || {}).nom || "lui")}.`);
     }
     maybeBienvenue(); renderDemarrer(); renderAvis(); renderOffrirCarte(); chargerRetour();
-    accueilRosalie();
+    accueilCatherine();
     if (location.hash === "#bilan") ouvrirBilan();
     subscribe();
   }
@@ -2500,7 +2500,7 @@
     // Première connexion HoldingAI : reprendre ce qui était lié à l'ancien compte du Commis (propriétaire, idées…)
     if (session) { try { await sb.rpc("reprendre_compte"); } catch (e) { /* rien */ } }
     current = session ? session.user.id : null;
-    if (!session && (installee || !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent))) { window.HOLDINGAI_PORTE.personnage = "Rosalie"; window.HOLDINGAI_PORTE = Object.assign(window.HOLDINGAI_PORTE || {}, { barriere: true }); if (window.HoldingAIPorte) HoldingAIPorte.barriere(); }
+    if (!session && (installee || !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent))) { window.HOLDINGAI_PORTE.personnage = "Catherine"; window.HOLDINGAI_PORTE = Object.assign(window.HOLDINGAI_PORTE || {}, { barriere: true }); if (window.HoldingAIPorte) HoldingAIPorte.barriere(); }
     await onSession(session);
     if (erreur) loginStatus(erreur);
   })();

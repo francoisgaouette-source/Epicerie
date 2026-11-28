@@ -106,9 +106,9 @@ body:has(.cg-fond) .cg-lanceur{display:none}
 `;
 
 
-  // ---------- La voix de Rosalie : synthèse vocale du téléphone (gratuite), une voix féminine française, québécoise si possible
+  // ---------- La voix de Catherine : synthèse vocale du téléphone (gratuite), une voix féminine française, québécoise si possible
   const VOIX_CLE = "rosalie.voix";
-  // Voix retirée à la demande de Francois (24 nov. 2026) : Rosalie ne parle plus, sa bouche bouge seulement.
+  // Voix retirée à la demande de Francois (24 nov. 2026) : Catherine ne parle plus, sa bouche bouge seulement.
   // Pour la remettre : VOIX_ACTIVE = true.
   const VOIX_ACTIVE = false;
   const peutParler = VOIX_ACTIVE && typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined";
@@ -126,7 +126,7 @@ body:has(.cg-fond) .cg-lanceur{display:none}
   if (peutParler) { choisirVoix(); speechSynthesis.addEventListener && speechSynthesis.addEventListener("voiceschanged", choisirVoix); }
   function voixActive() { if (!peutParler) return false; try { return localStorage.getItem(VOIX_CLE) !== "0"; } catch (e) { return true; } }
   function activerVoix(oui) { try { localStorage.setItem(VOIX_CLE, oui ? "1" : "0"); } catch (e) {} if (!oui) taireVoix(); document.querySelectorAll("[data-cg-voix]").forEach(majBoutonVoix); }
-  function majBoutonVoix(b) { const on = voixActive(); b.textContent = on ? "🔊" : "🔇"; b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-label", on ? "Couper la voix de Rosalie" : "Faire parler Rosalie"); b.title = b.getAttribute("aria-label"); }
+  function majBoutonVoix(b) { const on = voixActive(); b.textContent = on ? "🔊" : "🔇"; b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-label", on ? "Couper la voix de Catherine" : "Faire parler Catherine"); b.title = b.getAttribute("aria-label"); }
   // Lit le texte à voix haute; « perso » est l'élément de l'avatar dont la bouche bouge pendant qu'elle parle
   function parler(texte, perso) {
     if (!voixActive() || !texte) return false;
@@ -194,7 +194,7 @@ body:has(.cg-fond) .cg-lanceur{display:none}
       bPasser.hidden = !!e.estFin;
       bSuiv.textContent = e.estFin ? (e.bouton || "Terminer") : (i === 0 ? "Allons-y" : "Suivant");
       bSuiv.classList.toggle("cg-jaune", !!e.estFin);
-      // Rosalie lit la bulle à voix haute (sinon sa bouche bouge le temps de la « dire »)
+      // Catherine lit la bulle à voix haute (sinon sa bouche bouge le temps de la « dire »)
       clearTimeout(minuterie);
       if (!parler(e.titre + ". " + e.texte, perso)) {
         perso.classList.add("cg-parle");
@@ -236,8 +236,8 @@ body:has(.cg-fond) .cg-lanceur{display:none}
     return { fermer };
   }
 
-  // Rosalie toujours présente : son visage reste dans le coin; elle peut dire un mot dans une bulle.
-  //   const r = CommisGuide.presence({ surFace: () => …, label: "Parler à Rosalie" });
+  // Catherine toujours présente : son visage reste dans le coin; elle peut dire un mot dans une bulle.
+  //   const r = CommisGuide.presence({ surFace: () => …, label: "Parler à Catherine" });
   //   r.dire({ titre, texte, bouton, action, duree })   r.taire()
   let presenceActive = null;
   function presence(opts) {
@@ -246,7 +246,7 @@ body:has(.cg-fond) .cg-lanceur{display:none}
     const box = document.createElement("div");
     box.className = "cg-lanceur";
     box.innerHTML = `<div class="cg-dit" role="status" hidden></div>
-      <button type="button" class="cg-mini" aria-label="${esc(opts.label || "Parler à Rosalie, votre commis")}">${AVATAR}</button>`;
+      <button type="button" class="cg-mini" aria-label="${esc(opts.label || "Parler à Catherine, votre commis")}">${AVATAR}</button>`;
     document.body.appendChild(box);
     const dit = box.querySelector(".cg-dit"), mini = box.querySelector(".cg-mini");
     let minuterie = null;
@@ -270,7 +270,7 @@ body:has(.cg-fond) .cg-lanceur{display:none}
   }
   // Ancienne forme (site) : la face reste, la bulle propose la visite
   function lanceur(opts) {
-    const r = presence({ surFace: opts.ouvrir, label: (opts.bouton || "Faire la visite") + " avec Rosalie, votre commis" });
+    const r = presence({ surFace: opts.ouvrir, label: (opts.bouton || "Faire la visite") + " avec Catherine, votre commis" });
     r.dire({ titre: opts.titre, texte: opts.texte, bouton: opts.bouton || "Faire la visite", action: opts.ouvrir, onFermer: opts.onFermer });
     return r;
   }
