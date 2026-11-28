@@ -1,56 +1,90 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr-CA">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Politique de confidentialité · Le Commis</title>
-<meta name="description" content="Comment Le Commis traite les données de votre foyer.">
-<meta name="theme-color" content="#173F2A">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="pages.css">
-<script src="config.js"></script>
+<meta name="robots" content="noindex">
+<link rel="icon" href="img/icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap" rel="stylesheet">
+<style>
+/* Pages légales communes de L’Établi (outil pages-legales.js) : ne pas modifier à la main, refaire avec l’outil. */
+body { margin: 0; background: #FAF6EF; color: #1D1B18; font: 17px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+a { color: #1F5B3A; }
+.entete { background: #fff; border-bottom: 1px solid #E6DED2; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+.entete .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.marque { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1D1B18; font: 700 22px 'Bricolage Grotesque', system-ui, sans-serif; }
+.marque img { width: 30px; height: 30px; }
+main { padding-top: 48px; padding-bottom: 64px; }
+h1 { font: 700 clamp(32px, 5vw, 42px)/1.1 'Bricolage Grotesque', system-ui, sans-serif; margin: 0 0 16px; }
+h2 { font: 700 22px 'Bricolage Grotesque', system-ui, sans-serif; margin: 32px 0 8px; }
+.avertissement { background: #DCEBDF; border-radius: 12px; padding: 12px 16px; font-size: 15px; }
+.vigueur { color: #6B665E; }
+ul { padding-left: 22px; }
+li { margin: 4px 0; }
+.pied { background: #fff; border-top: 1px solid #E6DED2; padding: 28px 0; font-size: 15px; color: #6B665E; }
+.pied .liens { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 8px; }
+.pied a { color: #1D1B18; }
+</style>
 </head>
 <body>
-<header class="top"><div class="wrap">
-  <a class="mark" href="./"><img src="img/marque.svg" alt="">Le Commis</a>
-  <nav><a class="app-link" href="https://app.lecommis.ai/">Se connecter</a><a href="./#questions">Questions</a></nav>
-</div></header>
+<header class="entete"><div class="wrap"><a class="marque" href="./"><img src="img/marque.svg" alt="">Le Commis</a><a href="https://app.lecommis.ai/">Se connecter</a></div></header>
+<main class="wrap">
+<h1>Politique de confidentialité</h1>
+<p class="avertissement">Version de travail. À faire valider avant l’ouverture des ventes, en conformité avec la Loi sur la protection des renseignements personnels dans le secteur privé (Loi 25). Les éléments entre crochets sont à compléter.</p>
+<p class="vigueur">En vigueur le [date]. Cette politique explique quels renseignements Le Commis recueille, pourquoi, qui y a accès et comment exercer vos droits.</p>
 
-<main><div class="wrap texte">
-  <h1>Politique de confidentialité</h1>
-  <p class="todo">Brouillon à compléter et à faire valider par un avocat avant d'ouvrir les ventes, en particulier pour la Loi 25 (Québec). Les éléments entre [crochets] sont à remplir.</p>
-  <h2>1. Responsable</h2>
-  <p>[Nom de l'entreprise], [adresse]. Personne responsable de la protection des renseignements personnels : [nom], <a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a>.</p>
-  <h2>2. Ce que nous recueillons</h2>
-  <ul>
-    <li>Pour chaque membre : prénom, numéro de cellulaire et, au besoin, courriel.</li>
-    <li>Pour le foyer : listes, produits, inventaire, espaces, lieux, prix, dates de péremption, photos de produits et de factures.</li>
-    <li>Pour l'achat : le paiement est traité par Stripe. Nous ne voyons ni ne gardons votre numéro de carte.</li>
-  </ul>
-  <h2>3. Qui y a accès</h2>
-  <p>Les données d'un foyer ne sont visibles que par ses membres. Nous ne vendons ni ne louons aucune donnée.</p>
-  <h2>4. Où elles sont gardées</h2>
-  <p>Les données et les photos sont hébergées au Canada (Supabase, région Canada centre).</p>
-  <h2>5. Fonctions d'intelligence artificielle</h2>
-  <p>Pour reconnaître un produit, lire une facture ou répondre à une question, la photo ou la question est transmise à Anthropic (Claude), aux États-Unis, le temps du traitement. [Préciser la durée de conservation chez le fournisseur et l'absence d'entraînement sur ces données, selon les conditions en vigueur.] L'assistant reçoit seulement quelques compteurs (par exemple le nombre de produits), pas le contenu de vos listes. Les questions posées à l'assistant et ses réponses sont gardées, avec le nom du foyer, pour nous aider à améliorer l'app.</p>
-  <h2>6. Notifications</h2>
-  <p>Si vous activez le rappel du bilan du soir, votre navigateur nous fournit une adresse de notification. Vous pouvez la retirer en tout temps dans les réglages du téléphone.</p>
-  <h2>7. Conservation et suppression</h2>
-  <p>[Durée de conservation après la fin du forfait.] Vous pouvez demander la suppression complète de votre foyer en écrivant à <a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a>.</p>
-</div></main>
-<footer class="foot"><div class="wrap">
-  <div>© 2026 Le Commis, une app de L’Établi (Les Stratégies Vortex Inc.) · Fait au Québec</div>
-  <div class="links"><a class="mail-link" href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a><a href="conditions.html">Conditions d'utilisation</a><a href="confidentialite.html">Politique de confidentialité</a></div>
+<h2>1. Responsable de la protection des renseignements personnels</h2>
+<p>[Prénom Nom], [titre], Les Stratégies Vortex Inc. (L’Établi). Courriel : <a href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a>.</p>
+
+<h2>2. Ce que nous recueillons</h2>
+<ul>
+  <li>Membres : prénom, numéro de cellulaire et, au besoin, courriel.</li>
+  <li>Foyer : listes, produits, inventaire, espaces, lieux, prix, dates de péremption, photos de produits et de factures.</li>
+  <li>Acheteur : le paiement est traité par Stripe. Nous ne recevons jamais le numéro de carte.</li>
+  <li>Catherine, l’assistante, et les fonctions automatiques : pour reconnaître un produit, lire une facture ou répondre à une question, la photo ou la question est transmise à Anthropic (Claude) le temps du traitement. L’assistante reçoit seulement quelques compteurs (par exemple le nombre de produits), pas le contenu de vos listes. Les questions et les réponses sont gardées pour nous aider à améliorer l’app.</li>
+  <li>Notifications : si vous activez le rappel du bilan du soir, votre navigateur nous fournit une adresse de notification, que vous pouvez retirer en tout temps dans les réglages du téléphone.</li>
+  <li>Compte : la connexion se fait avec le compte commun des apps de L’Établi (compte.letabli.ai), lié à votre numéro de cellulaire.</li>
+  <li>Technique : données de connexion nécessaires au fonctionnement de l’app. Nous n’utilisons ni témoins publicitaires ni outils de pistage.</li>
+</ul>
+
+<h2>3. Pourquoi</h2>
+<ul>
+  <li>Faire fonctionner l’app pour votre foyer : connexion, listes, inventaire, prix et spéciaux.</li>
+  <li>Lire vos factures et reconnaître vos produits, à votre demande.</li>
+  <li>Envoyer le rappel du bilan du soir, si vous l’activez.</li>
+  <li>Traiter le paiement et répondre à vos demandes.</li>
+</ul>
+<p>Nous n’utilisons pas vos renseignements à d’autres fins sans votre consentement, et nous ne les vendons jamais.</p>
+
+<h2>4. Consentement</h2>
+<p>La personne qui ajoute quelqu’un du foyer doit avoir son accord. Chaque personne peut retirer son consentement en tout temps en demandant son retrait du foyer.</p>
+
+<h2>5. Qui y a accès</h2>
+<ul>
+  <li>Les membres connectés de votre foyer voient les renseignements de ce foyer seulement.</li>
+  <li>Nos fournisseurs, uniquement pour fournir le service : Supabase (hébergement des données et des photos, au Canada), le compte L’Établi (connexion), Stripe (paiement) et Anthropic (lecture de factures, reconnaissance de produits et assistante). Ces fournisseurs peuvent conserver des données à l’extérieur du Québec, notamment aux États-Unis. Nous avons évalué que leurs protections sont adéquates avant de leur confier vos renseignements.</li>
+</ul>
+
+<h2>6. Conservation</h2>
+<p>[Durée de conservation après la fin du forfait.] Vous pouvez demander la suppression complète de votre foyer en écrivant à bonjour@lecommis.ai. Les données de facturation sont conservées le temps exigé par les lois fiscales.</p>
+
+<h2>7. Vos droits</h2>
+<p>Vous pouvez demander l’accès à vos renseignements, leur correction, leur effacement, la fin de leur diffusion ou leur transfert dans un format courant. Écrivez à <a href="mailto:bonjour@lecommis.ai">bonjour@lecommis.ai</a> ; nous répondons dans les 30 jours. Vous pouvez aussi porter plainte auprès de la Commission d’accès à l’information du Québec.</p>
+
+<h2>8. Sécurité et incidents</h2>
+<p>L’accès aux données est protégé par une connexion et des règles qui limitent chaque foyer à ses propres données. En cas d’incident de confidentialité qui présente un risque de préjudice sérieux, nous avisons les personnes touchées et la Commission d’accès à l’information.</p>
+
+<h2>9. Ce site</h2>
+<p>Ce site n’utilise aucun témoin. Les polices de caractères sont servies par Google Fonts, qui reçoit l’adresse IP de votre appareil pour les afficher.</p>
+
+<h2>10. Modifications</h2>
+<p>Nous publierons ici toute modification et vous en aviserons par courriel si elle est importante.</p>
+</main>
+<footer class="pied"><div class="wrap">
+<div class="liens"><a href="./">Le Commis</a><a href="confidentialite.html">Confidentialité</a><a href="conditions.html">Conditions</a><a href="mailto:bonjour@lecommis.ai">Nous écrire</a><a href="https://letabli.ai/#apps">Les autres apps de L’Établi</a></div>
+© 2026 L’Établi (Les Stratégies Vortex Inc.). Fait au Québec.
 </div></footer>
-<script>
-(function () { var c = window.COMMIS || {};
-  if (c.appUrl) document.querySelectorAll('.app-link').forEach(function (a) { a.href = c.appUrl; });
-  if (c.email) document.querySelectorAll('.mail-link').forEach(function (a) { a.href = 'mailto:' + c.email; a.textContent = c.email; });
-})();
-</script>
 </body>
 </html>
