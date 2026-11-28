@@ -5,7 +5,9 @@
 // Utilisation : node pages-legales.js <fiche.json> <dossier-du-site>
 //   écrit <dossier-du-site>/confidentialite.html et <dossier-du-site>/conditions.html
 //
-// La fiche (JSON) : voir l'exemple dans pages-legales.exemple.json. Ajouter "feminin": true si l'unité est féminine (famille, voûte).
+// La fiche (JSON) : voir l'exemple dans pages-legales.exemple.json.
+// Options : "feminin" (unité féminine), "nomFeminin" (nom de l'app féminin, ex. L’Escale), "partage": false (app sans membres),
+// "accesExtra" (lignes de plus dans « Qui y a accès », ex. le liquidateur de La Voûte). Ajouter "feminin": true si l'unité est féminine (famille, voûte).
 // Le modèle et ses règles sont décrits dans le livre de marque (section « Les pages légales »).
 'use strict';
 const fs = require('fs');
@@ -42,6 +44,11 @@ const Ud = voy ? `l’${U}` : fem ? `la ${U}` : `le ${U}`;
 const ceU = fem ? `cette ${U}` : voy ? `cet ${U}` : `ce ${U}`;
 const celui = fem ? 'celle-ci' : 'celui-ci';
 const duU = voy ? `de l’${U}` : fem ? `de la ${U}` : `du ${U}`;
+// « nomFeminin » : true si le nom de l’app est féminin (La Voûte, L’Escale). Déduit de « La … » si absent.
+const nomFem = a.nomFeminin !== undefined ? !!a.nomFeminin : /^La /.test(a.nom);
+const offert = nomFem ? 'offerte' : 'offert';
+// « partage » : false pour une app qu’on utilise seul, sans membres à inviter (Le Seuil, La Voûte…). Vrai par défaut.
+const partage = a.partage !== false;
 
 function page(titre, avertissement, corps) {
   return `<!DOCTYPE html>
@@ -108,11 +115,12 @@ ${liste(a.pourquoi)}
 <p>Nous n’utilisons pas vos renseignements à d’autres fins sans votre consentement, et nous ne les vendons jamais.</p>
 
 <h2>4. Consentement</h2>
-<p>La personne qui ajoute quelqu’un ${duU} doit avoir son accord. Chaque personne peut retirer son consentement en tout temps en demandant son retrait ${duU}.</p>
+<p>${partage ? `La personne qui ajoute quelqu’un ${duU} doit avoir son accord. Chaque personne peut retirer son consentement en tout temps en demandant son retrait ${duU}.` : `Vous êtes seul à utiliser votre ${U}. Vous pouvez retirer votre consentement en tout temps en demandant la suppression de votre ${U}.`}</p>
 
 <h2>5. Qui y a accès</h2>
 ${liste([
-  `Les membres connectés de votre ${U} voient les renseignements de ${ceU} seulement.`,
+  partage ? `Les membres connectés de votre ${U} voient les renseignements de ${ceU} seulement.` : `Vous seul voyez les renseignements de votre ${U}.`,
+  ...(a.accesExtra || []),
   `Nos fournisseurs, uniquement pour fournir le service : ${a.fournisseurs}. Ces fournisseurs peuvent conserver des données à l’extérieur du Québec, notamment aux États-Unis. Nous avons évalué que leurs protections sont adéquates avant de leur confier vos renseignements.`])}
 
 <h2>6. Conservation</h2>
@@ -138,7 +146,7 @@ const conditions = page('Conditions d’utilisation',
   `<p class="vigueur">En vigueur le ${ENTREPRISE.enVigueur}. Ces conditions encadrent l’utilisation ${a.deNom}${a.prixPayant ? ' et l’achat d’un forfait' : ''}.</p>
 
 ${s('Qui sommes-nous')}
-<p>${a.nom} est offert par ${ENTREPRISE.nom} (${ENTREPRISE.marque}), ${ENTREPRISE.adresse}, Québec, numéro d’entreprise du Québec (NEQ) ${ENTREPRISE.neq}. Courriel : ${courriel}.</p>
+<p>${a.nom} est ${offert} par ${ENTREPRISE.nom} (${ENTREPRISE.marque}), ${ENTREPRISE.adresse}, Québec, numéro d’entreprise du Québec (NEQ) ${ENTREPRISE.neq}. Courriel : ${courriel}.</p>
 
 ${s('Le service')}
 <p>${a.service}</p>
@@ -147,15 +155,15 @@ ${liste(a.formules)}
 ${s('Prix et paiement')}
 ${liste(a.prix)}
 
-${s(`Propriétaire ${duU}`)}
+${partage ? `${s(`Propriétaire ${duU}`)}
 <p>La personne qui crée ${Ud} en est propriétaire : elle invite ou retire des membres${a.organisateurs ? ' et peut nommer des organisateurs' : ''}${a.prixPayant ? ', et c’est elle qui achète le forfait' : ''}.</p>
-
+` : ''}
 ${s('Remboursement')}
 <p>${a.remboursement}</p>
 ${a.particularite ? `\n${s(a.particularite.titre)}\n<p>${a.particularite.texte}</p>\n` : ''}
 ${s('Utilisation acceptable')}
 ${liste([
-  `Ajoutez seulement des personnes qui acceptent de faire partie ${duU}${a.textos ? ` et de recevoir des textos de ${celui}` : ''}.`,
+  ...(partage ? [`Ajoutez seulement des personnes qui acceptent de faire partie ${duU}${a.textos ? ` et de recevoir des textos de ${celui}` : ''}.`] : []),
   `N’utilisez pas ${a.leNom} pour envoyer des messages non désirés ou pour un usage commercial non autorisé.`,
   `Nous pouvons suspendre ${Ud} qui ne respecte pas ces conditions, après vous en avoir avisé.`])}
 
