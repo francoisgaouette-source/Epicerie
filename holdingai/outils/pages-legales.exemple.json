@@ -1,0 +1,51 @@
+{
+  "nom": "Le Commis",
+  "deNom": "du Commis",
+  "leNom": "Le Commis",
+  "courriel": "bonjour@lecommis.ai",
+  "app": "https://app.lecommis.ai/",
+  "accueil": "./",
+  "symbole": "img/marque.svg",
+  "favicon": "img/icon.svg",
+  "marque": "#1F5B3A",
+  "douce": "#DCEBDF",
+  "police": "'Bricolage Grotesque', system-ui, sans-serif",
+  "policeGoogle": "Bricolage+Grotesque:opsz,wght@12..96,800",
+  "unite": "foyer",
+  "organisateurs": false,
+  "textos": true,
+  "prixPayant": true,
+  "recueil": [
+    "Membres : prénom, numéro de cellulaire et, au besoin, courriel.",
+    "Foyer : listes, produits, inventaire, espaces, lieux, prix, dates de péremption, photos de produits et de factures.",
+    "Acheteur : le paiement est traité par Stripe. Nous ne recevons jamais le numéro de carte.",
+    "Catherine, l’assistante, et les fonctions automatiques : pour reconnaître un produit, lire une facture ou répondre à une question, la photo ou la question est transmise à Anthropic (Claude) le temps du traitement. L’assistante reçoit seulement quelques compteurs (par exemple le nombre de produits), pas le contenu de vos listes. Les questions et les réponses sont gardées pour nous aider à améliorer l’app.",
+    "Notifications : si vous activez le rappel du bilan du soir, votre navigateur nous fournit une adresse de notification, que vous pouvez retirer en tout temps dans les réglages du téléphone."
+  ],
+  "pourquoi": [
+    "Faire fonctionner l’app pour votre foyer : connexion, listes, inventaire, prix et spéciaux.",
+    "Lire vos factures et reconnaître vos produits, à votre demande.",
+    "Envoyer le rappel du bilan du soir, si vous l’activez.",
+    "Traiter le paiement et répondre à vos demandes."
+  ],
+  "fournisseurs": "Supabase (hébergement des données et des photos, au Canada), le compte L’Établi (connexion), Stripe (paiement) et Anthropic (lecture de factures, reconnaissance de produits et assistante)",
+  "conservation": "[Durée de conservation après la fin du forfait.] Vous pouvez demander la suppression complète de votre foyer en écrivant à bonjour@lecommis.ai. Les données de facturation sont conservées le temps exigé par les lois fiscales.",
+  "service": "Le Commis est une application web qui permet à un foyer de jusqu’à 4 personnes de partager listes d’épicerie, inventaire, dates de péremption et spéciaux.",
+  "formules": [
+    "Essai : 30 jours gratuits, sans carte de crédit (60 jours avec le lien d’un proche).",
+    "Foyer : toutes les fonctions, pour 12 mois à compter de la date d’achat."
+  ],
+  "prix": [
+    "Le forfait Foyer coûte 19,99 $ par année, taxes en sus, payé en une fois pour 12 mois.",
+    "Le paiement se fait sur la page sécurisée de Stripe. Le Commis ne reçoit ni ne conserve votre numéro de carte.",
+    "L’achat n’est pas un abonnement : il ne se renouvelle pas automatiquement et aucun montant n’est prélevé sans votre accord.",
+    "À la fin de l’essai ou du forfait, les données restent consultables mais ne peuvent plus être modifiées.",
+    "Offrir un mois : un nouveau foyer créé avec le lien d’un proche profite de 60 jours d’essai ; le foyer qui a partagé le lien gagne 1 mois gratuit par nouveau foyer inscrit, jusqu’à 12 mois. Les mois gagnés n’ont pas de valeur en argent."
+  ],
+  "remboursement": "[Politique de remboursement, par exemple : remboursement complet sur demande dans les 30 jours suivant l’achat, en écrivant à bonjour@lecommis.ai.] Ce droit s’ajoute à ceux que vous accorde la Loi sur la protection du consommateur.",
+  "particularite": {
+    "titre": "Les épiceries",
+    "texte": "Le Commis compare les prix et lit les circulaires. Il n’est affilié à aucune chaîne d’épicerie et n’est payé par aucune d’entre elles."
+  },
+  "exactitude": "Certaines fonctions utilisent l’intelligence artificielle : lecture de factures, reconnaissance de produits, assistante et recherche de spéciaux. Les résultats, dont les dates de péremption estimées, les prix et les spéciaux, peuvent contenir des erreurs : vérifiez-les avant de vous y fier."
+}
