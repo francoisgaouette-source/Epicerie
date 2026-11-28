@@ -5,7 +5,7 @@
 // Utilisation : node pages-legales.js <fiche.json> <dossier-du-site>
 //   écrit <dossier-du-site>/confidentialite.html et <dossier-du-site>/conditions.html
 //
-// La fiche (JSON) : voir l'exemple dans pages-legales.exemple.json.
+// La fiche (JSON) : voir l'exemple dans pages-legales.exemple.json. Ajouter "feminin": true si l'unité est féminine (famille, voûte).
 // Le modèle et ses règles sont décrits dans le livre de marque (section « Les pages légales »).
 'use strict';
 const fs = require('fs');
@@ -37,8 +37,11 @@ const ENTREPRISE = {
 const liste = items => `<ul>\n${items.map(x => `  <li>${x}</li>`).join('\n')}\n</ul>`;
 const courriel = `<a href="mailto:${a.courriel}">${a.courriel}</a>`;
 const U = a.unite;                       // « groupe » ou « foyer »
-const Ud = /^[aeiouhé]/i.test(U) ? `l’${U}` : `le ${U}`;
-const duU = /^[aeiouhé]/i.test(U) ? `de l’${U}` : `du ${U}`;
+const voy = /^[aeiouhéêâîôû]/i.test(U), fem = !!a.feminin;            // « feminin »: true pour famille, voûte…
+const Ud = voy ? `l’${U}` : fem ? `la ${U}` : `le ${U}`;
+const ceU = fem ? `cette ${U}` : voy ? `cet ${U}` : `ce ${U}`;
+const celui = fem ? 'celle-ci' : 'celui-ci';
+const duU = voy ? `de l’${U}` : fem ? `de la ${U}` : `du ${U}`;
 
 function page(titre, avertissement, corps) {
   return `<!DOCTYPE html>
@@ -109,7 +112,7 @@ ${liste(a.pourquoi)}
 
 <h2>5. Qui y a accès</h2>
 ${liste([
-  `Les membres connectés de votre ${U} voient les renseignements de ce ${U} seulement.`,
+  `Les membres connectés de votre ${U} voient les renseignements de ${ceU} seulement.`,
   `Nos fournisseurs, uniquement pour fournir le service : ${a.fournisseurs}. Ces fournisseurs peuvent conserver des données à l’extérieur du Québec, notamment aux États-Unis. Nous avons évalué que leurs protections sont adéquates avant de leur confier vos renseignements.`])}
 
 <h2>6. Conservation</h2>
@@ -152,7 +155,7 @@ ${s('Remboursement')}
 ${a.particularite ? `\n${s(a.particularite.titre)}\n<p>${a.particularite.texte}</p>\n` : ''}
 ${s('Utilisation acceptable')}
 ${liste([
-  `Ajoutez seulement des personnes qui acceptent de faire partie ${duU}${a.textos ? ' et de recevoir des textos de celui-ci' : ''}.`,
+  `Ajoutez seulement des personnes qui acceptent de faire partie ${duU}${a.textos ? ` et de recevoir des textos de ${celui}` : ''}.`,
   `N’utilisez pas ${a.leNom} pour envoyer des messages non désirés ou pour un usage commercial non autorisé.`,
   `Nous pouvons suspendre ${Ud} qui ne respecte pas ces conditions, après vous en avoir avisé.`])}
 
