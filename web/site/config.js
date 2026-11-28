@@ -12,7 +12,7 @@ window.COMMIS = {
   // Vrais témoignages seulement, avec l'accord écrit de la personne (case cochée dans l'app ou courriel).
   // Exemple : { texte: "…", prenom: "Marie-Eve", ville: "Montréal" }
   temoignages: [],
-  // Avis approuvés dans la console HoldingAI (console.holdingai.app) : lus ici, rien à modifier.
+  // Avis approuvés dans la console HoldingAI (console.letabli.ai) : lus ici, rien à modifier.
   avisUrl: 'https://gandliltstmtfsmsjaew.supabase.co/rest/v1/rpc/temoignages_publies',
   avisCle: 'sb_publishable_8b0VbS6YyEf5vrsn5u9m4Q_JJZ1vkmP'
 };

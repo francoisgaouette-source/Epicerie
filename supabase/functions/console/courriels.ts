@@ -1,5 +1,5 @@
 // Courriels de la console HoldingAI : lecture, état « traité » et réponse.
-// La réponse part par le Worker Cloudflare (console.holdingai.app/api/envoyer), protégé par le secret COURRIEL_SECRET.
+// La réponse part par le Worker Cloudflare (console.letabli.ai/api/envoyer), protégé par le secret COURRIEL_SECRET.
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 export class Refus extends Error { constructor(m: string, public code = 400) { super(m); } }
@@ -43,19 +43,21 @@ export async function actionCourriel(action: string, b: Record<string, unknown>,
     const corps = `${texte}\n\nLe ${quand}, ${c.de_nom ? `${c.de_nom} <${c.de}>` : c.de} a écrit :\n${cite}`;
     const entetes: Record<string, string> = {};
     if (c.message_id) { entetes["In-Reply-To"] = c.message_id; entetes["References"] = [...String(c.refs || "").split(/\s+/).filter(Boolean).slice(-8), c.message_id].join(" ").slice(0, 1900); }
-    const r = await fetch("https://console.holdingai.app/api/envoyer", {
+    // Un courriel reçu à l’ancienne adresse @holdingai.app reçoit sa réponse depuis @letabli.ai
+    const de = String(c.a || "").replace(/@holdingai\.app$/i, "@letabli.ai");
+    const r = await fetch("https://console.letabli.ai/api/envoyer", {
       method: "POST", headers: { "Content-Type": "application/json", "X-Courriel-Secret": secret },
-      body: JSON.stringify({ de: c.a, nom: NOMS[c.app] || "L’Établi", a: vers, sujet, texte: corps, entetes }),
+      body: JSON.stringify({ de, nom: NOMS[c.app] || "L’Établi", a: vers, sujet, texte: corps, entetes }),
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) {
       console.error("Envoi refusé", r.status, d);
       if (r.status === 501) throw new Refus("L'envoi de courriels n'est pas encore activé dans Cloudflare.", 503);
       if (r.status === 403 || d.code === "SECRET_ABSENT") throw new Refus("Le secret COURRIEL_SECRET n'est pas le même dans Cloudflare et dans Supabase.", 503);
-      if (/SENDER/.test(String(d.code))) throw new Refus(`Le domaine de ${c.a} n'est pas encore autorisé à envoyer dans Cloudflare.`, 503);
+      if (/SENDER/.test(String(d.code))) throw new Refus(`Le domaine de ${de} n'est pas encore autorisé à envoyer dans Cloudflare.`, 503);
       throw new Refus(`Le courriel n'est pas parti (${d.code || d.erreur || r.status}).`, 502);
     }
-    const { error } = await admin.from("console_courriels").insert({ sens: "envoye", app: c.app, de: c.a, de_nom: NOMS[c.app] || "L’Établi", a: vers, sujet, texte, fil: c.fil, en_reponse_a: c.message_id, traite: true, envoye_par: uid });
+    const { error } = await admin.from("console_courriels").insert({ sens: "envoye", app: c.app, de, de_nom: NOMS[c.app] || "L’Établi", a: vers, sujet, texte, fil: c.fil, en_reponse_a: c.message_id, traite: true, envoye_par: uid });
     await admin.from("console_courriels").update({ traite: true, traite_par: uid, traite_le: new Date().toISOString() }).eq("fil", c.fil).eq("sens", "recu").eq("traite", false);
     await noter(c.app, `${vers} : ${sujet}`.slice(0, 200), { geste: "repondu" });
     // Le courriel est parti : si la note a échoué, on le dit sans faire croire à un échec d'envoi

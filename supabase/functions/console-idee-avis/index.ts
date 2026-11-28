@@ -6,7 +6,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ORIGINES = /^https:\/\/(console\.holdingai\.app|console\.letabli\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
+const ORIGINES = /^https:\/\/(console\.letabli\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
 const COMPTE_URL = "https://wwakxuzuhmdmweluafiz.supabase.co";
 const COMPTE_CLE = "sb_publishable_OyU2dc38EwE-kS8qdbkqpg_w2g-rTYd"; // clé publique de la liste des apps
 const MODELE = Deno.env.get("MODEL_AVIS_IDEE") || "claude-sonnet-5-5";
@@ -17,7 +17,7 @@ const cle = (slug: string) => CLES[slug] || slug.replace(/^(le|la)-/, "");
 
 Deno.serve(async (req: Request) => {
   const o = req.headers.get("Origin") || "";
-  const CORS = { "Access-Control-Allow-Origin": ORIGINES.test(o) ? o : "https://console.holdingai.app", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin" };
+  const CORS = { "Access-Control-Allow-Origin": ORIGINES.test(o) ? o : "https://console.letabli.ai", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin" };
   const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ erreur: "Méthode non permise" }, 405);

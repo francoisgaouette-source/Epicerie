@@ -9,14 +9,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const PLUMEAU_URL = "https://xpgpzhfmfusdenbwrpny.supabase.co";
-const ORIGINES = /^https:\/\/(console\.letabli\.ai|console\.holdingai\.app|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
+const ORIGINES = /^https:\/\/(console\.letabli\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
 const UUID = /^[0-9a-f-]{36}$/i;
 const STATUTS = ["recue", "etudiee", "prevue", "faite", "non"];
 
 Deno.serve(async (req: Request) => {
   const origine = req.headers.get("Origin") || "";
   const CORS: Record<string, string> = {
-    "Access-Control-Allow-Origin": ORIGINES.test(origine) ? origine : "https://console.holdingai.app",
+    "Access-Control-Allow-Origin": ORIGINES.test(origine) ? origine : "https://console.letabli.ai",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",

@@ -12,7 +12,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ORIGINES = /^https:\/\/(console\.letabli\.ai|console\.holdingai\.app|app\.lecommis\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
+const ORIGINES = /^https:\/\/(console\.letabli\.ai|app\.lecommis\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
 const JOUR = 864e5;
 
 // Tarifs en $ US par million de jetons : entrée, sortie, écriture en cache, lecture en cache (mêmes valeurs que les apps)
@@ -163,7 +163,7 @@ async function stripe(debut: Date) {
 
 Deno.serve(async (req: Request) => {
   const o = req.headers.get("Origin") || "";
-  const CORS = { "Access-Control-Allow-Origin": ORIGINES.test(o) ? o : "https://console.holdingai.app", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin" };
+  const CORS = { "Access-Control-Allow-Origin": ORIGINES.test(o) ? o : "https://console.letabli.ai", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin" };
   const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ erreur: "Méthode non permise" }, 405);

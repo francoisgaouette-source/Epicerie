@@ -1,7 +1,7 @@
 // Cloudflare : un seul Worker sert les trois adresses, à partir du dossier web/.
 //   app.lecommis.ai       → l'app (web/)
 //   lecommis.ai           → le site de vente (web/site/) ; www.lecommis.ai y renvoie
-//   console.letabli.ai    → la console (web/console/); console.holdingai.app, l'ancienne adresse, y mène aussi
+//   console.letabli.ai    → la console (web/console/); console.holdingai.app, l’ancienne adresse, redirige vers console.letabli.ai
 // La répartition se fait dans worker/index.js. Mise en ligne : Cloudflare Workers Builds, à chaque modification de main.
 {
   "name": "lecommis",

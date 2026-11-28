@@ -1,6 +1,6 @@
 // CRM de la console HoldingAI : contacts (clients et prospects), notes, tâches, courriels et import.
 // Réservé aux comptes de console_admins. « lecture » consulte; « gestion » et « proprio » modifient.
-// Les courriels partent par le Worker Cloudflare (console.holdingai.app/api/envoyer), avec le secret COURRIEL_SECRET.
+// Les courriels partent par le Worker Cloudflare (console.letabli.ai/api/envoyer), avec le secret COURRIEL_SECRET.
 //   { action: "tout" }                                         → contacts, notes, tâches
 //   { action: "contact.enregistrer", contact }                 → crée (sans id) ou modifie (avec id); invite_par, invite_app, invite_le : invitation à la bêta
 //   { action: "contact.supprimer", id }
@@ -11,14 +11,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ORIGINES = /^https:\/\/(console\.letabli\.ai|console\.holdingai\.app|app\.lecommis\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
+const ORIGINES = /^https:\/\/(console\.letabli\.ai|app\.lecommis\.ai|[a-z0-9-]+\.francois-gaouette\.workers\.dev)$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COURRIEL = /^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$/;
 const TYPES = ["client", "prospect", "partenaire", "testeur", "media", "autre"];
 const ETAPES = ["a_contacter", "contacte", "interesse", "converti", "perdu"];
 const APPS = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale"];
 const EXPEDITEURS: Record<string, { app: string; nom: string }> = {
-  "bonjour@holdingai.app": { app: "holdingai", nom: "L’Établi" },
+  "bonjour@letabli.ai": { app: "holdingai", nom: "L’Établi" },
   "bonjour@lecommis.ai": { app: "commis", nom: "Le Commis" },
   "bonjour@fanion.ai": { app: "fanion", nom: "Le Fanion" },
 };
@@ -69,7 +69,7 @@ export function propre(c: Record<string, unknown>, partiel = false) {
 
 Deno.serve(async (req: Request) => {
   const o = req.headers.get("Origin") || "";
-  const CORS = { "Access-Control-Allow-Origin": ORIGINES.test(o) ? o : "https://console.holdingai.app", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin" };
+  const CORS = { "Access-Control-Allow-Origin": ORIGINES.test(o) ? o : "https://console.letabli.ai", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin" };
   const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ erreur: "Méthode non permise" }, 405);
@@ -172,7 +172,7 @@ Deno.serve(async (req: Request) => {
     if (action === "courriel.envoyer") {
       const c = await contact(b.contact_id);
       if (!c.courriel) throw new Refus("Ce contact n'a pas de courriel.");
-      const de = String(b.de || "bonjour@holdingai.app").toLowerCase();
+      const de = String(b.de || "bonjour@letabli.ai").toLowerCase();
       const exp = EXPEDITEURS[de]; if (!exp) throw new Refus("Adresse d'envoi inconnue.");
       const sujet = String(b.sujet || "").replace(/\s+/g, " ").trim().slice(0, 300);
       const corps = String(b.texte || "").replace(/\r\n/g, "\n").trim();
@@ -181,7 +181,7 @@ Deno.serve(async (req: Request) => {
       if (corps.length > 20000) throw new Refus("Le message est trop long.");
       const secret = Deno.env.get("COURRIEL_SECRET");
       if (!secret) throw new Refus("L'envoi de courriels n'est pas encore configuré (secret COURRIEL_SECRET absent).", 503);
-      const r = await fetch("https://console.holdingai.app/api/envoyer", {
+      const r = await fetch("https://console.letabli.ai/api/envoyer", {
         method: "POST", headers: { "Content-Type": "application/json", "X-Courriel-Secret": secret },
         body: JSON.stringify({ de, nom: exp.nom, a: c.courriel, sujet, texte: corps }),
       });

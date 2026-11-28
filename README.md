@@ -43,7 +43,7 @@ Le projet **Notre épicerie** existe déjà dans votre organisation Supabase, av
 ### 3. Cloudflare : l'application et le site
 
 L'hébergement est un Worker Cloudflare (`wrangler.jsonc`, `worker/index.js`) branché sur le dépôt GitHub avec Workers Builds.
-Il sert le dossier `web/` selon l'adresse : `app.lecommis.ai` (l'app), `lecommis.ai` (le site, `web/site`) et `console.letabli.ai` (la console, `web/console`; l'ancienne adresse `console.holdingai.app` marche encore).
+Il sert le dossier `web/` selon l'adresse : `app.lecommis.ai` (l'app), `lecommis.ai` (le site, `web/site`) et `console.letabli.ai` (la console, `web/console`; l'ancienne adresse `console.holdingai.app` redirige ici).
 Dans Supabase, **Authentication > URL Configuration** : Site URL `https://app.lecommis.ai`, Redirect URL `https://app.lecommis.ai/**`.
 
 Chaque fois que le code change sur GitHub (branche main), Cloudflare republie automatiquement.

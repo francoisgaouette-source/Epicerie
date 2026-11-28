@@ -6,7 +6,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ORIGINES = ["https://console.letabli.ai", "https://console.holdingai.app", "https://app.lecommis.ai", "https://lecommis.netlify.app"];
+const ORIGINES = ["https://console.letabli.ai", "https://app.lecommis.ai", "https://lecommis.netlify.app"];
 const cors = (o: string) => ({
   "Access-Control-Allow-Origin": ORIGINES.includes(o) ? o : ORIGINES[0],
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",

@@ -13,7 +13,7 @@ async function clesGoogle() {
   const r = await fetch("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com");
   CLES = (await r.json()).keys; CLES_A = Date.now(); return CLES!;
 }
-// Compte HoldingAI (compte.holdingai.app) : jeton signé par HoldingAI Compte, vérifié avec ses clés publiques (JWKS).
+// Compte L’Établi (compte.letabli.ai) : jeton signé par HoldingAI Compte, vérifié avec ses clés publiques (JWKS).
 const HAI_ISS = "https://wwakxuzuhmdmweluafiz.supabase.co/auth/v1";
 let CLES_HAI: JsonWebKey[] | null = null, CLES_HAI_A = 0;
 async function clesHai() {

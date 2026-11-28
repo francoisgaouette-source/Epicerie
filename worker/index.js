@@ -4,15 +4,14 @@
 const SITES = {
   "lecommis.ai": "/site",
   "console.letabli.ai": "/console",
-  "console.holdingai.app": "/console",
 };
-// Pour tester sur l'adresse workers.dev : ?hote=lecommis.ai ou ?hote=console.holdingai.app (mémorisé dans un témoin)
+// Pour tester sur l'adresse workers.dev : ?hote=lecommis.ai ou ?hote=console.letabli.ai (mémorisé dans un témoin)
 const TEST = /\.workers\.dev$|^localhost$/;
 
 const CSP_CONSOLE = "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src https://gandliltstmtfsmsjaew.supabase.co https://inhheqccvhwybmcdboip.supabase.co https://jdgflxesnaiumxodrkzd.supabase.co https://wuvpckyktoukttkbdzql.supabase.co https://wwakxuzuhmdmweluafiz.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 // ---------- Courriels ----------
-// Tout ce qui est écrit à une adresse @letabli.ai, @holdingai.app, @lecommis.ai ou @fanion.ai passe ici (Email Routing, règle « catch-all » de chaque domaine) :
+// Tout ce qui est écrit à une adresse @letabli.ai, @lecommis.ai ou @fanion.ai (et à l’ancienne @holdingai.app, gardée en silence) passe ici (Email Routing, règle « catch-all » de chaque domaine) :
 //   1. une copie part vers la boîte personnelle (secret COPIE_COURRIEL, une adresse vérifiée dans Email Routing) ;
 //   2. le message est noté dans la console (fonction Supabase « courriel-recu », protégée par le secret COURRIEL_SECRET).
 // Les réponses écrites dans la console repartent par /api/envoyer (liaison EMAIL, Cloudflare Email Sending).
@@ -96,7 +95,12 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     let host = url.hostname;
-    if ((host === "console.holdingai.app" || host === "console.letabli.ai") && url.pathname === "/api/envoyer") return envoyer(request, env);
+    if (host === "console.letabli.ai" && url.pathname === "/api/envoyer") return envoyer(request, env);
+    // Ancienne adresse de la console : on renvoie vers console.letabli.ai (même chemin, mêmes paramètres)
+    if (host === "console.holdingai.app") {
+      url.hostname = "console.letabli.ai";
+      return Response.redirect(url.toString(), 301);
+    }
 
     if (host === "www.lecommis.ai") {
       url.hostname = "lecommis.ai";
