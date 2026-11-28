@@ -1121,8 +1121,59 @@
         <li>Les liens de parrainage propres au Commis (?ref=) ne comptent pas leurs ouvertures ; ceux du bouton « Inviter quelqu'un » les comptent.</li></ul>`);
   }
 
+  // ---------- infra : où vit chaque app, état des sites et ce qui reste à faire.
+  // Relevé du 28 novembre 2026 (tour des 15 sites sur ordinateur et téléphone). À tenir à jour quand une app change d'hébergement ou de base.
+  const INFRA_RELEVE = "28 novembre 2026";
+  // [app, site, adresse de l'app, hébergement, projet Supabase, état du site, note]
+  const INFRA = [
+    ["commis", "lecommis.ai", "app.lecommis.ai", "Worker lecommis (sert aussi la console)", "Notre épicerie", "pret", ""],
+    ["voute", "lavoute.ai", "app.lavoute.ai", "Worker la-voute; relais du guide : la-voute-agent", "Le Seuil et La Voûte", "pret", "Partage sa base avec Le Seuil et La Nostalgie."],
+    ["seuil", "leseuil.ai", "app.leseuil.ai", "Worker leseuil", "Le Seuil et La Voûte", "pret", ""],
+    ["nostalgie", "lanostalgie.ai", "app.lanostalgie.ai", "Worker lanostalgie", "Le Seuil et La Voûte", "pret", ""],
+    ["debours", "ledebours.ai", "app.ledebours.ai", "Worker le-debours", "Le Débours", "corrige", "Pages Conditions et Confidentialité ajoutées; « Nous écrire » vers bonjour@letabli.ai."],
+    ["fanion", "lefanion.ai", "app.lefanion.ai", "GitHub Pages (app) + Worker pelland (site)", "Le Fanion", "pret", ""],
+    ["echange", "lechange.ai", "app.lechange.ai", "Worker lechange (dépôt le-fanion)", "L'Échange", "pret", ""],
+    ["gousset", "legousset.ai", "app.legousset.ai", "Cloudflare Pages + Worker le-gousset-site", "Le Gousset", "pret", ""],
+    ["plumeau", "leplumeau.ai", "app.leplumeau.ai", "Cloudflare Pages + Worker le-plumeau-site", "Le Plumeau", "pret", ""],
+    ["donne", "ladonne.ai", "app.ladonne.ai", "GitHub Pages (dépôt le-tapis)", "Le Tapis", "pret", ""],
+    ["tiroir", "letiroir.ai", "app.letiroir.ai", "Worker le-tiroir", "Le Tiroir", "corrige", "Portrait de Louis-Philippe permis; visites suivantes réparées le 27 nov."],
+    ["pourquoi", "lepourquoi.ai", "app.lepourquoi.ai", "Cloudflare Pages", "Le Pourquoi", "pret", ""],
+    ["escale", "lescale.ai", "app.lescale.ai", "Worker lescale", "L'Escale", "corrige", "Pages Conditions et Confidentialité ajoutées."],
+    ["vestibule", "levestibule.ai", "app.levestibule.ai", "Cloudflare Pages + Worker levestibule-courriel", "Le Vestibule", "pret", ""],
+    ["holdingai", "letabli.ai", "compte.letabli.ai", "Worker holdingai-compte (compte); site dans le dépôt Epicerie", "HoldingAI Compte", "detail", "Le menu du site montre « Console » au public."],
+  ];
+  const INFRA_A_FAIRE = [
+    ["Nommer la personne responsable des renseignements personnels", "La Loi 25 demande de publier son titre et ses coordonnées. Les pages de confidentialité renvoient seulement à bonjour@letabli.ai pour l'instant."],
+    ["Faire valider les pages légales par un avocat", "Toutes les apps, en particulier celles du Débours et de L'Escale, écrites le 28 novembre."],
+    ["Essayer La Voûte avec un vrai compte", "Se connecter sur app.lavoute.ai, puis parler à Frank. L'adresse de retour et le relais ont changé le 27 novembre."],
+    ["Activer l'envoi de courriels pour letabli.ai dans Cloudflare", "Aucun envoi n'a encore réussi depuis la console (réponses et CRM). Ensuite, envoyer un courriel d'essai."],
+    ["Retirer le bouton « Console » du site letabli.ai", "La console refuse les autres comptes, mais ce lien n'a pas sa place devant le public."],
+    ["Laisser passer les statistiques de Cloudflare", "Le petit script de statistiques est bloqué par les règles de sécurité des sites : les visites ne sont pas comptées."],
+    ["Décider du sort de holdingai.app", "Il ne sert plus qu'à rediriger et à recevoir en silence les courriels écrits à @holdingai.app (≈ 15 $ par an)."],
+  ];
+  function vueInfra() {
+    const etatSite = { pret: `<span class="tampon">Prêt</span>`, corrige: `<span class="tampon">Corrigé</span>`, detail: `<span class="tampon attente">Un détail</span>` };
+    const lien = (a) => `<a href="https://${esc(a)}/" target="_blank" rel="noopener">${esc(a)}</a>`;
+    const prets = INFRA.filter((x) => x[5] !== "detail").length;
+    return section("Infra", `Où vit chaque app, l'état de son site et ce qui reste à faire. Relevé du ${INFRA_RELEVE}.`,
+        chiffres([[INFRA.length, "sites"], [prets, "prêts"], [INFRA.filter((x) => x[5] === "corrige").length, "corrigés le 27-28 nov."], [INFRA_A_FAIRE.length, "à faire"]])) +
+      section("Reste à faire", "Dans l'ordre où je les ferais.",
+        `<ol class="note-liste">${INFRA_A_FAIRE.map(([t, d]) => `<li><b>${esc(t)}</b><br><small>${esc(d)}</small></li>`).join("")}</ol>`) +
+      section("Les sites", "Vérifiés sur ordinateur (1280 px) et sur téléphone (375 px) : mise en page, images, liens de l'accueil et bouton « Se connecter ».",
+        table([{ t: "App" }, { t: "Site" }, { t: "État" }, { t: "Note" }],
+          INFRA.map(([k, site, , , , e, note]) => [k === "holdingai" ? `<span class="app"><i class="pastille holdingai"></i>L'Établi</span>` : puce(k), lien(site), etatSite[e], note ? `<small>${esc(note)}</small>` : ""]), "")) +
+      section("Où vit chaque app", "Domaines achetés et gérés dans Cloudflare. Bases Supabase au Canada (ca-central-1). Connexion commune : compte.letabli.ai.",
+        table([{ t: "App" }, { t: "App en ligne" }, { t: "Hébergement" }, { t: "Projet Supabase" }],
+          INFRA.map(([k, , app, h, sb]) => [k === "holdingai" ? `<span class="app"><i class="pastille holdingai"></i>Compte L'Établi</span>` : puce(k), lien(app), esc(h), esc(sb)]), "")) +
+      section("Bon à savoir", "",
+        `<ul class="note-liste"><li>Les fonctions Supabase en ligne ont été comparées à GitHub le 28 novembre : elles sont à jour.</li>
+        <li>console-pont tourne dans 5 projets (Commis, Compte, Seuil et Voûte, Gousset, Tiroir), avec la même version partout.</li>
+        <li>holdingai.app ne s'affiche plus nulle part : ses anciennes adresses redirigent vers letabli.ai, console.letabli.ai, compte.letabli.ai et app.lavoute.ai.</li>
+        <li>Plusieurs conversations avec Claude modifient parfois les mêmes dépôts : mieux vaut en avoir une seule à la fois par app.</li></ul>`);
+  }
+
   // Menu sur deux rangées : les fonctions en haut, les apps en dessous
-  const FONCTIONS = [["traiter", "À traiter"], ["crm", "CRM"], ["comptes", "Comptes"], ["courriels", "Courriels"], ["idees", "Idées"], ["viralite", "Viralité"], ["couts", "Coûts"], ["journal", "Journal"]];
+  const FONCTIONS = [["traiter", "À traiter"], ["crm", "CRM"], ["comptes", "Comptes"], ["courriels", "Courriels"], ["idees", "Idées"], ["viralite", "Viralité"], ["couts", "Coûts"], ["infra", "Infra"], ["journal", "Journal"]];
   const APPS = ["echange", "gousset", "pourquoi", "commis", "fanion", "seuil", "plumeau", "vestibule", "tiroir", "voute", "donne", "nostalgie", "escale"].map((k) => [k, nomApp[k]]);
   function rendre() {
     const d = etat.d; if (!d) return;
@@ -1132,7 +1183,7 @@
     const bouton = (cls) => ([k, mot]) => `<button class="${cls}" data-vue="${k}" ${etat.vue === k ? 'aria-current="page"' : ""}>${cls === "app" ? `<i class="pastille ${k}"></i>` : ""}${mot}${k === "traiter" && n ? `<span class="compte">${n}</span>` : ""}</button>`;
     $("#onglets").innerHTML = `<div class="rangee fonctions" role="group" aria-label="Fonctions">${fonctions.map(bouton("onglet")).join("")}</div>` +
       `<div class="rangee apps" role="group" aria-label="Apps">${APPS.map(bouton("app")).join("")}</div>`;
-    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "viralite" ? vueViralite(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : nomApp[etat.vue] ? vueAppCompte(d, etat.vue) : vueTraiter(d);
+    $("#page").innerHTML = etat.vue === "commis" ? vueCommis(d) : etat.vue === "fanion" ? vueFanion(d) : etat.vue === "plumeau" ? vuePlumeau(d) : etat.vue === "tiroir" ? vueTiroir(d) : etat.vue === "gousset" ? vueGousset(d) : etat.vue === "seuil" ? vueSeuil(d) : etat.vue === "voute" ? vueVoute(d) : etat.vue === "comptes" ? vueComptes(d) : etat.vue === "crm" ? vueCrm(d) : etat.vue === "journal" ? vueJournal(d) : etat.vue === "viralite" ? vueViralite(d) : etat.vue === "couts" ? vueCouts(d) : etat.vue === "infra" ? vueInfra() : etat.vue === "acces" ? vueAcces(d) : etat.vue === "courriels" ? vueCourriels(d) : etat.vue === "idees" ? vueIdees(d) : nomApp[etat.vue] ? vueAppCompte(d, etat.vue) : vueTraiter(d);
     if (nomApp[etat.vue] && APPS.some(([k]) => k === etat.vue)) $("#page").insertAdjacentHTML("afterbegin", ouvrirApp(d, etat.vue));
     // Consultation seulement : aucun bouton de geste (le serveur les refuserait de toute façon)
     if (etat.role === "lecture") $("#page").querySelectorAll("[data-avis],[data-foyer],[data-groupe],[data-demande],[data-courriel],[data-idee],[data-nouveaute],[data-plumeau-compte],[data-tiroir],[data-gousset],#f-nouveaute,[data-crm-ecrit],[data-statut-app]").forEach((b) => b.remove());
